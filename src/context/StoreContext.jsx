@@ -77,18 +77,15 @@ export const StoreProvider = ({ children }) => {
   
   const [profileUser, setProfileUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('qlay_profile_user')) || {
-        name: 'Yunusbek Khabibullayev',
-        phone: '+998 90 123 45 67',
-        address: "Toshkent sh., Chilonzor tumani, Qatortol ko'chasi 15-uy"
-      };
-    } catch {
-      return {
-        name: 'Yunusbek Khabibullayev',
-        phone: '+998 90 123 45 67',
-        address: "Toshkent sh., Chilonzor tumani, Qatortol ko'chasi 15-uy"
-      };
-    }
+      const saved = localStorage.getItem('qlay_profile_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+
+    return {
+      name: '',
+      phone: '',
+      address: ''
+    };
   });
 
   // Telegram SDK setup & Haptic feedback helper
@@ -240,12 +237,13 @@ export const StoreProvider = ({ children }) => {
   // Update profile user name when telegram loads
   useEffect(() => {
     if (telegramUser) {
-      setProfileUser(prev => ({
-        ...prev,
-        name: prev.name === 'Yunusbek Khabibullayev' && telegramUser.first_name 
-          ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() 
-          : prev.name
-      }));
+      setProfileUser(prev => {
+        const fullName = `${telegramUser.first_name || ''} ${telegramUser.last_name || ''}`.trim();
+        return {
+          ...prev,
+          name: prev.name && prev.name !== 'Yunusbek Khabibullayev' ? prev.name : (fullName || 'Mijoz')
+        };
+      });
     }
   }, [telegramUser]);
 

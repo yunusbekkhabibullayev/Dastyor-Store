@@ -325,15 +325,15 @@ export const ProfileView = () => {
         <div className="bg-white rounded-2xl p-5 border border-gray-150 shadow-2xs">
           <div className="flex items-center gap-3.5">
             <div className="w-14 h-14 rounded-full bg-[#e8f0fe] flex items-center justify-center text-[#3b82f6] text-xl font-bold shrink-0">
-              {(profileUser?.name || 'Y').charAt(0).toUpperCase()}
+              {(profileUser?.name || 'M').charAt(0).toUpperCase()}
             </div>
             
-            <div className="flex-1 min-w-0">
-              <h2 className="text-[17px] font-extrabold text-gray-900 truncate leading-tight text-left">
-                {profileUser?.name}
+            <div className="flex-1 min-w-0 text-left">
+              <h2 className="text-base font-extrabold text-gray-900 truncate leading-tight">
+                {profileUser?.name || (lang === 'uz' ? 'Ismingizni kiriting' : 'Введите имя')}
               </h2>
-              <p className="text-xs text-gray-400 font-medium mt-0.5 text-left">
-                {profileUser?.phone}
+              <p className="text-xs text-gray-500 font-semibold mt-1">
+                {profileUser?.phone || '+998 ( ) xxx xx xx'}
               </p>
             </div>
 
@@ -344,7 +344,7 @@ export const ProfileView = () => {
               }}
               className="text-xs font-bold text-[#3b82f6] hover:underline transition-all shrink-0 active:scale-95 py-2 cursor-pointer"
             >
-              {lang === 'uz' ? "O'zgartirish" : lang === 'ru' ? 'Изменить' : 'Change'}
+              {lang === 'uz' ? "O'zgartirish" : 'Изменить'}
             </button>
           </div>
 
@@ -367,33 +367,27 @@ export const ProfileView = () => {
       ) : (
         <form onSubmit={handleSave} className="bg-white rounded-2xl p-5 border border-gray-150 shadow-2xs space-y-4 animate-scaleUp">
           {error && (
-            <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-[11px] font-bold text-rose-600 text-center animate-shake">
+            <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-[11px] font-bold text-rose-600 text-center animate-shake">
               ⚠️ {error}
             </div>
           )}
-          <h3 className="text-sm font-extrabold text-gray-900 border-b border-gray-50 pb-2 flex items-center gap-2">
-            <UserIcon className="w-4 h-4 text-[#3b82f6]" />
-            <span>{lang === 'uz' ? 'Ma\'lumotlarni tahrirlash' : 'Edit profile'}</span>
-          </h3>
 
-          <div className="space-y-3 text-xs">
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 text-left">
-                {lang === 'uz' ? 'Ism' : 'Name'}
-              </label>
+          <div className="flex items-center gap-3.5">
+            {/* Avatar Circle */}
+            <div className="w-14 h-14 rounded-full bg-[#e8f0fe] flex items-center justify-center text-[#3b82f6] text-xl font-bold shrink-0">
+              {(editName || 'M').charAt(0).toUpperCase()}
+            </div>
+
+            {/* Inline Input Fields matching Screenshot 2 */}
+            <div className="flex-1 space-y-2">
               <input
                 type="text"
                 required
+                placeholder={lang === 'uz' ? 'Ismingiz' : 'Имя'}
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-[#fcfcfd] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 focus:border-blue-500 focus:outline-none transition-colors"
               />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 text-left">
-                {lang === 'uz' ? 'Telefon raqam' : 'Phone number'}
-              </label>
               <input
                 type="text"
                 required
@@ -407,41 +401,18 @@ export const ProfileView = () => {
                   }
                   setEditPhone(formatUzPhone(val));
                 }}
-                className="w-full bg-[#fcfcfd] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 text-left">
-                {lang === 'uz' ? 'Manzil' : 'Default address'}
-              </label>
-              <textarea
-                value={editAddress}
-                onChange={(e) => setEditAddress(e.target.value)}
-                rows={2}
-                className="w-full bg-[#fcfcfd] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 focus:border-blue-500 focus:outline-none transition-colors"
               />
             </div>
           </div>
 
-          <div className="flex gap-2.5 pt-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setIsEditing(false);
-              }}
-              className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold text-xs text-center active:scale-95 transition-all cursor-pointer"
-            >
-              {lang === 'uz' ? 'Bekor qilish' : 'Cancel'}
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-3 bg-[#3b82f6] hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl text-center shadow-md shadow-blue-500/10 transition-all cursor-pointer"
-            >
-              {lang === 'uz' ? 'Saqlash' : 'Save'}
-            </button>
-          </div>
+          {/* Full Width Saqlash Button matching Screenshot 2 */}
+          <button
+            type="submit"
+            className="w-full py-3 bg-[#3b82f6] hover:bg-blue-600 active:scale-[0.98] text-white font-bold text-xs rounded-xl text-center shadow-md shadow-blue-500/10 transition-all cursor-pointer"
+          >
+            {lang === 'uz' ? 'Saqlash' : 'Сохранить'}
+          </button>
         </form>
       )}
 
