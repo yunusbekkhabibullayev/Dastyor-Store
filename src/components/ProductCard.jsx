@@ -45,7 +45,7 @@ export const ProductCard = ({ product }) => {
             e.stopPropagation();
             toggleFavorite(product.id);
           }}
-          className="absolute top-2.5 right-2.5 z-20 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border border-gray-100/50"
+          className="absolute top-2.5 right-2.5 z-10 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border border-gray-100/50"
           title={isFavorite ? (lang === 'uz' ? 'Saralanganlardan o\'chirish' : 'Удалить из избранного') : (lang === 'uz' ? 'Saralanganlarga qo\'shish' : 'В избранное')}
         >
           {isFavorite ? (

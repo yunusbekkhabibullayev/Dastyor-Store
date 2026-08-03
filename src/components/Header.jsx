@@ -9,7 +9,7 @@ export const Header = ({ onSearchOpen }) => {
   if (activeTab === 'profile') {
     const isHistorySubView = profileSubView === 'history';
     return (
-      <header className="sticky top-0 z-30 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+      <header className="sticky top-0 z-40 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between px-4 py-3 relative min-h-[56px]">
           {/* Back button */}
           <button
@@ -56,7 +56,7 @@ export const Header = ({ onSearchOpen }) => {
   if (activeTab === 'favorites' || activeTab === 'cart') {
     const title = activeTab === 'favorites' ? t.favorites : t.cart;
     return (
-      <header className="sticky top-0 z-30 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+      <header className="sticky top-0 z-40 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between px-4 py-3 relative min-h-[56px]">
           {/* Back button */}
           <button
@@ -82,7 +82,7 @@ export const Header = ({ onSearchOpen }) => {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+    <header className="sticky top-0 z-40 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           {siteSettings?.logo ? (

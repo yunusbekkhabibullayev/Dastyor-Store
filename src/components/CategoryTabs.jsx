@@ -22,7 +22,7 @@ export const CategoryTabs = ({ variant }) => {
     : [allTab, ...activeCategories.filter(c => c.id !== 'all')];
 
   return (
-    <div className="sticky top-[56px] z-20 bg-white border-b border-gray-100/80">
+    <div className="sticky top-[56px] z-30 bg-white border-b border-gray-100/80 shadow-2xs">
       <div
         ref={scrollRef}
         className="overflow-x-auto no-scrollbar px-4 py-2.5 flex items-center gap-2"
