@@ -298,16 +298,6 @@ export const ProfileView = () => {
       <div className="p-4 pb-28 max-w-lg mx-auto space-y-4 animate-scaleUp">
         {/* History Header Controls */}
         <div className="flex justify-between items-center px-1">
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              setProfileSubView(null);
-            }}
-            className="text-xs font-bold text-[#3b82f6] hover:underline flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
-          >
-            ← {lang === 'uz' ? 'Profilga qaytish' : 'Назад в профиль'}
-          </button>
-
           <span className="text-xs font-black text-gray-900">
             {t.ordersHistory} ({orders.length})
           </span>
