@@ -43,11 +43,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Direct Health Check Endpoints ──────────────────────────────
+app.get(['/health', '/ping'], (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    message: 'Dastyor Store Server is active',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // ─── API Routes ────────────────────────────────────────────────
 app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
-// ─── Dynamic OG Meta Tags (for Telegram link previews) ─────────
+// ─── Dynamic OG Meta Tags ──────────────────────────────────────
 const backendProducts = [
   { id: 'p1', title: { uz: "L'Oréal Paris Mascarasi", ru: "L'Oréal Paris Mascarasi", en: "L'Oréal Paris Mascara" }, description: { uz: "Kipriklarga maksimal hajm va uzunlik beruvchi professional tush.", ru: "Профессиональная тушь для объема и удлинения ресниц.", en: "Professional mascara for volume and length." }, image: '/images/mascara.png' },
   { id: 'p2', title: { uz: 'Ампула SKIN1004 с центеллой', ru: 'Ампула SKIN1004 с центеллой', en: 'SKIN1004 Centella Ampoule' }, description: { uz: "Centella asiatica terini tinchlantiruvchi va namlantiruvchi ampula.", ru: "Успокаивающая ампула на основе экстракта центеллы.", en: "Soothing and hydrating Centella ampoule." }, image: '/images/centella.png' },
@@ -64,7 +75,13 @@ const backendProducts = [
 app.get('/', (req, res, next) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
   if (!fs.existsSync(indexPath)) {
-    return next();
+    return res.status(200).json({
+      success: true,
+      service: 'Dastyor Store Backend API',
+      status: 'online',
+      timestamp: new Date().toISOString(),
+      healthCheck: '/api/health'
+    });
   }
 
   let html = fs.readFileSync(indexPath, 'utf-8');
@@ -105,13 +122,22 @@ app.get('/', (req, res, next) => {
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(path.join(__dirname, '../dist')));
 
-// ─── SPA Fallback ──────────────────────────────────────────────
+// ─── SPA Fallback & Default Response ───────────────────────────
 app.use((req, res) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send('Not Found');
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ success: false, message: 'API endpoint not found' });
+    } else {
+      res.status(200).json({
+        success: true,
+        service: 'Dastyor Store Backend API',
+        status: 'online',
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 });
 
