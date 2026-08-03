@@ -280,23 +280,7 @@ const dbInit = async () => {
     console.log('[DB] Default products seeded successfully.');
   }
 
-  const orderCount = await dbGet("SELECT COUNT(*) as count FROM orders");
-  if (orderCount.count === 0) {
-    const sampleOrder = {
-      id: 'ORD-282', userId: 1165441564, name: 'Yunusbek Khabibullayev',
-      phone: '+998 (90) 123 45 67', address: "Toshkent sh., Chilonzor tumani, Qatortol ko'chasi 15-uy",
-      paymentMethod: 'Click (Olib ketish)', totalAmount: 300000, status: 'processing', date: '2026-07-24'
-    };
-    await dbRun(
-      "INSERT INTO orders (id, user_id, name, phone, address, payment_method, total_amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [sampleOrder.id, sampleOrder.userId, sampleOrder.name, sampleOrder.phone, sampleOrder.address, sampleOrder.paymentMethod, sampleOrder.totalAmount, sampleOrder.status, sampleOrder.date]
-    );
-    await dbRun(
-      "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-      [sampleOrder.id, 'p1', 3, 100000]
-    );
-    console.log('[DB] Default sample orders seeded successfully.');
-  }
+  // Orders table starts completely empty for real production users
 
   // Seed Banners if empty
   const bannerCount = await dbGet("SELECT COUNT(*) as count FROM banners");
