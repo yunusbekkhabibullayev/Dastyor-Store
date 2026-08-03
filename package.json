@@ -3,16 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "engines": {
-    "node": "20.x"
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/server.cjs",
-    "server": "node server/server.cjs",
-    "postinstall": "npm rebuild sqlite3 --build-from-source"
+    "server": "node server/server.cjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
