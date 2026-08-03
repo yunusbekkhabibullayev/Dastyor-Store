@@ -134,7 +134,7 @@ export const StoreProvider = ({ children }) => {
     fetch(`/api/user/${userId}/orders`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.success && Array.isArray(data.orders) && data.orders.length > 0) {
+        if (data && data.success && Array.isArray(data.orders)) {
           const formattedOrders = data.orders.map(o => ({
             id: o.id,
             date: o.created_at,
@@ -152,10 +152,8 @@ export const StoreProvider = ({ children }) => {
             phone: o.phone,
             paymentMethod: o.payment_method
           }));
-          setOrders(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(formattedOrders)) return prev;
-            return formattedOrders;
-          });
+          setOrders(formattedOrders);
+          localStorage.setItem('qlay_orders', JSON.stringify(formattedOrders));
         }
       })
       .catch(err => console.warn('Failed to fetch user orders:', err));
