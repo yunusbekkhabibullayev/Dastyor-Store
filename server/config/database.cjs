@@ -290,7 +290,12 @@ const dbInit = async () => {
     console.log('[DB] Default products seeded successfully.');
   }
 
-  // Orders table starts completely empty for real production users
+  // Cleanup any legacy sample seed orders from database
+  try {
+    await dbRun("DELETE FROM orders WHERE id = 'ORD-282' OR id LIKE 'ORD-282%'");
+  } catch (e) {
+    console.warn('[DB] Failed to cleanup legacy sample orders:', e.message);
+  }
 
   // Seed Banners if empty
   const bannerCount = await dbGet("SELECT COUNT(*) as count FROM banners");
