@@ -1,0 +1,335 @@
+/**
+ * Admin Controller
+ * 
+ * Handles all admin API endpoints: stats, orders, products CRUD, categories CRUD.
+ * Inspired by online-menu's Admin/OrderController.php, Admin/CategoryController.php.
+ */
+
+const Category = require('../models/Category.cjs');
+const Product = require('../models/Product.cjs');
+const Order = require('../models/Order.cjs');
+const SiteSettings = require('../models/SiteSettings.cjs');
+const AuthService = require('../services/AuthService.cjs');
+const telegramService = require('../services/TelegramService.cjs');
+
+const adminController = {
+  /** GET /api/admin/site-settings */
+  getSiteSettings: async (req, res) => {
+    try {
+      const settings = await SiteSettings.get();
+      res.json({ success: true, settings });
+    } catch (error) {
+      console.error('[API] Admin get site settings error:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /** PUT /api/admin/site-settings */
+  updateSiteSettings: async (req, res) => {
+    try {
+      const settings = await SiteSettings.update(req.body);
+      res.json({ success: true, settings, message: 'Sozlamalar saqlandi!' });
+    } catch (error) {
+      console.error('[API] Admin update site settings error:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /** POST /api/admin/test-telegram */
+  testTelegram: async (req, res) => {
+    try {
+      const settings = await SiteSettings.get();
+      const botToken = req.body.bot_token || settings.bot_token;
+      
+      if (!botToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Telegram Bot Token kiritilmagan!'
+        });
+      }
+
+      // Try sending test message using Telegram API
+      const result = await telegramService.sendNotification({
+        id: 'TEST-001',
+        name: 'Test Administrator',
+        phone: '+998 90 123 45 67',
+        address: 'Test Manzil',
+        paymentMethod: 'cash',
+        total: 100000,
+        items: [{ title: { uz: 'Test Mahsulot' }, quantity: 1, price: 100000 }]
+      });
+
+      res.json({
+        success: true,
+        message: 'Telegram ulanishi muvaffaqiyatli sinovdan o\'tdi!'
+      });
+    } catch (error) {
+      console.error('[API] Telegram test error:', error.message);
+      res.status(500).json({
+        success: false,
+        message: `Telegram xatosi: ${error.message}`
+      });
+    }
+  },
+
+  /** GET /api/admin/telegram/webhook-status */
+  getWebhookStatus: async (req, res) => {
+    try {
+      const webhookInfo = await telegramService.getWebhookInfo();
+      res.json({ success: true, webhookInfo });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /** POST /api/admin/telegram/set-webhook */
+  setWebhook: async (req, res) => {
+    try {
+      const { url } = req.body;
+      const result = await telegramService.setWebhook(url);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /** POST /api/admin/telegram/delete-webhook */
+  deleteWebhook: async (req, res) => {
+    try {
+      const result = await telegramService.deleteWebhook();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+  // ─── Authentication ────────────────────────────────────────
+
+  /**
+   * POST /api/admin/verify-password — Admin login (returns JWT)
+   */
+  verifyPassword: (req, res) => {
+    const { email, password } = req.body;
+    const result = AuthService.verifyAdmin(email, password);
+
+    if (result.success) {
+      res.json({ success: true, token: result.token, message: 'Kirish muvaffaqiyatli!' });
+    } else {
+      res.status(401).json({ success: false, message: 'Email yoki parol noto\'g\'ri!' });
+    }
+  },
+
+  // ─── Dashboard ─────────────────────────────────────────────
+
+  /**
+   * GET /api/admin/stats — Dashboard statistics
+   */
+  getStats: async (req, res) => {
+    try {
+      const stats = await Order.getStats();
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('[Admin] Failed to fetch stats:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  // ─── Orders ────────────────────────────────────────────────
+
+  /**
+   * GET /api/admin/orders — All orders with items
+   */
+  getOrders: async (req, res) => {
+    try {
+      const orders = await Order.getAll();
+      for (const order of orders) {
+        const items = await Order.getItems(order.id);
+        order.items = items.map(item => ({
+          ...item,
+          title: { uz: item.title_uz, ru: item.title_ru, en: item.title_en }
+        }));
+      }
+      res.json({ success: true, orders });
+    } catch (error) {
+      console.error('[Admin] Failed to fetch orders:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PATCH /api/admin/orders/:id/status — Update order status + send Telegram notification
+   * Inspired by online-menu's Admin/OrderController::updateStatus()
+   */
+  updateOrderStatus: async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+      const order = await Order.getById(id);
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Buyurtma topilmadi.' });
+      }
+
+      const oldStatus = order.status;
+
+      // Don't update if status is the same
+      if (oldStatus === status) {
+        return res.json({ success: true, message: 'Status o\'zgarmadi.' });
+      }
+
+      await Order.updateStatus(id, status);
+      console.log(`[Admin] Order ${id} status: ${oldStatus} → ${status}`);
+
+      // Send Telegram notification (non-blocking)
+      if (order.user_id) {
+        try {
+          await telegramService.sendStatusUpdate(order.user_id, id, status);
+        } catch (telegramError) {
+          console.error(`[Admin] Telegram notification failed for order ${id}:`, telegramError.message);
+        }
+      }
+
+      res.json({ success: true, message: 'Status yangilandi va xaridorga xabar berildi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to update order ${id}:`, error.message);
+      res.status(500).json({ success: false, message: 'Xatolik yuz berdi.' });
+    }
+  },
+
+  // ─── Categories CRUD ──────────────────────────────────────
+
+  /**
+   * GET /api/admin/categories
+   */
+  getCategories: async (req, res) => {
+    try {
+      const categories = await Category.getAll();
+      res.json({ success: true, categories });
+    } catch (error) {
+      console.error('[Admin] Failed to fetch categories:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * POST /api/admin/categories
+   */
+  createCategory: async (req, res) => {
+    const { id, name_uz, name_ru, name_en, sort_order, is_active } = req.body;
+    try {
+      const activeVal = (is_active === true || is_active === 1 || is_active === 'true') ? 1 : 0;
+      await Category.create(id, name_uz, name_ru, name_en, parseInt(sort_order) || 0, activeVal);
+      console.log(`[Admin] Category created: ${id}`);
+      res.json({ success: true, message: 'Kategoriya muvaffaqiyatli qo\'shildi.' });
+    } catch (error) {
+      console.error('[Admin] Failed to create category:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PUT /api/admin/categories/:id
+   */
+  updateCategory: async (req, res) => {
+    const { id } = req.params;
+    const { name_uz, name_ru, name_en, sort_order, is_active } = req.body;
+    try {
+      const activeVal = (is_active === true || is_active === 1 || is_active === 'true') ? 1 : 0;
+      await Category.update(id, name_uz, name_ru, name_en, parseInt(sort_order) || 0, activeVal);
+      console.log(`[Admin] Category updated: ${id}`);
+      res.json({ success: true, message: 'Kategoriya muvaffaqiyatli yangilandi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to update category ${id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * DELETE /api/admin/categories/:id
+   */
+  deleteCategory: async (req, res) => {
+    const { id } = req.params;
+    try {
+      await Category.delete(id);
+      console.log(`[Admin] Category deleted: ${id}`);
+      res.json({ success: true, message: 'Kategoriya muvaffaqiyatli o\'chirildi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to delete category ${id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  // ─── Products CRUD ─────────────────────────────────────────
+
+  /**
+   * GET /api/admin/products
+   */
+  getProducts: async (req, res) => {
+    try {
+      const products = await Product.getAll();
+      const parsed = products.map(p => {
+        let attributesObj = {};
+        if (p.attributes) {
+          try {
+            attributesObj = typeof p.attributes === 'string' ? JSON.parse(p.attributes) : p.attributes;
+          } catch (e) {
+            console.warn(`[Admin] Failed to parse attributes for product ${p.id}:`, e.message);
+          }
+        }
+        return {
+          ...p,
+          attributes: attributesObj
+        };
+      });
+      res.json({ success: true, products: parsed });
+    } catch (error) {
+      console.error('[Admin] Failed to fetch products:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * POST /api/admin/products
+   */
+  createProduct: async (req, res) => {
+    try {
+      await Product.create(req.body);
+      console.log(`[Admin] Product created: ${req.body.id}`);
+      res.json({ success: true, message: 'Mahsulot muvaffaqiyatli qo\'shildi.' });
+    } catch (error) {
+      console.error('[Admin] Failed to create product:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PUT /api/admin/products/:id
+   */
+  updateProduct: async (req, res) => {
+    const { id } = req.params;
+    try {
+      await Product.update(id, req.body);
+      console.log(`[Admin] Product updated: ${id}`);
+      res.json({ success: true, message: 'Mahsulot muvaffaqiyatli yangilandi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to update product ${id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * DELETE /api/admin/products/:id
+   */
+  deleteProduct: async (req, res) => {
+    const { id } = req.params;
+    try {
+      await Product.delete(id);
+      console.log(`[Admin] Product deleted: ${id}`);
+      res.json({ success: true, message: 'Mahsulot muvaffaqiyatli o\'chirildi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to delete product ${id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+};
+
+module.exports = adminController;
