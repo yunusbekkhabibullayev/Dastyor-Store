@@ -226,6 +226,57 @@ const publicController = {
       uptime: process.uptime(),
       telegram: telegramService.isConfigured
     });
+  },
+
+  /**
+   * GET /api/user/profile — Fetch user profile across devices
+   */
+  getUserProfile: async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
+      const { dbGet } = require('../config/database.cjs');
+      const row = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [String(userId)]);
+      if (!row) {
+        return res.json({ success: true, profile: null });
+      }
+      res.json({
+        success: true,
+        profile: {
+          name: row.name || '',
+          phone: row.phone || '',
+          address: row.address || ''
+        }
+      });
+    } catch (error) {
+      console.error('[API] Failed to get user profile:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * POST /api/user/profile — Save user profile across devices
+   */
+  saveUserProfile: async (req, res) => {
+    try {
+      const { userId, name, phone, address } = req.body;
+      if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
+      const { dbRun } = require('../config/database.cjs');
+      await dbRun(
+        `INSERT INTO users (telegram_id, name, phone, address, updated_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(telegram_id) DO UPDATE SET
+         name = excluded.name,
+         phone = excluded.phone,
+         address = excluded.address,
+         updated_at = CURRENT_TIMESTAMP`,
+        [String(userId), name || '', phone || '', address || '']
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[API] Failed to save user profile:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 

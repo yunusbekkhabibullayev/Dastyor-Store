@@ -234,16 +234,18 @@ export const StoreProvider = ({ children }) => {
     }
   }, [activeTab]);
 
-  // Update profile user name when telegram loads
+  // Sync user profile across devices via backend API
   useEffect(() => {
-    if (telegramUser) {
-      setProfileUser(prev => {
-        const fullName = `${telegramUser.first_name || ''} ${telegramUser.last_name || ''}`.trim();
-        return {
-          ...prev,
-          name: prev.name && prev.name !== 'Yunusbek Khabibullayev' ? prev.name : (fullName || 'Mijoz')
-        };
-      });
+    if (telegramUser && telegramUser.id) {
+      fetch('/api/user/profile?userId=' + telegramUser.id)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.profile && (data.profile.name || data.profile.phone)) {
+            setProfileUser(data.profile);
+            localStorage.setItem('qlay_profile_user', JSON.stringify(data.profile));
+          }
+        })
+        .catch(err => console.warn('Failed to sync profile from API:', err));
     }
   }, [telegramUser]);
 
@@ -530,6 +532,29 @@ export const StoreProvider = ({ children }) => {
     setOrders(prev => prev.filter(o => o.id !== orderId));
   };
 
+  const updateProfileUser = async (newProfile) => {
+    setProfileUser(newProfile);
+    localStorage.setItem('qlay_profile_user', JSON.stringify(newProfile));
+    
+    // Sync to server database if telegram user is present
+    if (telegramUser && telegramUser.id) {
+      try {
+        await fetch('/api/user/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: telegramUser.id,
+            name: newProfile.name,
+            phone: newProfile.phone,
+            address: newProfile.address
+          })
+        });
+      } catch (e) {
+        console.warn('Failed to save profile to server:', e.message);
+      }
+    }
+  };
+
   const logoutUser = () => {
     triggerHaptic('heavy');
     localStorage.removeItem('qlay_cart');
@@ -541,9 +566,9 @@ export const StoreProvider = ({ children }) => {
     setFavorites([]);
     setOrders([]);
     setProfileUser({
-      name: 'Yunusbek Khabibullayev',
-      phone: '+998 90 123 45 67',
-      address: "Toshkent sh., Chilonzor tumani, Qatortol ko'chasi 15-uy"
+      name: '',
+      phone: '',
+      address: ''
     });
     setActiveTab('catalog');
   };

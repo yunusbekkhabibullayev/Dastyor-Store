@@ -62,6 +62,16 @@ const dbInit = async () => {
   `);
 
   await dbRun(`
+    CREATE TABLE IF NOT EXISTS users (
+      telegram_id TEXT PRIMARY KEY,
+      name TEXT,
+      phone TEXT,
+      address TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await dbRun(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       category_id TEXT,

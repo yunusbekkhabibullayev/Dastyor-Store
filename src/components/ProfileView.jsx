@@ -51,9 +51,9 @@ export const ProfileView = () => {
     lang, t, orders, triggerHaptic, profileUser, setProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode
   } = useStore();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => !profileUser?.name && !profileUser?.phone);
   const [editName, setEditName] = useState(profileUser?.name || '');
-  const [editPhone, setEditPhone] = useState(formatUzPhone(profileUser?.phone || ''));
+  const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '');
   const [editAddress, setEditAddress] = useState(profileUser?.address || '');
   const [error, setError] = useState('');
 
@@ -67,14 +67,17 @@ export const ProfileView = () => {
   // State to manage pagination for the full history page
   const [visibleCount, setVisibleCount] = useState(5);
 
-  // Keep editing state in sync with context updates
+  // Open edit mode if profile is completely empty
   useEffect(() => {
     if (profileUser) {
-      setEditName(profileUser.name);
-      setEditPhone(formatUzPhone(profileUser.phone));
-      setEditAddress(profileUser.address);
+      if (!profileUser.name && !profileUser.phone) {
+        setIsEditing(true);
+      }
+      setEditName(profileUser.name || '');
+      setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '');
+      setEditAddress(profileUser.address || '');
     }
-  }, [profileUser, isEditing]);
+  }, [profileUser]);
 
   // Infinite Scroll / Lazy Loading scroll listener for history sub-view
   useEffect(() => {
