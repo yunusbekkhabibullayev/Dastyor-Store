@@ -29,27 +29,9 @@ export const StoreProvider = ({ children }) => {
     try {
       const stored = localStorage.getItem('qlay_orders');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.length > 0) return parsed;
+        return JSON.parse(stored);
       }
-      return [
-        {
-          id: 'ORD-282',
-          date: '2026-07-24',
-          total: 300000,
-          status: 'processing', // processing, shipping, delivered
-          itemsCount: 3,
-          items: [
-            {
-              id: 'p1',
-              title: { uz: "L'Oréal Paris Bambi Eye Mascarasi", ru: "L'Oréal Paris Bambi Eye Mascarasi" },
-              price: 100000,
-              quantity: 3,
-              image: '/images/mascara.png'
-            }
-          ]
-        }
-      ];
+      return [];
     } catch {
       return [];
     }
