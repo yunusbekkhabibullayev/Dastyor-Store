@@ -27,10 +27,13 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // In production, check whitelist + allow Telegram WebApp origins
+    // In production, check whitelist + allow Telegram WebApp & Vercel origins
     if (
       allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com') ||
       origin.endsWith('.ngrok-free.app') ||
+      origin.endsWith('.ngrok-free.dev') ||
       origin.endsWith('.telegram.org') ||
       origin === 'https://web.telegram.org'
     ) {
