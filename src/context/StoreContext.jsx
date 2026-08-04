@@ -160,7 +160,7 @@ export const StoreProvider = ({ children }) => {
   };
 
   const [siteSettings, setSiteSettings] = useState({
-    name: 'Qlay Store',
+    name: 'Dastyor Store',
     description: 'Eng sara kosmetika va gullar do\'koni',
     logo: '',
     phone: '+998 90 123 45 67',
@@ -351,9 +351,10 @@ export const StoreProvider = ({ children }) => {
 
   const addToCart = (product, quantity = 1) => {
     triggerHaptic('medium');
+    const cartId = product.cartId || product.id;
     const maxStock = (product.stock !== undefined && product.stock !== null) ? product.stock : 999;
     setCart(prev => {
-      const existingIndex = prev.findIndex(item => item.id === product.id);
+      const existingIndex = prev.findIndex(item => (item.cartId || item.id) === cartId);
       const currentQty = existingIndex > -1 ? prev[existingIndex].quantity : 0;
       if (currentQty + quantity > maxStock) {
         alert(lang === 'uz' 
@@ -371,11 +372,12 @@ export const StoreProvider = ({ children }) => {
     });
   };
 
-  const updateCartQuantity = (productId, delta) => {
+  const updateCartQuantity = (cartId, delta) => {
     triggerHaptic('light');
     setCart(prev => {
       return prev.map(item => {
-        if (item.id === productId) {
+        const itemCartId = item.cartId || item.id;
+        if (itemCartId === cartId) {
           const maxStock = (item.stock !== undefined && item.stock !== null) ? item.stock : 999;
           const newQty = item.quantity + delta;
           if (delta > 0 && newQty > maxStock) {
@@ -392,9 +394,9 @@ export const StoreProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = (cartId) => {
     triggerHaptic('medium');
-    setCart(prev => prev.filter(item => item.id !== productId));
+    setCart(prev => prev.filter(item => (item.cartId || item.id) !== cartId));
   };
 
   const clearCart = () => {

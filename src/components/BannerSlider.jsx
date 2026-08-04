@@ -85,7 +85,7 @@ export const BannerSlider = () => {
             return (
               <div
                 key={banner.id}
-                className="w-full h-full shrink-0 snap-center relative overflow-hidden bg-slate-900"
+                className="w-full h-full shrink-0 snap-center relative overflow-hidden bg-gray-100"
               >
                 {/* Ambient blur background for banners with arbitrary dimensions */}
                 <img

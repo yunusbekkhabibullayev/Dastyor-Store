@@ -1,5 +1,5 @@
 /**
- * Qlay Store — Server Entry Point
+ * Dastyor Store — Server Entry Point
  * 
  * Clean entry point: initializes express, mounts middleware & routes, serves frontend.
  * All business logic is in controllers/, services/, models/.
@@ -89,7 +89,7 @@ app.get('/', (req, res, next) => {
   const productId = req.query.product || req.query.productId;
   const lang = req.query.lang || 'uz';
 
-  let ogTitle = "Qlay Store — Telegram Mini App";
+  let ogTitle = "Dastyor Store — Telegram Mini App";
   let ogDesc = "Siz xohlagan mahsulotlar arzon va tezkor yetkazib berish bilan!";
   let ogImage = NGROK_URL + "/images/skincare_banner.png";
 

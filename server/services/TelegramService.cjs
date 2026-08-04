@@ -56,7 +56,7 @@ class TelegramService {
       await this.bot.setChatMenuButton({
         menu_button: JSON.stringify({
           type: 'web_app',
-          text: '🛍️ Qlay Store',
+          text: '🛍️ Dastyor Store',
           web_app: { url: telegramConfig.ngrokUrl }
         })
       });
@@ -83,7 +83,7 @@ class TelegramService {
 
       const text = payload
         ? `Assalomu alaykum, ${firstName}! 😊\n\nSiz tanlagan mahsulotni do'konda ko'rish uchun quyidagi tugmani bosing:`
-        : `Assalomu alaykum, ${firstName}! 😊\n\nQlay Store do'konimizga xush kelibsiz. Do'konni ochish uchun quyidagi tugmani bosing:`;
+        : `Assalomu alaykum, ${firstName}! 😊\n\nDastyor Store do'konimizga xush kelibsiz. Do'konni ochish uchun quyidagi tugmani bosing:`;
 
       this.bot.sendMessage(chatId, text, {
         reply_markup: {
@@ -138,7 +138,7 @@ class TelegramService {
 
     const statusText = statusTexts[status] || status;
     const numId = orderId.replace('ORD-', '');
-    const userMessage = `🔔 *Buyurtma holati yangilandi!*\n\nSizning #${numId}-sonli buyurtmangiz holati: *${statusText}* holatiga o'zgartirildi.\n\nQlay Store do'koni xizmatlaridan foydalanganingiz uchun rahmat!`;
+    const userMessage = `🔔 *Buyurtma holati yangilandi!*\n\nSizning #${numId}-sonli buyurtmangiz holati: *${statusText}* holatiga o'zgartirildi.\n\nDastyor Store do'koni xizmatlaridan foydalanganingiz uchun rahmat!`;
 
     try {
       await this.bot.sendMessage(chatId, userMessage, { parse_mode: 'Markdown' });
@@ -159,8 +159,22 @@ class TelegramService {
       return false;
     }
 
+    const { dbGet } = require('../config/database.cjs');
     const telegramConfig = require('../config/telegram.cjs');
-    const adminIds = telegramConfig.adminIds || [];
+    let adminIds = [...(telegramConfig.adminIds || [])];
+
+    try {
+      const settings = await dbGet("SELECT admin_ids FROM site_settings WHERE id = 1");
+      if (settings && settings.admin_ids) {
+        const dbAdminIds = settings.admin_ids
+          .split(',')
+          .map(id => parseInt(id.trim(), 10))
+          .filter(id => !isNaN(id));
+        adminIds = Array.from(new Set([...adminIds, ...dbAdminIds]));
+      }
+    } catch (e) {
+      console.error('[Telegram] Failed to load DB admin IDs for notifications:', e.message);
+    }
     
     if (adminIds.length === 0) {
       console.warn('[Telegram] No admin IDs configured for notifications.');
@@ -171,7 +185,13 @@ class TelegramService {
     const itemsList = (orderData.items || [])
       .map(item => {
         const title = item.title?.uz || item.title?.ru || 'Mahsulot';
-        return `  • ${title} × ${item.quantity}`;
+        let variantDesc = '';
+        const sv = item.selectedVariant || item.selected_variant;
+        if (sv) {
+          const varObj = typeof sv === 'string' ? JSON.parse(sv) : sv;
+          variantDesc = ` (${Object.values(varObj).join(', ')})`;
+        }
+        return `  • ${title}${variantDesc} × ${item.quantity}`;
       })
       .join('\n');
 

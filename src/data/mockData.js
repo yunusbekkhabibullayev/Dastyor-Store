@@ -198,7 +198,7 @@ export const PRODUCTS = [
 
 export const TRANSLATIONS = {
   uz: {
-    storeName: 'Qlay Store',
+    storeName: 'Dastyor Store',
     searchPlaceholder: 'Mahsulotlarni qidirish...',
     catalog: 'Katalog',
     cart: 'Savat',
@@ -240,7 +240,7 @@ export const TRANSLATIONS = {
     itemsCount: 'ta'
   },
   ru: {
-    storeName: 'Qlay Store',
+    storeName: 'Dastyor Store',
     searchPlaceholder: 'Поиск товаров...',
     catalog: 'Каталог',
     cart: 'Корзина',
@@ -282,7 +282,7 @@ export const TRANSLATIONS = {
     itemsCount: 'шт'
   },
   en: {
-    storeName: 'Qlay Store',
+    storeName: 'Dastyor Store',
     searchPlaceholder: 'Search products...',
     catalog: 'Catalog',
     cart: 'Cart',

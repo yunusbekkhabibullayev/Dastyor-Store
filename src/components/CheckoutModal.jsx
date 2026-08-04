@@ -288,7 +288,7 @@ const formatUzPhone = (inputValue) => {
 };
 
 export const CheckoutModal = ({ onClose }) => {
-  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess } = useStore();
+  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings } = useStore();
 
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState(profileUser?.name || telegramUser?.first_name || '');
@@ -303,7 +303,9 @@ export const CheckoutModal = ({ onClose }) => {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapTarget, setMapTarget] = useState('address'); // 'address', 'bts'
 
-  const deliveryCost = isDeliveryEnabled ? (deliveryMethod === 'city' ? 30000 : 50000) : 0;
+  const cityDeliveryPrice = siteSettings?.delivery_price !== undefined ? siteSettings.delivery_price : 30000;
+  const btsDeliveryPrice = siteSettings?.bts_delivery_price !== undefined ? siteSettings.bts_delivery_price : 50000;
+  const deliveryCost = isDeliveryEnabled ? (deliveryMethod === 'city' ? cityDeliveryPrice : btsDeliveryPrice) : 0;
   const finalTotal = cartTotal + deliveryCost;
 
   const handleSubmit = async (e) => {
@@ -536,7 +538,7 @@ export const CheckoutModal = ({ onClose }) => {
                       {lang === 'uz' ? '5 kg gacha, 1 soatda' : lang === 'ru' ? 'до 5 кг, за 1 час' : 'up to 5kg, in 1 hour'}
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-blue-600">{formatPrice(30000)}</span>
+                  <span className="text-xs font-bold text-blue-600">{formatPrice(cityDeliveryPrice)}</span>
                 </div>
 
                 <div
@@ -553,7 +555,7 @@ export const CheckoutModal = ({ onClose }) => {
                       {lang === 'uz' ? '5 kg gacha, 1 kunda' : lang === 'ru' ? 'до 5 кг, за 1 день' : 'up to 5kg, in 1 day'}
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-gray-800">{formatPrice(50000)}</span>
+                  <span className="text-xs font-bold text-gray-800">{formatPrice(btsDeliveryPrice)}</span>
                 </div>
 
                 {/* BTS Branch Selection Input (1-rasm) */}
@@ -597,12 +599,22 @@ export const CheckoutModal = ({ onClose }) => {
               {lang === 'uz' ? "JAMI TO'LOV" : lang === 'ru' ? 'ИТОГО К ОПЛАТЕ' : 'TOTAL PAYMENT'}
             </h3>
             <div className="space-y-2 text-xs">
-              {cart.map((item) => (
-                <div key={item.id} className="flex justify-between text-gray-600">
-                  <span>{item.title[lang]} × {item.quantity} {lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs'}</span>
-                  <span className="font-semibold">{formatPrice(item.price * item.quantity)}</span>
-                </div>
-              ))}
+              {cart.map((item) => {
+                const itemCartId = item.cartId || item.id;
+                const variantDesc = item.selectedVariant 
+                  ? ` (${Object.values(item.selectedVariant).join(', ')})`
+                  : '';
+                return (
+                  <div key={itemCartId} className="flex justify-between text-gray-600">
+                    <span>
+                      {item.title[lang]}
+                      <span className="text-[10px] text-gray-400 font-semibold">{variantDesc}</span>
+                      {" "}× {item.quantity} {lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs'}
+                    </span>
+                    <span className="font-semibold">{formatPrice(item.price * item.quantity)}</span>
+                  </div>
+                );
+              })}
               {isDeliveryEnabled && (
                 <div className="flex justify-between text-gray-600">
                   <span>{deliveryMethod === 'city' ? (lang === 'uz' ? 'Shahar ichida yetkazib berish' : lang === 'ru' ? 'Доставка по городу' : 'City delivery') : 'BTS'}</span>

@@ -14,8 +14,8 @@ const SiteSettings = {
     let settings = await dbGet("SELECT * FROM site_settings WHERE id = 1");
     if (!settings) {
       await dbRun(`
-        INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, is_active)
-        VALUES (1, 'Qlay Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 1)
+        INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, bts_delivery_price, is_active)
+        VALUES (1, 'Dastyor Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 50000, 1)
       `);
       settings = await dbGet("SELECT * FROM site_settings WHERE id = 1");
     }
@@ -43,6 +43,8 @@ const SiteSettings = {
       bot_token: data.bot_token !== undefined ? data.bot_token : current.bot_token,
       bot_username: data.bot_username !== undefined ? data.bot_username : current.bot_username,
       delivery_price: data.delivery_price !== undefined ? (parseInt(data.delivery_price, 10) || 0) : (current.delivery_price || 0),
+      bts_delivery_price: data.bts_delivery_price !== undefined ? (parseInt(data.bts_delivery_price, 10) || 0) : (current.bts_delivery_price || 0),
+      admin_ids: data.admin_ids !== undefined ? data.admin_ids : current.admin_ids,
       is_active: data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active
     };
 
@@ -50,7 +52,7 @@ const SiteSettings = {
       `UPDATE site_settings SET 
         name = ?, description = ?, logo = ?, phone = ?, address = ?, 
         working_hours = ?, telegram_channel = ?, instagram = ?, 
-        bot_token = ?, bot_username = ?, delivery_price = ?, is_active = ?
+        bot_token = ?, bot_username = ?, delivery_price = ?, bts_delivery_price = ?, admin_ids = ?, is_active = ?
        WHERE id = 1`,
       [
         merged.name,
@@ -64,6 +66,8 @@ const SiteSettings = {
         merged.bot_token,
         merged.bot_username,
         merged.delivery_price,
+        merged.bts_delivery_price,
+        merged.admin_ids,
         merged.is_active
       ]
     );

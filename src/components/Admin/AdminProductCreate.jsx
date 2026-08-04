@@ -78,6 +78,81 @@ export const AdminProductCreate = () => {
     attributes: {}
   });
 
+  const [varNameInput, setVarNameInput] = useState('');
+  const [varOptsInput, setVarOptsInput] = useState('');
+
+  const generateCombinations = (vList) => {
+    if (!vList || vList.length === 0) return [];
+    const list = vList.map(v => v.options || []);
+    const product = list.reduce((a, b) => a.flatMap(d => b.map(e => [...d, e])), [[]]);
+    return product.map(comb => {
+      const values = {};
+      vList.forEach((v, index) => {
+        values[v.name] = comb[index];
+      });
+      return { values, price: '', old_price: '', stock: '0' };
+    });
+  };
+
+  const handleUpdateVariants = (newVList) => {
+    const baseCombs = generateCombinations(newVList);
+    // Merge with current combinations to preserve prices/stocks
+    const mergedCombs = baseCombs.map(nc => {
+      const matched = form.attributes?.combinations?.find(ec => {
+        return Object.keys(nc.values).every(k => ec.values[k] === nc.values[k]);
+      });
+      if (matched) {
+        return {
+          ...nc,
+          price: matched.price !== undefined ? matched.price : '',
+          old_price: matched.old_price !== undefined ? matched.old_price : '',
+          stock: matched.stock !== undefined ? matched.stock.toString() : '0'
+        };
+      }
+      return nc;
+    });
+    
+    setForm(prev => {
+      let nextStock = prev.stock;
+      if (mergedCombs.length > 0) {
+        nextStock = mergedCombs.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+      }
+      return {
+        ...prev,
+        stock: nextStock,
+        attributes: {
+          ...prev.attributes,
+          variants: newVList,
+          combinations: mergedCombs
+        }
+      };
+    });
+  };
+
+  const handleCombinationChange = (index, field, value) => {
+    setForm(prev => {
+      const nextCombs = [...(prev.attributes?.combinations || [])];
+      nextCombs[index] = {
+        ...nextCombs[index],
+        [field]: value
+      };
+      
+      let nextStock = prev.stock;
+      if (field === 'stock') {
+        nextStock = nextCombs.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+      }
+      
+      return {
+        ...prev,
+        stock: nextStock,
+        attributes: {
+          ...prev.attributes,
+          combinations: nextCombs
+        }
+      };
+    });
+  };
+
   const translations = {
     uz: {
       back: 'Orqaga',
@@ -411,6 +486,149 @@ export const AdminProductCreate = () => {
               </div>
             </div>
           )}
+
+          {/* Dynamic Variant Configuration System */}
+          <div className="bg-[#f8fafc] p-4 rounded-2xl border border-slate-200 space-y-4">
+            <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider block mb-1">
+              {lang === 'uz' ? 'Mahsulot Variantlari va Variant Narxlari/Qoldiqlari' : 'Варианты товара, цены и остатки'}
+            </span>
+
+            {/* Input to add variant */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-slate-150 shadow-2xs">
+              <div>
+                <label className="text-[9px] font-bold text-gray-500 block mb-0.5">
+                  {lang === 'uz' ? 'Variant Nomi (Masalan: Rang, O\'lcham, Hajmi)' : 'Название варианта (Например: Цвет, Размер, Объем)'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={lang === 'uz' ? "Rang" : "Цвет"}
+                  value={varNameInput}
+                  onChange={(e) => setVarNameInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-gray-500 block mb-0.5">
+                  {lang === 'uz' ? 'Variant Qiymatlari (vergul bilan ajrating, masalan: Oq, Qora)' : 'Значения (через запятую, например: Белый, Черный)'}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder={lang === 'uz' ? "Oq, Qora, Ko'k" : "Белый, Черный, Синий"}
+                    value={varOptsInput}
+                    onChange={(e) => setVarOptsInput(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      if (!varNameInput.trim() || !varOptsInput.trim()) return;
+                      const vName = varNameInput.trim();
+                      const vOpts = varOptsInput.split(',').map(s => s.trim()).filter(Boolean);
+                      
+                      const currentVariants = form.attributes?.variants || [];
+                      if (currentVariants.some(v => v.name.toLowerCase() === vName.toLowerCase())) {
+                        alert(lang === 'uz' ? 'Bu variant nomi allaqachon qo\'shilgan!' : 'Этот вариант уже добавлен!');
+                        return;
+                      }
+                      
+                      const nextVariants = [...currentVariants, { name: vName, options: vOpts }];
+                      handleUpdateVariants(nextVariants);
+                      
+                      setVarNameInput('');
+                      setVarOptsInput('');
+                    }}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* List of active variants */}
+            {form.attributes?.variants && form.attributes.variants.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.attributes.variants.map((v, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-xs font-bold text-blue-600">
+                    <span>{v.name}: {v.options.join(', ')}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('warning');
+                        const nextVariants = form.attributes.variants.filter((_, i) => i !== idx);
+                        handleUpdateVariants(nextVariants);
+                      }}
+                      className="text-red-500 hover:text-red-700 font-bold ml-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Combinations pricing and inventory matrix */}
+            {form.attributes?.combinations && form.attributes.combinations.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block">
+                  {lang === 'uz' ? 'Har bir variant narxi va qoldig\'i (ombordagi soni):' : 'Матрица цен и остатков:'}
+                </span>
+
+                <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-3">{lang === 'uz' ? 'Variant' : 'Вариант'}</th>
+                        <th className="px-4 py-3">{lang === 'uz' ? 'Narxi (ixtiyoriy)' : 'Цена (опц)'}</th>
+                        <th className="px-4 py-3">{lang === 'uz' ? 'Eski Narxi (ixtiyoriy)' : 'Старая цена (опц)'}</th>
+                        <th className="px-4 py-3 w-32">{lang === 'uz' ? 'Qoldiq (Soni)' : 'Остаток'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {form.attributes.combinations.map((comb, index) => {
+                        const combName = Object.values(comb.values).join(' - ');
+                        return (
+                          <tr key={index} className="hover:bg-slate-50/50">
+                            <td className="px-4 py-2.5 font-bold text-slate-700">{combName}</td>
+                            <td className="px-4 py-2.5">
+                              <input
+                                type="number"
+                                placeholder={form.price || "Default"}
+                                value={comb.price || ''}
+                                onChange={(e) => handleCombinationChange(index, 'price', e.target.value)}
+                                className="w-full max-w-[120px] px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <input
+                                type="number"
+                                placeholder={form.old_price || "Default"}
+                                value={comb.old_price || ''}
+                                onChange={(e) => handleCombinationChange(index, 'old_price', e.target.value)}
+                                className="w-full max-w-[120px] px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <input
+                                type="number"
+                                min="0"
+                                required
+                                value={comb.stock || '0'}
+                                onChange={(e) => handleCombinationChange(index, 'stock', e.target.value)}
+                                className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="text-[10px] font-bold text-gray-455 uppercase tracking-wide block mb-1">

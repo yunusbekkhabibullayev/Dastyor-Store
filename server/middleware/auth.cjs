@@ -12,12 +12,30 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
 
-const isAdmin = (req, res, next) => {
+const { dbGet } = require('../config/database.cjs');
+
+const isAdmin = async (req, res, next) => {
   // 1. Authenticate via Telegram ID (Bot/WebApp environment)
   const adminId = parseInt(req.headers['x-admin-id'], 10);
-  if (adminId && telegramConfig.adminIds.includes(adminId)) {
-    req.adminUser = { id: adminId, source: 'telegram' };
-    return next();
+  if (adminId) {
+    let adminIds = [...telegramConfig.adminIds];
+    try {
+      const settings = await dbGet("SELECT admin_ids FROM site_settings WHERE id = 1");
+      if (settings && settings.admin_ids) {
+        const dbAdminIds = settings.admin_ids
+          .split(',')
+          .map(id => parseInt(id.trim(), 10))
+          .filter(id => !isNaN(id));
+        adminIds = Array.from(new Set([...adminIds, ...dbAdminIds]));
+      }
+    } catch (e) {
+      console.error('Failed to load admin IDs from database:', e);
+    }
+
+    if (adminIds.includes(adminId)) {
+      req.adminUser = { id: adminId, source: 'telegram' };
+      return next();
+    }
   }
 
   // 2. Authenticate via JWT Bearer Token (Desktop Web Browser environment)

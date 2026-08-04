@@ -67,69 +67,83 @@ export const CartDrawer = ({ onProceedCheckout }) => {
 
       {/* Cart Items */}
       <div className="space-y-2 mb-5">
-        {cart.map((item) => (
-          <div key={item.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-150 shadow-xs relative">
-            {/* Fixed 64x64px Product Thumbnail */}
-            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[#f5f5f7] border border-gray-100 flex items-center justify-center relative">
-              <img
-                src={item.image}
-                alt={item.title[lang] || 'Product'}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300';
-                }}
-              />
-            </div>
-
-            {/* Right Side Column (min-h-[64px]) */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[64px] py-0.5">
-              {/* Top Row: Title (2 lines clamp) & Trash delete icon (right) */}
-              <div className="flex items-start justify-between gap-2">
-                <h4
-                  className="text-[13px] font-bold text-gray-900 leading-snug text-left flex-1 min-w-0 mb-1"
-                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                >
-                  {item.title[lang]}
-                </h4>
-                <button
-                  onClick={() => {
-                    triggerHaptic('light');
-                    showConfirm(
-                      lang === 'uz' ? 'Mahsulotni savatdan o\'chirmoqchimisiz?' : lang === 'ru' ? 'Удалить товар из корзины?' : 'Remove product from cart?',
-                      () => removeFromCart(item.id)
-                    );
+        {cart.map((item) => {
+          const itemCartId = item.cartId || item.id;
+          return (
+            <div key={itemCartId} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-155 shadow-xs relative">
+              {/* Fixed 64x64px Product Thumbnail */}
+              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[#f5f5f7] border border-gray-100 flex items-center justify-center relative">
+                <img
+                  src={item.image}
+                  alt={item.title[lang] || 'Product'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300';
                   }}
-                  className="text-red-500 hover:text-red-600 active:scale-90 transition-all p-0.5 shrink-0 cursor-pointer"
-                  title={lang === 'uz' ? 'O\'chirish' : 'Удалить'}
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+                />
               </div>
 
-              {/* Bottom Row: Price (left) & Quantity Counter (right) */}
-              <div className="flex items-center justify-between gap-2 mt-auto">
-                <span className="text-[13px] font-black text-gray-900 whitespace-nowrap">{formatPrice(item.price)}</span>
-                
-                <div className="flex items-center gap-1 bg-[#f2f2f7] rounded-xl p-0.5 border border-gray-200/60 shrink-0">
+              {/* Right Side Column (min-h-[64px]) */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[64px] py-0.5">
+                {/* Top Row: Title (2 lines clamp) & Trash delete icon (right) */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0 text-left">
+                    <h4
+                      className="text-[13px] font-bold text-gray-900 leading-snug mb-0.5"
+                      style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                    >
+                      {item.title[lang]}
+                    </h4>
+                    {item.selectedVariant && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {Object.entries(item.selectedVariant).map(([k, v]) => (
+                          <span key={k} className="text-[9px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-bold">
+                            {k}: {v}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
-                    onClick={() => updateCartQuantity(item.id, -1)}
-                    className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      showConfirm(
+                        lang === 'uz' ? 'Mahsulotni savatdan o\'chirmoqchimisiz?' : lang === 'ru' ? 'Удалить товар из корзины?' : 'Remove product from cart?',
+                        () => removeFromCart(itemCartId)
+                      );
+                    }}
+                    className="text-red-500 hover:text-red-650 active:scale-90 transition-all p-0.5 shrink-0 cursor-pointer"
+                    title={lang === 'uz' ? 'O\'chirish' : 'Удалить'}
                   >
-                    <MinusIcon className="w-3 h-3" />
+                    <TrashIcon className="w-4 h-4" />
                   </button>
-                  <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{item.quantity}</span>
-                  <button
-                    onClick={() => updateCartQuantity(item.id, 1)}
-                    className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
-                  >
-                    <PlusIcon className="w-3 h-3" />
-                  </button>
+                </div>
+
+                {/* Bottom Row: Price (left) & Quantity Counter (right) */}
+                <div className="flex items-center justify-between gap-2 mt-auto">
+                  <span className="text-[13px] font-black text-gray-900 whitespace-nowrap">{formatPrice(item.price)}</span>
+                  
+                  <div className="flex items-center gap-1 bg-[#f2f2f7] rounded-xl p-0.5 border border-gray-200/60 shrink-0">
+                    <button
+                      onClick={() => updateCartQuantity(itemCartId, -1)}
+                      className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
+                    >
+                      <MinusIcon className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateCartQuantity(itemCartId, 1)}
+                      className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
+                    >
+                      <PlusIcon className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Promo */}

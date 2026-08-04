@@ -117,6 +117,16 @@ const publicController = {
       return res.status(400).json({ success: false, message: 'Foydalanuvchi ma\'lumotlari to\'liq emas.' });
     }
 
+    const findCombination = (productAttributes, selectedVariant) => {
+      if (!productAttributes || !productAttributes.combinations || !selectedVariant) return null;
+      return productAttributes.combinations.find(comb => {
+        const combKeys = Object.keys(comb.values);
+        const selKeys = Object.keys(selectedVariant);
+        if (combKeys.length !== selKeys.length) return false;
+        return combKeys.every(k => comb.values[k] === selectedVariant[k]);
+      });
+    };
+
     try {
       // Stock validation — check all items before creating order
       for (const item of cart) {
@@ -127,11 +137,38 @@ const publicController = {
             message: `Mahsulot topilmadi: ${item.id}`
           });
         }
-        if (product.stock < item.quantity) {
-          const title = product.title_uz || product.id;
+        
+        let availableStock = product.stock;
+        let title = product.title_uz || product.id;
+        
+        let attrs = null;
+        if (product.attributes) {
+          try {
+            attrs = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : product.attributes;
+          } catch (e) {
+            console.error('Failed to parse product attributes:', e);
+          }
+        }
+        
+        if (attrs && attrs.variants && attrs.variants.length > 0) {
+          const comb = findCombination(attrs, item.selectedVariant);
+          if (!comb) {
+            return res.status(400).json({
+              success: false,
+              message: `"${title}" uchun tanlangan variant mavjud emas.`
+            });
+          }
+          availableStock = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseInt(comb.stock, 10) : 0;
+          if (item.selectedVariant) {
+            const variantDesc = Object.entries(item.selectedVariant).map(([k, v]) => `${v}`).join(', ');
+            title = `${title} (${variantDesc})`;
+          }
+        }
+        
+        if (availableStock < item.quantity) {
           return res.status(400).json({
             success: false,
-            message: `"${title}" uchun yetarli zaxira yo'q. Mavjud: ${product.stock} ta.`
+            message: `"${title}" uchun yetarli zaxira yo'q. Mavjud: ${availableStock} ta.`
           });
         }
       }
@@ -144,7 +181,8 @@ const publicController = {
       const items = cart.map(item => ({
         id: item.id,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        selectedVariant: item.selectedVariant ? JSON.stringify(item.selectedVariant) : null
       }));
 
       const orderRecord = {
@@ -166,9 +204,38 @@ const publicController = {
 
       // 2. Decrease stock for each item
       for (const item of cart) {
-        const result = await Product.decreaseStock(item.id, item.quantity);
-        if (result.changes === 0) {
-          console.warn(`[Checkout] Stock decrease failed for product ${item.id} — possible race condition.`);
+        const product = await Product.getById(item.id);
+        if (product) {
+          let attrs = null;
+          if (product.attributes) {
+            try {
+              attrs = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : product.attributes;
+            } catch (e) {
+              console.error('Failed to parse product attributes for stock decrease:', e);
+            }
+          }
+          
+          if (attrs && attrs.variants && attrs.variants.length > 0) {
+            const comb = findCombination(attrs, item.selectedVariant);
+            if (comb) {
+              const currentStockVal = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseInt(comb.stock, 10) : 0;
+              comb.stock = Math.max(0, currentStockVal - item.quantity).toString();
+              
+              // Also update main product stock as sum of all variant combination stocks
+              const totalStock = attrs.combinations.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+              
+              await Product.update(product.id, {
+                ...product,
+                stock: totalStock,
+                attributes: attrs
+              });
+              console.log(`[Checkout] Decreased variant stock for product ${product.id} (${JSON.stringify(item.selectedVariant)}) to ${comb.stock}. Total stock: ${totalStock}.`);
+            } else {
+              await Product.decreaseStock(item.id, item.quantity);
+            }
+          } else {
+            await Product.decreaseStock(item.id, item.quantity);
+          }
         }
       }
 

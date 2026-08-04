@@ -52,8 +52,8 @@ const Order = {
     // Insert order items
     for (const item of items) {
       await dbRun(
-        "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-        [id, item.id, item.quantity, item.price]
+        "INSERT INTO order_items (order_id, product_id, quantity, price, selected_variant) VALUES (?, ?, ?, ?, ?)",
+        [id, item.id, item.quantity, item.price, item.selectedVariant || null]
       );
     }
   },

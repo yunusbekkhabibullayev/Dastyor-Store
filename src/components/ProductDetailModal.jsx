@@ -7,12 +7,15 @@ import { ProductImage } from './ProductImage';
 export const ProductDetailModal = () => {
   const { lang, t, selectedProduct, setSelectedProduct, addToCart, updateCartQuantity, cart, favorites, toggleFavorite, triggerHaptic, products } = useStore();
 
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState({});
   const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   // Parse sizes and colors dynamically from attributes or fall back to defaults
   const prodAttrs = selectedProduct?.attributes || {};
+  let attrs = selectedProduct?.attributes;
+  if (attrs && typeof attrs === 'string') {
+    try { attrs = JSON.parse(attrs); } catch (e) {}
+  }
   
   let parsedSizes = [];
   if (prodAttrs.sizes) {
@@ -43,28 +46,86 @@ export const ProductDetailModal = () => {
     ? parsedColors
     : (isClothing ? ['Qora', 'Oq', 'Ko\'k'] : []);
 
+  let productVariants = [];
+  if (attrs && attrs.variants && attrs.variants.length > 0) {
+    productVariants = attrs.variants;
+  } else {
+    if (sizes.length > 0) {
+      productVariants.push({ name: lang === 'uz' ? "O'lcham" : 'Размер', options: sizes });
+    }
+    if (colors.length > 0) {
+      productVariants.push({ name: lang === 'uz' ? "Rangi" : 'Цвет', options: colors });
+    }
+  }
+
   useEffect(() => {
     if (selectedProduct) {
       setIsDescExpanded(false);
-      setSelectedSize(sizes.length > 0 ? sizes[0] : '');
-      setSelectedColor(colors.length > 0 ? colors[0] : '');
+      if (productVariants.length > 0) {
+        const initial = {};
+        productVariants.forEach(v => {
+          initial[v.name] = v.options && v.options.length > 0 ? v.options[0] : '';
+        });
+        setSelectedOptions(initial);
+      } else {
+        setSelectedOptions({});
+      }
     }
   }, [selectedProduct?.id, lang]);
 
   if (!selectedProduct) return null;
 
+  // Compute overrides dynamically
+  let currentPrice = selectedProduct.price;
+  let currentOldPrice = selectedProduct.oldPrice || selectedProduct.old_price;
+  let currentStock = selectedProduct.stock;
+  let selectedCombination = null;
+
+  if (attrs && attrs.variants && attrs.variants.length > 0 && attrs.combinations) {
+    selectedCombination = attrs.combinations.find(comb => {
+      return attrs.variants.every(v => comb.values[v.name] === selectedOptions[v.name]);
+    });
+    
+    if (selectedCombination) {
+      if (selectedCombination.price !== undefined && selectedCombination.price !== null && selectedCombination.price !== '') {
+        currentPrice = parseInt(selectedCombination.price, 10);
+      }
+      if (selectedCombination.old_price !== undefined && selectedCombination.old_price !== null && selectedCombination.old_price !== '') {
+        currentOldPrice = parseInt(selectedCombination.old_price, 10);
+      } else {
+        currentOldPrice = null;
+      }
+      if (selectedCombination.stock !== undefined && selectedCombination.stock !== null && selectedCombination.stock !== '') {
+        currentStock = parseInt(selectedCombination.stock, 10);
+      }
+    }
+  }
+
+  const currentCartId = selectedProduct.id + (Object.keys(selectedOptions).length > 0
+    ? '-' + Object.entries(selectedOptions).map(([k,v]) => `${k}:${v}`).sort().join(',')
+    : '');
+
+  const productWithVariant = {
+    ...selectedProduct,
+    price: currentPrice,
+    oldPrice: currentOldPrice,
+    stock: currentStock,
+    selectedVariant: Object.keys(selectedOptions).length > 0 ? selectedOptions : null,
+    cartId: currentCartId
+  };
+
   const isFavorite = favorites.includes(selectedProduct.id);
-  const cartItem = cart.find(item => item.id === selectedProduct.id);
+  const cartItem = cart.find(item => (item.cartId || item.id) === currentCartId);
   const inCartCount = cartItem ? cartItem.quantity : 0;
 
   const formatPrice = (price) => price.toLocaleString('uz-UZ').replace(/,/g, ' ') + ' ' + (lang === 'uz' ? "so'm" : lang === 'ru' ? 'сум' : 'som');
 
-  const discountPercent = selectedProduct.oldPrice
-    ? Math.round(((selectedProduct.oldPrice - selectedProduct.price) / selectedProduct.oldPrice) * 100)
+  const discountPercent = currentOldPrice
+    ? Math.round(((currentOldPrice - currentPrice) / currentOldPrice) * 100)
     : 0;
 
-  const benefit = selectedProduct.oldPrice
-    ? selectedProduct.oldPrice - selectedProduct.price
+  const benefit = currentOldPrice
+    ? currentOldPrice - currentPrice
     : 0;
 
   // Recommendations: products from the same category (excluding current)
@@ -198,53 +259,46 @@ export const ProductDetailModal = () => {
 
           {/* 2. Selection Row (right below the image) */}
           <div className="bg-white px-4 py-3 border-b border-gray-100 flex justify-center">
-            {isClothing ? (
-              /* Clothing "Выберите" (Select) button */
+            {currentStock <= 0 ? (
               <button
-                onClick={() => {
-                  triggerHaptic('medium');
-                  addToCart(selectedProduct);
-                }}
-                className="w-full py-3 px-6 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 active:bg-gray-100 text-[#3b82f6] font-bold text-[15px] text-center shadow-sm transition-colors"
+                disabled
+                className="w-full py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 font-bold text-[15px] cursor-not-allowed"
               >
-                Выберите
+                {productVariants.length > 0 ? (
+                  Object.keys(selectedOptions).some(k => k.toLowerCase().includes('o\'lcham') || k.toLowerCase().includes('size') || k.toLowerCase().includes('razmer'))
+                    ? (lang === 'uz' ? 'Ushbu o\'lcham tugagan' : lang === 'ru' ? 'Данный размер закончился' : 'This size is out of stock')
+                    : (lang === 'uz' ? 'Bu variant tugagan' : lang === 'ru' ? 'Данный вариант закончился' : 'This option is out of stock')
+                ) : (
+                  lang === 'uz' ? 'Tugagan' : lang === 'ru' ? 'Нет в наличии' : 'Out of stock'
+                )}
               </button>
-            ) : (
-              (selectedProduct.stock !== undefined && selectedProduct.stock !== null && selectedProduct.stock <= 0) ? (
+            ) : inCartCount > 0 ? (
+              <div className="flex items-center gap-6">
                 <button
-                  disabled
-                  className="w-full py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 font-bold text-[15px] cursor-not-allowed"
+                  onClick={() => updateCartQuantity(currentCartId, -1)}
+                  className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50"
                 >
-                  {lang === 'uz' ? 'Tugagan' : lang === 'ru' ? 'Нет в наличии' : 'Out of stock'}
+                  <MinusIcon className="w-5 h-5" />
                 </button>
-              ) : inCartCount > 0 ? (
-                <div className="flex items-center gap-6">
-                  <button
-                    onClick={() => updateCartQuantity(selectedProduct.id, -1)}
-                    className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50"
-                  >
-                    <MinusIcon className="w-5 h-5" />
-                  </button>
-                  <div className="flex flex-col items-center justify-center leading-tight min-w-[70px]">
-                    <span className="text-[17px] font-bold text-gray-900">{inCartCount}</span>
-                    <span className="text-[10px] text-gray-400 font-medium">в корзине</span>
-                  </div>
-                  <button
-                    onClick={() => updateCartQuantity(selectedProduct.id, 1)}
-                    disabled={selectedProduct.stock !== undefined && selectedProduct.stock !== null && inCartCount >= selectedProduct.stock}
-                    className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <PlusIcon className="w-5 h-5" />
-                  </button>
+                <div className="flex flex-col items-center justify-center leading-tight min-w-[70px]">
+                  <span className="text-[17px] font-bold text-gray-900">{inCartCount}</span>
+                  <span className="text-[10px] text-gray-400 font-medium">в корзине</span>
                 </div>
-              ) : (
                 <button
-                  onClick={() => addToCart(selectedProduct)}
-                  className="w-full py-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:bg-[#1d4ed8] text-white font-bold text-[15px] transition-colors"
+                  onClick={() => updateCartQuantity(currentCartId, 1)}
+                  disabled={inCartCount >= currentStock}
+                  className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {lang === 'uz' ? 'Korzinaga' : lang === 'ru' ? 'В корзину' : 'To Cart'}
+                  <PlusIcon className="w-5 h-5" />
                 </button>
-              )
+              </div>
+            ) : (
+              <button
+                onClick={() => addToCart(productWithVariant)}
+                className="w-full py-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:bg-[#1d4ed8] text-white font-bold text-[15px] transition-colors"
+              >
+                {lang === 'uz' ? 'Korzinaga' : lang === 'ru' ? 'В корзину' : 'To Cart'}
+              </button>
             )}
           </div>
 
@@ -254,26 +308,26 @@ export const ProductDetailModal = () => {
             <div className="flex items-start justify-between">
               <div className="flex flex-col">
                 <span className="text-[22px] font-extrabold text-[#3b82f6]">
-                  {formatPrice(selectedProduct.price)}
+                  {formatPrice(currentPrice)}
                 </span>
-                {selectedProduct.oldPrice && (
+                {currentOldPrice && (
                   <span className="text-[14px] text-gray-400 line-through mt-0.5">
-                    {formatPrice(selectedProduct.oldPrice)}
+                    {formatPrice(currentOldPrice)}
                   </span>
                 )}
               </div>
               <div className="flex flex-col items-end text-right">
-                {(selectedProduct.stock === undefined || selectedProduct.stock === null || selectedProduct.stock <= 0) ? (
+                {(currentStock === undefined || currentStock === null || currentStock <= 0) ? (
                   <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
                     {lang === 'uz' ? 'Tugagan' : lang === 'ru' ? 'Нет в наличии' : 'Out of stock'}
                   </span>
-                ) : selectedProduct.stock <= 3 ? (
+                ) : currentStock <= 3 ? (
                   <span className="text-[13px] font-semibold text-[#ff3b30]">
-                    {lang === 'uz' ? `Faqat ${selectedProduct.stock} ta qoldi` : lang === 'ru' ? `Осталось ${selectedProduct.stock} шт` : `Only ${selectedProduct.stock} left`}
+                    {lang === 'uz' ? `Faqat ${currentStock} ta qoldi` : lang === 'ru' ? `Осталось ${currentStock} шт` : `Only ${currentStock} left`}
                   </span>
                 ) : (
                   <span className="text-[13px] font-medium text-gray-500">
-                    {lang === 'uz' ? `Sotuvda bor: ${selectedProduct.stock} ta` : lang === 'ru' ? `В наличии: ${selectedProduct.stock} шт` : `In stock: ${selectedProduct.stock} pcs`}
+                    {lang === 'uz' ? `Sotuvda bor: ${currentStock} ta` : lang === 'ru' ? `В наличии: ${currentStock} шт` : `In stock: ${currentStock} pcs`}
                   </span>
                 )}
                 {benefit > 0 && (
@@ -313,58 +367,39 @@ export const ProductDetailModal = () => {
               </div>
             </div>
 
-            {/* Dynamic Sizes Selection */}
-            {sizes && sizes.length > 0 && (
-              <div className="pt-3 border-t border-gray-100">
-                <h4 className="text-[11px] font-bold text-[#8e8e93] uppercase tracking-wider mb-2">
-                  {lang === 'uz' ? 'O\'lcham' : 'РАЗМЕР'}
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map((sz) => (
-                    <button
-                      key={sz}
-                      onClick={() => {
-                        triggerHaptic('light');
-                        setSelectedSize(sz);
-                      }}
-                      className={`px-4 py-2 border rounded-xl text-[14px] font-medium transition-all ${
-                        selectedSize === sz
-                          ? 'border-[#3b82f6] text-[#3b82f6] bg-[#f0f6ff]'
-                          : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      {sz}
-                    </button>
-                  ))}
+            {/* Dynamic Variants Selection (professional Marketplace style) */}
+            {productVariants.length > 0 && (
+              productVariants.map((v) => (
+                <div key={v.name} className="pt-3 border-t border-gray-100">
+                  <h4 className="text-[11px] font-bold text-[#8e8e93] uppercase tracking-wider mb-2">
+                    {v.name}
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {v.options.map((opt) => {
+                      const isSelected = selectedOptions[v.name] === opt;
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => {
+                            triggerHaptic('light');
+                            setSelectedOptions(prev => ({
+                              ...prev,
+                              [v.name]: opt
+                            }));
+                          }}
+                          className={`px-4 py-2 border rounded-xl text-[14px] font-medium transition-all ${
+                            isSelected
+                              ? 'border-[#3b82f6] text-[#3b82f6] bg-[#f0f6ff]'
+                              : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Dynamic Colors Selection */}
-            {colors && colors.length > 0 && (
-              <div className="pt-3 border-t border-gray-100">
-                <h4 className="text-[11px] font-bold text-[#8e8e93] uppercase tracking-wider mb-2">
-                  {lang === 'uz' ? 'Rangi' : 'ЦВЕТ'}
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((cl) => (
-                    <button
-                      key={cl}
-                      onClick={() => {
-                        triggerHaptic('light');
-                        setSelectedColor(cl);
-                      }}
-                      className={`px-4 py-2 border rounded-xl text-[14px] font-medium transition-all ${
-                        selectedColor === cl
-                          ? 'border-[#3b82f6] text-[#3b82f6] bg-[#f0f6ff]'
-                          : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      {cl}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ))
             )}
           </div>
 

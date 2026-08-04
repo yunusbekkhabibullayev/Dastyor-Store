@@ -111,6 +111,7 @@ const dbInit = async () => {
       product_id TEXT NOT NULL,
       quantity INTEGER NOT NULL CHECK(quantity > 0),
       price INTEGER NOT NULL CHECK(price >= 0),
+      selected_variant TEXT,
       FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES products(id)
     )
@@ -138,7 +139,7 @@ const dbInit = async () => {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS site_settings (
       id INTEGER PRIMARY KEY DEFAULT 1,
-      name TEXT DEFAULT 'Qlay Store',
+      name TEXT DEFAULT 'Dastyor Store',
       description TEXT DEFAULT 'Eng sara kosmetika va gullar do''koni',
       logo TEXT DEFAULT '',
       phone TEXT DEFAULT '+998 90 123 45 67',
@@ -149,16 +150,18 @@ const dbInit = async () => {
       bot_token TEXT DEFAULT '',
       bot_username TEXT DEFAULT 'qlay_store_bot',
       delivery_price INTEGER DEFAULT 0,
+      bts_delivery_price INTEGER DEFAULT 50000,
+      admin_ids TEXT DEFAULT '',
       is_active INTEGER DEFAULT 1
     )
   `);
 
   // Seed default site settings if table is empty
-  const settingsCount = await dbGet("SELECT COUNT(*) as count FROM site_settings");
+    const settingsCount = await dbGet("SELECT COUNT(*) as count FROM site_settings");
   if (settingsCount.count === 0) {
     await dbRun(`
-      INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, is_active)
-      VALUES (1, 'Qlay Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 1)
+      INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, bts_delivery_price, is_active)
+      VALUES (1, 'Dastyor Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 50000, 1)
     `);
   } else {
     // Clear out hardcoded mascara default logo from site_settings if present
@@ -194,6 +197,41 @@ const dbInit = async () => {
       console.log('[DB] Migrated: added "sort_order" and "is_active" columns to categories table.');
     } catch (e) {
       console.error('[DB] Migration failed for categories columns:', e.message);
+    }
+  }
+
+  // Migration check: Add admin_ids column to site_settings if it doesn't exist
+  const settingsColumns = await dbAll("PRAGMA table_info(site_settings)");
+  const hasAdminIds = settingsColumns.some(c => c.name === 'admin_ids');
+  if (!hasAdminIds) {
+    try {
+      await dbRun("ALTER TABLE site_settings ADD COLUMN admin_ids TEXT DEFAULT ''");
+      console.log('[DB] Migrated: added "admin_ids" column to site_settings table.');
+    } catch (e) {
+      console.error('[DB] Migration failed for site_settings.admin_ids:', e.message);
+    }
+  }
+
+  // Migration check: Add bts_delivery_price column to site_settings if it doesn't exist
+  const hasBtsDeliveryPrice = settingsColumns.some(c => c.name === 'bts_delivery_price');
+  if (!hasBtsDeliveryPrice) {
+    try {
+      await dbRun("ALTER TABLE site_settings ADD COLUMN bts_delivery_price INTEGER DEFAULT 50000");
+      console.log('[DB] Migrated: added "bts_delivery_price" column to site_settings table.');
+    } catch (e) {
+      console.error('[DB] Migration failed for site_settings.bts_delivery_price:', e.message);
+    }
+  }
+
+  // Migration check: Add selected_variant column to order_items if it doesn't exist
+  const orderItemsColumns = await dbAll("PRAGMA table_info(order_items)");
+  const hasSelectedVariant = orderItemsColumns.some(c => c.name === 'selected_variant');
+  if (!hasSelectedVariant) {
+    try {
+      await dbRun("ALTER TABLE order_items ADD COLUMN selected_variant TEXT");
+      console.log('[DB] Migrated: added "selected_variant" column to order_items table.');
+    } catch (e) {
+      console.error('[DB] Migration failed for order_items.selected_variant:', e.message);
     }
   }
 

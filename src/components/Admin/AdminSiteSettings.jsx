@@ -18,6 +18,8 @@ export const AdminSiteSettings = () => {
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [adminIdsList, setAdminIdsList] = useState([]);
+  const [newAdminIdInput, setNewAdminIdInput] = useState('');
 
   // Phone state: 9 digits after permanent +998
   const [phoneDigits, setPhoneDigits] = useState('901234567');
@@ -31,7 +33,8 @@ export const AdminSiteSettings = () => {
     name: 'Qlay Store',
     logo: '',
     bot_token: '',
-    delivery_price: 0
+    delivery_price: 0,
+    bts_delivery_price: 50000
   });
 
   const fetchWebhookStatus = async () => {
@@ -68,14 +71,20 @@ export const AdminSiteSettings = () => {
   useEffect(() => {
     if (siteSettings) {
       setForm({
-        name: siteSettings.name || 'Qlay Store',
+        name: siteSettings.name || 'Dastyor Store',
         logo: siteSettings.logo || '',
         bot_token: siteSettings.bot_token || '',
-        delivery_price: siteSettings.delivery_price || 0
+        delivery_price: siteSettings.delivery_price || 0,
+        bts_delivery_price: siteSettings.bts_delivery_price || 50000
       });
       setLogoPreview(siteSettings.logo || '');
       if (siteSettings.phone) {
         setPhoneDigits(parsePhoneDigits(siteSettings.phone));
+      }
+      if (siteSettings.admin_ids) {
+        setAdminIdsList(siteSettings.admin_ids.split(',').map(s => s.trim()).filter(Boolean));
+      } else {
+        setAdminIdsList([]);
       }
     }
     fetchWebhookStatus();
@@ -136,11 +145,13 @@ export const AdminSiteSettings = () => {
     const fullPhone = phoneDigits ? `+998${phoneDigits}` : '';
 
     const payload = {
-      name: form.name || 'Qlay Store',
+      name: form.name || 'Dastyor Store',
       logo: form.logo || '/images/mascara.png',
       phone: fullPhone,
       bot_token: form.bot_token || '',
       delivery_price: parseInt(form.delivery_price, 10) || 0,
+      bts_delivery_price: parseInt(form.bts_delivery_price, 10) || 0,
+      admin_ids: adminIdsList.join(','),
       is_active: 1
     };
 
@@ -311,24 +322,44 @@ export const AdminSiteSettings = () => {
             </div>
           </div>
 
-          {/* Delivery Price (Fix 0 prefix issue) */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              {lang === 'uz' ? 'Yetkazib berish narxi (so\'m)' : 'Стоимость доставки (сум)'}
-            </label>
-            <input
-              type="number"
-              placeholder="0"
-              value={form.delivery_price === 0 || form.delivery_price === '0' || form.delivery_price === '' ? '' : form.delivery_price}
-              onChange={(e) => {
-                const raw = e.target.value;
-                setForm(prev => ({
-                  ...prev,
-                  delivery_price: raw === '' ? 0 : (parseInt(raw, 10) || 0)
-                }));
-              }}
-              className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-            />
+          {/* Delivery Prices */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                {lang === 'uz' ? 'Shahar ichida yetkazib berish narxi (so\'m)' : 'Стоимость доставки по городу (сум)'}
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.delivery_price === 0 || form.delivery_price === '0' || form.delivery_price === '' ? '' : form.delivery_price}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setForm(prev => ({
+                    ...prev,
+                    delivery_price: raw === '' ? 0 : (parseInt(raw, 10) || 0)
+                  }));
+                }}
+                className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                {lang === 'uz' ? 'BTS yetkazib berish narxi (so\'m)' : 'Стоимость доставки BTS (сум)'}
+              </label>
+              <input
+                type="number"
+                placeholder="50000"
+                value={form.bts_delivery_price === 0 || form.bts_delivery_price === '0' || form.bts_delivery_price === '' ? '' : form.bts_delivery_price}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setForm(prev => ({
+                    ...prev,
+                    bts_delivery_price: raw === '' ? 0 : (parseInt(raw, 10) || 0)
+                  }));
+                }}
+                className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              />
+            </div>
           </div>
         </div>
 
@@ -422,7 +453,83 @@ export const AdminSiteSettings = () => {
               {lang === 'uz' ? 'Ngrok yoki SSL domen manzilingiz orqali Telegram webhook o\'rnatiladi.' : 'Telegram webhook устанавливается через SSL домен или Ngrok.'}
             </p>
           </div>
+        {/* Section 3: Manage Admins */}
+        <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+            <SendIcon className="w-5 h-5 text-blue-600 shrink-0" />
+            <h3 className="font-bold text-gray-900 text-sm">
+              {lang === 'uz' ? 'Telegram Adminlarni Boshqarish' : 'Управление администраторами Telegram'}
+            </h3>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-gray-700">
+              {lang === 'uz' ? 'Yangi Admin Telegram Chat ID' : 'Telegram Chat ID нового админа'}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newAdminIdInput}
+                onChange={(e) => setNewAdminIdInput(e.target.value)}
+                placeholder="1165441564"
+                className="flex-1 px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-mono font-medium text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  if (!newAdminIdInput.trim()) return;
+                  const clean = newAdminIdInput.trim();
+                  if (isNaN(parseInt(clean, 10))) {
+                    alert(lang === 'uz' ? 'ID faqat raqamlardan iborat bo\'lishi kerak!' : 'ID должен состоять только из цифр!');
+                    return;
+                  }
+                  if (adminIdsList.includes(clean)) {
+                    alert(lang === 'uz' ? 'Bu ID allaqachon qo\'shilgan!' : 'Этот ID уже добавлен!');
+                    return;
+                  }
+                  setAdminIdsList(prev => [...prev, clean]);
+                  setNewAdminIdInput('');
+                }}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95"
+              >
+                {lang === 'uz' ? 'Qo\'shish' : 'Добавить'}
+              </button>
+            </div>
+
+            {/* List of custom admins */}
+            {adminIdsList.length > 0 ? (
+              <div className="space-y-2 pt-2">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  {lang === 'uz' ? 'Qo\'shilgan admin ID ro\'yxati:' : 'Список добавленных ID:'}
+                </span>
+                <div className="divide-y divide-gray-100 border border-gray-155 rounded-xl bg-gray-55/30 overflow-hidden">
+                  {adminIdsList.map((id) => (
+                    <div key={id} className="flex items-center justify-between px-3.5 py-2.5 hover:bg-gray-50/50 transition-colors">
+                      <span className="text-xs font-mono font-semibold text-gray-800">{id}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('warning');
+                          setAdminIdsList(prev => prev.filter(item => item !== id));
+                        }}
+                        className="text-red-500 hover:text-red-600 transition-colors p-1"
+                        title={lang === 'uz' ? 'O\'chirish' : 'Удалить'}
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic pt-1">
+                {lang === 'uz' ? 'Hozircha qo\'shimcha adminlar yo\'q. Faqat .env da kiritilgan adminlar xabar oladi.' : 'Дополнительных админов нет. Уведомления получат только админы из .env.'}
+              </p>
+            )}
+          </div>
         </div>
+      </div>
 
         {/* Submit Actions Bar - Full Width Button */}
         <div className="pt-3 border-t border-gray-150">
