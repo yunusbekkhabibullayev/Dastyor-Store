@@ -56,7 +56,8 @@ const PREDEFINED_OPTIONS = {
   ribbon_color: ['Qizil', 'Oq', 'Pushti', 'Sariq', 'Ko\'k', 'Siyohrang', 'Yashil', 'Oltin'],
   colors: ['Qora', 'Oq', 'Qizil', 'Ko\'k', 'Yashil', 'Pushti', 'Sariq', 'Jigarang'],
   sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '38', '39', '40', '41', '42', '43', '44'],
-  skin_type: ['Barcha terilar uchun', 'Quruq teri', 'Yog\'li teri', 'Nozik teri', 'Aralash teri']
+  skin_type: ['Barcha terilar uchun', 'Quruq teri', 'Yog\'li teri', 'Nozik teri', 'Aralash teri'],
+  volume: ['ml', 'g']
 };
 
 export const AdminProductCreate = () => {
@@ -153,6 +154,17 @@ export const AdminProductCreate = () => {
     });
   };
 
+  const toggleVariantOption = (option) => {
+    triggerHaptic('light');
+    let items = varOptsInput ? varOptsInput.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (items.includes(option)) {
+      items = items.filter(i => i !== option);
+    } else {
+      items.push(option);
+    }
+    setVarOptsInput(items.join(', '));
+  };
+
   const translations = {
     uz: {
       back: 'Orqaga',
@@ -233,6 +245,15 @@ export const AdminProductCreate = () => {
   const toggleChipOption = (key, option) => {
     triggerHaptic('light');
     const currentVal = form.attributes[key] || '';
+    if (key === 'volume') {
+      const digits = currentVal.replace(/[a-zA-Z]/g, '').trim();
+      if (currentVal.endsWith(option)) {
+        handleAttrChange(key, digits);
+      } else {
+        handleAttrChange(key, `${digits} ${option}`.trim());
+      }
+      return;
+    }
     let items = currentVal ? currentVal.split(',').map(s => s.trim()).filter(Boolean) : [];
     if (items.includes(option)) {
       items = items.filter(i => i !== option);
@@ -511,38 +532,75 @@ export const AdminProductCreate = () => {
                 <label className="text-[9px] font-bold text-gray-500 block mb-0.5">
                   {lang === 'uz' ? 'Variant Qiymatlari (vergul bilan ajrating, masalan: Oq, Qora)' : 'Значения (через запятую, например: Белый, Черный)'}
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={lang === 'uz' ? "Oq, Qora, Ko'k" : "Белый, Черный, Синий"}
-                    value={varOptsInput}
-                    onChange={(e) => setVarOptsInput(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('light');
-                      if (!varNameInput.trim() || !varOptsInput.trim()) return;
-                      const vName = varNameInput.trim();
-                      const vOpts = varOptsInput.split(',').map(s => s.trim()).filter(Boolean);
-                      
-                      const currentVariants = form.attributes?.variants || [];
-                      if (currentVariants.some(v => v.name.toLowerCase() === vName.toLowerCase())) {
-                        alert(lang === 'uz' ? 'Bu variant nomi allaqachon qo\'shilgan!' : 'Этот вариант уже добавлен!');
-                        return;
-                      }
-                      
-                      const nextVariants = [...currentVariants, { name: vName, options: vOpts }];
-                      handleUpdateVariants(nextVariants);
-                      
-                      setVarNameInput('');
-                      setVarOptsInput('');
-                    }}
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
-                  >
-                    +
-                  </button>
+                <div className="flex flex-col gap-1">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder={lang === 'uz' ? "Oq, Qora, Ko'k" : "Белый, Черный, Синий"}
+                      value={varOptsInput}
+                      onChange={(e) => setVarOptsInput(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        if (!varNameInput.trim() || !varOptsInput.trim()) return;
+                        const vName = varNameInput.trim();
+                        const vOpts = varOptsInput.split(',').map(s => s.trim()).filter(Boolean);
+                        
+                        const currentVariants = form.attributes?.variants || [];
+                        if (currentVariants.some(v => v.name.toLowerCase() === vName.toLowerCase())) {
+                          alert(lang === 'uz' ? 'Bu variant nomi allaqachon qo\'shilgan!' : 'Этот вариант уже добавлен!');
+                          return;
+                        }
+                        
+                        const nextVariants = [...currentVariants, { name: vName, options: vOpts }];
+                        handleUpdateVariants(nextVariants);
+                        
+                        setVarNameInput('');
+                        setVarOptsInput('');
+                      }}
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {/* Quick suggestions/chips based on variant name (second screenshot requirement) */}
+                  {varNameInput.trim() && (
+                    <div className="flex flex-wrap gap-1 mt-1 pt-0.5 text-left">
+                      {(() => {
+                        const name = varNameInput.toLowerCase();
+                        let suggestions = [];
+                        if (name.includes('rang') || name.includes('color') || name.includes('цвет')) {
+                          suggestions = ['Oq', 'Qora', 'Ko\'k', 'Qizil', 'Yashil', 'Pushti', 'Sariq', 'Jigarrang'];
+                        } else if (name.includes('o\'lcham') || name.includes('size') || name.includes('размер')) {
+                          suggestions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '38', '39', '40', '41', '42', '43', '44'];
+                        } else if (name.includes('hajm') || name.includes('volume') || name.includes('объем')) {
+                          suggestions = ['30 ml', '50 ml', '100 ml', '150 ml', '200 ml', '250 ml', '500 ml', '1 L', '50 g', '100 g'];
+                        }
+                        if (suggestions.length === 0) return null;
+                        
+                        return suggestions.map(opt => {
+                          const selected = varOptsInput.split(',').map(s => s.trim()).includes(opt);
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => toggleVariantOption(opt)}
+                              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                selected
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                  : 'bg-white text-gray-600 border-gray-205 hover:bg-gray-100'
+                              }`}
+                            >
+                              {selected ? '✓ ' : '+ '}{opt}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
