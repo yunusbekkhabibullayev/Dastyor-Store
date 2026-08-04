@@ -66,7 +66,7 @@ export const ProfileView = () => {
 
   const [isEditing, setIsEditing] = useState(() => !profileUser?.name && !profileUser?.phone);
   const [editName, setEditName] = useState(profileUser?.name || '');
-  const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '');
+  const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ');
   const [editAddress, setEditAddress] = useState(profileUser?.address || '');
   const [error, setError] = useState('');
 
@@ -87,7 +87,7 @@ export const ProfileView = () => {
         setIsEditing(true);
       }
       setEditName(profileUser.name || '');
-      setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '');
+      setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '+998 ');
       setEditAddress(profileUser.address || '');
     }
   }, [profileUser]);

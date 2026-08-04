@@ -60,7 +60,9 @@ export const StoreProvider = ({ children }) => {
   const [profileUser, setProfileUser] = useState(() => {
     try {
       const saved = localStorage.getItem('qlay_profile_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        localStorage.removeItem('qlay_profile_user'); // Clean up old generic cache
+      }
     } catch (e) {}
 
     return {
@@ -291,8 +293,7 @@ export const StoreProvider = ({ children }) => {
 
   // Save profileUser to localStorage
   useEffect(() => {
-    if (profileUser) {
-      localStorage.setItem('qlay_profile_user', JSON.stringify(profileUser));
+    if (profileUser && (profileUser.name || profileUser.phone)) {
       if (telegramUser && telegramUser.id) {
         localStorage.setItem(`qlay_profile_user_${telegramUser.id}`, JSON.stringify(profileUser));
       }
@@ -551,7 +552,6 @@ export const StoreProvider = ({ children }) => {
 
   const updateProfileUser = async (newProfile) => {
     setProfileUser(newProfile);
-    localStorage.setItem('qlay_profile_user', JSON.stringify(newProfile));
     
     // Sync to server database if telegram user is present
     if (telegramUser && telegramUser.id) {
@@ -577,7 +577,6 @@ export const StoreProvider = ({ children }) => {
     localStorage.removeItem('qlay_cart');
     localStorage.removeItem('qlay_favorites');
     localStorage.removeItem('qlay_orders');
-    localStorage.removeItem('qlay_profile_user');
 
     setCart([]);
     setFavorites([]);
