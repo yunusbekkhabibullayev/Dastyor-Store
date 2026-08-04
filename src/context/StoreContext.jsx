@@ -667,6 +667,7 @@ export const StoreProvider = ({ children }) => {
       cartTotal,
       profileUser,
       setProfileUser,
+      updateProfileUser,
       logoutUser,
       isOrderSuccess,
       setIsOrderSuccess,

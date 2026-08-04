@@ -48,7 +48,7 @@ const formatUzPhone = (inputValue) => {
 
 export const ProfileView = () => {
   const {
-    lang, t, orders, triggerHaptic, profileUser, setProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings
+    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings
   } = useStore();
 
   const checkIsAdmin = () => {
@@ -146,7 +146,7 @@ export const ProfileView = () => {
       return;
     }
 
-    setProfileUser({
+    updateProfileUser({
       name: editName,
       phone: editPhone,
       address: editAddress
