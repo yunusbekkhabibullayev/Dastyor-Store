@@ -56,7 +56,7 @@ const Product = {
   /** Decrease stock for a product (during checkout) */
   decreaseStock: (id, quantity) => {
     return dbRun(
-      "UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ?",
+      "UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?",
       [quantity, id]
     );
   },

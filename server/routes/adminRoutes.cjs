@@ -22,13 +22,41 @@ router.post('/verify-password', loginLimiter, validate(schemas.adminLogin), admi
 router.use(isAdmin);
 router.use(adminLimiter);
 
+const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
 // File Upload
-router.post('/upload', upload.single('image'), (req, res) => {
+router.post('/upload', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'Fayl yuklanmadi!' });
   }
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ success: true, fileUrl });
+  
+  try {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(req.file.originalname);
+    const filename = 'upload-' + uniqueSuffix + ext;
+
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(filename, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return res.status(500).json({ success: false, message: 'Rasm yuklashda xatolik yuz berdi.' });
+    }
+
+    const { data: publicData } = supabase.storage.from('uploads').getPublicUrl(filename);
+    const fileUrl = publicData.publicUrl;
+
+    res.json({ success: true, fileUrl });
+  } catch (err) {
+    console.error('Server upload error:', err);
+    res.status(500).json({ success: false, message: 'Server xatosi.' });
+  }
 });
 
 // Dashboard
