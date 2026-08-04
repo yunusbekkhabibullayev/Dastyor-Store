@@ -48,8 +48,21 @@ const formatUzPhone = (inputValue) => {
 
 export const ProfileView = () => {
   const {
-    lang, t, orders, triggerHaptic, profileUser, setProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode
+    lang, t, orders, triggerHaptic, profileUser, setProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings
   } = useStore();
+
+  const checkIsAdmin = () => {
+    if (!telegramUser || !telegramUser.id) return false;
+    const currentId = telegramUser.id;
+    if (currentId === 1165441564 || currentId === 116541564) return true;
+    if (siteSettings && siteSettings.admin_ids) {
+      const dynamicIds = siteSettings.admin_ids.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id));
+      if (dynamicIds.includes(currentId)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   const [isEditing, setIsEditing] = useState(() => !profileUser?.name && !profileUser?.phone);
   const [editName, setEditName] = useState(profileUser?.name || '');
@@ -351,7 +364,7 @@ export const ProfileView = () => {
             </button>
           </div>
 
-          {telegramUser?.id === 1165441564 && (
+          {checkIsAdmin() && (
             <>
               <div className="border-t border-gray-100 my-4"></div>
               <button
