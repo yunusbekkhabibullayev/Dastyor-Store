@@ -217,17 +217,47 @@ export const StoreProvider = ({ children }) => {
   // Sync user profile across devices via backend API
   useEffect(() => {
     if (telegramUser && telegramUser.id) {
+      const cacheKey = `qlay_profile_user_${telegramUser.id}`;
+      const saved = localStorage.getItem(cacheKey);
+      if (saved) {
+        try {
+          setProfileUser(JSON.parse(saved));
+        } catch (e) {}
+      } else {
+        setProfileUser({
+          name: telegramUser.first_name || '',
+          phone: '',
+          address: ''
+        });
+      }
+
       fetch('/api/user/profile?userId=' + telegramUser.id)
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.profile && (data.profile.name || data.profile.phone)) {
-            setProfileUser(data.profile);
-            localStorage.setItem('qlay_profile_user', JSON.stringify(data.profile));
+          if (data.success) {
+            if (data.profile && (data.profile.name || data.profile.phone)) {
+              setProfileUser(data.profile);
+              localStorage.setItem(cacheKey, JSON.stringify(data.profile));
+            } else {
+              // User has no saved profile on the backend, pre-fill with Telegram name
+              setProfileUser({
+                name: telegramUser.first_name || '',
+                phone: '',
+                address: ''
+              });
+            }
           }
         })
         .catch(err => console.warn('Failed to sync profile from API:', err));
+    } else {
+      // Clear profile when not in Telegram WebApp or telegramUser is null
+      setProfileUser({
+        name: '',
+        phone: '',
+        address: ''
+      });
     }
-  }, [telegramUser]);
+  }, [telegramUser?.id]);
 
   // Parse product from URL query params or Telegram start parameters
   useEffect(() => {
@@ -261,8 +291,13 @@ export const StoreProvider = ({ children }) => {
 
   // Save profileUser to localStorage
   useEffect(() => {
-    localStorage.setItem('qlay_profile_user', JSON.stringify(profileUser));
-  }, [profileUser]);
+    if (profileUser) {
+      localStorage.setItem('qlay_profile_user', JSON.stringify(profileUser));
+      if (telegramUser && telegramUser.id) {
+        localStorage.setItem(`qlay_profile_user_${telegramUser.id}`, JSON.stringify(profileUser));
+      }
+    }
+  }, [profileUser, telegramUser?.id]);
 
   // Save cart & favorites to localStorage
   useEffect(() => {
