@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { MagnifyingGlassIcon, InformationCircleIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, InformationCircleIcon, ChevronLeftIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 import { LanguageFlag } from './FlagIcon';
 
 export const Header = ({ onSearchOpen }) => {
@@ -90,12 +90,18 @@ export const Header = ({ onSearchOpen }) => {
               src={siteSettings.logo} 
               alt={siteSettings?.name || 'Logo'} 
               className="w-8 h-8 rounded-full object-cover border border-gray-200/80 shadow-xs" 
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
             />
-          ) : (
-            <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-              <InformationCircleIcon className="w-[18px] h-[18px]" />
-            </button>
-          )}
+          ) : null}
+          <div 
+            className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center text-gray-400 bg-gray-50"
+            style={{ display: siteSettings?.logo ? 'none' : 'flex' }}
+          >
+            <BuildingStorefrontIcon className="w-[18px] h-[18px]" />
+          </div>
           <span className="text-[18px] font-bold text-gray-900 tracking-tight">{siteSettings?.name || 'Qlay Store'}</span>
         </div>
 

@@ -369,6 +369,7 @@ export const AdminProductEdit = () => {
                 type="number" min="0" required
                 placeholder="0"
                 value={form.price}
+                onWheel={(e) => e.target.blur()}
                 onChange={(e) => setForm(prev => ({ ...prev, price: e.target.value }))}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
               />
@@ -382,6 +383,7 @@ export const AdminProductEdit = () => {
                 type="number" min="0"
                 placeholder="0"
                 value={form.old_price}
+                onWheel={(e) => e.target.blur()}
                 onChange={(e) => setForm(prev => ({ ...prev, old_price: e.target.value }))}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
               />
@@ -394,7 +396,14 @@ export const AdminProductEdit = () => {
               <input
                 type="number" min="0" required
                 value={form.stock}
-                onChange={(e) => setForm(prev => ({ ...prev, stock: e.target.value }))}
+                onWheel={(e) => e.target.blur()}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                    val = val.replace(/^0+/, '') || '0';
+                  }
+                  setForm(prev => ({ ...prev, stock: val }));
+                }}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
               />
             </div>
@@ -653,6 +662,7 @@ export const AdminProductEdit = () => {
                                 type="number"
                                 placeholder={form.price || "Default"}
                                 value={comb.price || ''}
+                                onWheel={(e) => e.target.blur()}
                                 onChange={(e) => handleCombinationChange(index, 'price', e.target.value)}
                                 className="w-full max-w-[120px] px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
                               />
@@ -662,6 +672,7 @@ export const AdminProductEdit = () => {
                                 type="number"
                                 placeholder={form.old_price || "Default"}
                                 value={comb.old_price || ''}
+                                onWheel={(e) => e.target.blur()}
                                 onChange={(e) => handleCombinationChange(index, 'old_price', e.target.value)}
                                 className="w-full max-w-[120px] px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500"
                               />
@@ -671,8 +682,15 @@ export const AdminProductEdit = () => {
                                 type="number"
                                 min="0"
                                 required
-                                value={comb.stock || '0'}
-                                onChange={(e) => handleCombinationChange(index, 'stock', e.target.value)}
+                                value={comb.stock ?? ''}
+                                onWheel={(e) => e.target.blur()}
+                                onChange={(e) => {
+                                  let val = e.target.value;
+                                  if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                                    val = val.replace(/^0+/, '') || '0';
+                                  }
+                                  handleCombinationChange(index, 'stock', val);
+                                }}
                                 className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500"
                               />
                             </td>
