@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { ArrowLeftIcon, ArrowPathIcon, PhotoIcon as ImageIcon, ArrowUpTrayIcon as UploadIcon } from '@heroicons/react/24/outline';
+import { compressImage } from '../../utils/imageCompressor';
 
 const CATEGORY_ATTRIBUTES = {
   cosmetics: [
@@ -217,10 +218,11 @@ export const AdminProductEdit = () => {
     triggerHaptic('light');
     setUploadingImage(true);
 
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
+      const compressedFile = await compressImage(file);
+      const formData = new FormData();
+      formData.append('image', compressedFile);
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: getAdminHeaders(),

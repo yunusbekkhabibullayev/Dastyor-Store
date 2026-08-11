@@ -11,6 +11,7 @@ const Order = require('../models/Order.cjs');
 const SiteSettings = require('../models/SiteSettings.cjs');
 const AuthService = require('../services/AuthService.cjs');
 const telegramService = require('../services/TelegramService.cjs');
+const cacheService = require('../services/cacheService.cjs');
 
 const adminController = {
   /** GET /api/admin/site-settings */
@@ -28,6 +29,7 @@ const adminController = {
   updateSiteSettings: async (req, res) => {
     try {
       const settings = await SiteSettings.update(req.body);
+      cacheService.clear('siteSettings');
       res.json({ success: true, settings, message: 'Sozlamalar saqlandi!' });
     } catch (error) {
       console.error('[API] Admin update site settings error:', error.message);
@@ -219,6 +221,7 @@ const adminController = {
       const activeVal = (is_active === true || is_active === 1 || is_active === 'true') ? 1 : 0;
       await Category.create(id, name_uz, name_ru, name_en, parseInt(sort_order) || 0, activeVal);
       console.log(`[Admin] Category created: ${id}`);
+      cacheService.clear('categories');
       res.json({ success: true, message: 'Kategoriya muvaffaqiyatli qo\'shildi.' });
     } catch (error) {
       console.error('[Admin] Failed to create category:', error.message);
@@ -236,6 +239,7 @@ const adminController = {
       const activeVal = (is_active === true || is_active === 1 || is_active === 'true') ? 1 : 0;
       await Category.update(id, name_uz, name_ru, name_en, parseInt(sort_order) || 0, activeVal);
       console.log(`[Admin] Category updated: ${id}`);
+      cacheService.clear('categories');
       res.json({ success: true, message: 'Kategoriya muvaffaqiyatli yangilandi.' });
     } catch (error) {
       console.error(`[Admin] Failed to update category ${id}:`, error.message);
@@ -251,6 +255,7 @@ const adminController = {
     try {
       await Category.delete(id);
       console.log(`[Admin] Category deleted: ${id}`);
+      cacheService.clear('categories');
       res.json({ success: true, message: 'Kategoriya muvaffaqiyatli o\'chirildi.' });
     } catch (error) {
       console.error(`[Admin] Failed to delete category ${id}:`, error.message);
@@ -294,6 +299,7 @@ const adminController = {
     try {
       await Product.create(req.body);
       console.log(`[Admin] Product created: ${req.body.id}`);
+      cacheService.clear('products');
       res.json({ success: true, message: 'Mahsulot muvaffaqiyatli qo\'shildi.' });
     } catch (error) {
       console.error('[Admin] Failed to create product:', error.message);
@@ -309,6 +315,7 @@ const adminController = {
     try {
       await Product.update(id, req.body);
       console.log(`[Admin] Product updated: ${id}`);
+      cacheService.clear('products');
       res.json({ success: true, message: 'Mahsulot muvaffaqiyatli yangilandi.' });
     } catch (error) {
       console.error(`[Admin] Failed to update product ${id}:`, error.message);
@@ -324,6 +331,7 @@ const adminController = {
     try {
       await Product.delete(id);
       console.log(`[Admin] Product deleted: ${id}`);
+      cacheService.clear('products');
       res.json({ success: true, message: 'Mahsulot muvaffaqiyatli o\'chirildi.' });
     } catch (error) {
       console.error(`[Admin] Failed to delete product ${id}:`, error.message);

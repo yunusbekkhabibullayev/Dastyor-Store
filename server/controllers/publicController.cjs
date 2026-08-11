@@ -11,12 +11,17 @@ const Order = require('../models/Order.cjs');
 const Banner = require('../models/Banner.cjs');
 const SiteSettings = require('../models/SiteSettings.cjs');
 const telegramService = require('../services/TelegramService.cjs');
+const cacheService = require('../services/cacheService.cjs');
 
 const publicController = {
   /** GET /api/site-settings */
   getSiteSettings: async (req, res) => {
     try {
-      const settings = await SiteSettings.get();
+      let settings = cacheService.get('siteSettings');
+      if (!settings) {
+        settings = await SiteSettings.get();
+        cacheService.set('siteSettings', settings);
+      }
       res.json({ success: true, settings });
     } catch (error) {
       console.error('[API] Failed to fetch site settings:', error.message);
@@ -28,37 +33,41 @@ const publicController = {
    */
   getProducts: async (req, res) => {
     try {
-      const products = await Product.getAll();
-      const mapped = products.map(p => {
-        let attributesObj = {};
-        if (p.attributes) {
-          try {
-            attributesObj = typeof p.attributes === 'string' ? JSON.parse(p.attributes) : p.attributes;
-          } catch (e) {
-            console.warn(`[API] Failed to parse attributes for product ${p.id}:`, e.message);
+      let mapped = cacheService.get('products');
+      if (!mapped) {
+        const products = await Product.getAll();
+        mapped = products.map(p => {
+          let attributesObj = {};
+          if (p.attributes) {
+            try {
+              attributesObj = typeof p.attributes === 'string' ? JSON.parse(p.attributes) : p.attributes;
+            } catch (e) {
+              console.warn(`[API] Failed to parse attributes for product ${p.id}:`, e.message);
+            }
           }
-        }
-        return {
-          id: p.id,
-          categoryId: p.category_id,
-          category_id: p.category_id,
-          title_uz: p.title_uz,
-          title_ru: p.title_ru,
-          title_en: p.title_en,
-          description_uz: p.description_uz,
-          description_ru: p.description_ru,
-          description_en: p.description_en,
-          title: { uz: p.title_uz, ru: p.title_ru, en: p.title_en },
-          description: { uz: p.description_uz, ru: p.description_ru, en: p.description_en },
-          price: p.price,
-          oldPrice: p.old_price,
-          old_price: p.old_price,
-          stock: p.stock,
-          image: p.image,
-          images: [p.image],
-          attributes: attributesObj
-        };
-      });
+          return {
+            id: p.id,
+            categoryId: p.category_id,
+            category_id: p.category_id,
+            title_uz: p.title_uz,
+            title_ru: p.title_ru,
+            title_en: p.title_en,
+            description_uz: p.description_uz,
+            description_ru: p.description_ru,
+            description_en: p.description_en,
+            title: { uz: p.title_uz, ru: p.title_ru, en: p.title_en },
+            description: { uz: p.description_uz, ru: p.description_ru, en: p.description_en },
+            price: p.price,
+            oldPrice: p.old_price,
+            old_price: p.old_price,
+            stock: p.stock,
+            image: p.image,
+            images: [p.image],
+            attributes: attributesObj
+          };
+        });
+        cacheService.set('products', mapped);
+      }
       res.json({ success: true, products: mapped });
     } catch (error) {
       console.error('[API] Failed to fetch products:', error.message);
@@ -68,16 +77,20 @@ const publicController = {
 
   getCategories: async (req, res) => {
     try {
-      const categories = await Category.getAll();
-      const mapped = categories.map(c => ({
-        id: c.id,
-        name_uz: c.name_uz,
-        name_ru: c.name_ru,
-        name_en: c.name_en,
-        name: { uz: c.name_uz, ru: c.name_ru, en: c.name_en },
-        sort_order: c.sort_order,
-        is_active: c.is_active
-      }));
+      let mapped = cacheService.get('categories');
+      if (!mapped) {
+        const categories = await Category.getAll();
+        mapped = categories.map(c => ({
+          id: c.id,
+          name_uz: c.name_uz,
+          name_ru: c.name_ru,
+          name_en: c.name_en,
+          name: { uz: c.name_uz, ru: c.name_ru, en: c.name_en },
+          sort_order: c.sort_order,
+          is_active: c.is_active
+        }));
+        cacheService.set('categories', mapped);
+      }
       res.json({ success: true, categories: mapped });
     } catch (error) {
       console.error('[API] Failed to fetch categories:', error.message);
@@ -246,6 +259,34 @@ const publicController = {
         console.error('[Checkout] Telegram notification failed:', telegramError.message);
       }
 
+      // 4. Notify admins of new order (non-blocking)
+      try {
+        const detailedItems = [];
+        for (const item of cart) {
+          const product = await Product.getById(item.id);
+          detailedItems.push({
+            title: product ? { uz: product.title_uz, ru: product.title_ru, en: product.title_en } : { uz: item.id },
+            quantity: item.quantity,
+            price: item.price,
+            selectedVariant: item.selectedVariant
+          });
+        }
+        await telegramService.sendNotification({
+          id: dbOrderId,
+          name: orderRecord.name,
+          phone: orderRecord.phone,
+          address: orderRecord.address,
+          paymentMethod: orderRecord.paymentMethod,
+          total: orderRecord.totalAmount,
+          items: detailedItems
+        });
+      } catch (adminNotifyError) {
+        console.error('[Checkout] Admin Telegram notification failed:', adminNotifyError.message);
+      }
+
+      // 5. Clear products cache since stock decreased
+      cacheService.clear('products');
+
       res.json({ success: true, message: 'Buyurtma tasdiqlandi!' });
 
     } catch (error) {
@@ -266,15 +307,19 @@ const publicController = {
    */
   getBanners: async (req, res) => {
     try {
-      const banners = await Banner.getAll();
-      const mapped = banners.map(b => ({
-        id: b.id,
-        title: { uz: b.title_uz, ru: b.title_ru, en: b.title_en },
-        subtitle: { uz: b.subtitle_uz, ru: b.subtitle_ru, en: b.subtitle_en },
-        image: b.image,
-        badge: { uz: b.badge_uz, ru: b.badge_ru, en: b.badge_en },
-        buttonText: { uz: b.button_text_uz, ru: b.button_text_ru, en: b.button_text_en }
-      }));
+      let mapped = cacheService.get('banners');
+      if (!mapped) {
+        const banners = await Banner.getAll();
+        mapped = banners.map(b => ({
+          id: b.id,
+          title: { uz: b.title_uz, ru: b.title_ru, en: b.title_en },
+          subtitle: { uz: b.subtitle_uz, ru: b.subtitle_ru, en: b.subtitle_en },
+          image: b.image,
+          badge: { uz: b.badge_uz, ru: b.badge_ru, en: b.badge_en },
+          buttonText: { uz: b.button_text_uz, ru: b.button_text_ru, en: b.button_text_en }
+        }));
+        cacheService.set('banners', mapped);
+      }
       res.json({ success: true, banners: mapped });
     } catch (error) {
       console.error('[API] Failed to fetch banners:', error.message);

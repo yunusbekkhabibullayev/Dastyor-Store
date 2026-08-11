@@ -5,6 +5,7 @@
  */
 
 const Banner = require('../models/Banner.cjs');
+const cacheService = require('../services/cacheService.cjs');
 
 const adminBannerController = {
   /**
@@ -27,6 +28,7 @@ const adminBannerController = {
     try {
       await Banner.create(req.body);
       console.log('[Admin Banners] Banner created.');
+      cacheService.clear('banners');
       res.json({ success: true, message: 'Reklama banneri muvaffaqiyatli qo\'shildi.' });
     } catch (error) {
       console.error('[Admin Banners] Failed to create:', error.message);
@@ -42,6 +44,7 @@ const adminBannerController = {
     try {
       await Banner.update(id, req.body);
       console.log(`[Admin Banners] Banner ${id} updated.`);
+      cacheService.clear('banners');
       res.json({ success: true, message: 'Reklama banneri muvaffaqiyatli yangilandi.' });
     } catch (error) {
       console.error(`[Admin Banners] Failed to update banner ${id}:`, error.message);
@@ -57,6 +60,7 @@ const adminBannerController = {
     try {
       await Banner.delete(id);
       console.log(`[Admin Banners] Banner ${id} deleted.`);
+      cacheService.clear('banners');
       res.json({ success: true, message: 'Reklama banneri muvaffaqiyatli o\'chirildi.' });
     } catch (error) {
       console.error(`[Admin Banners] Failed to delete banner ${id}:`, error.message);

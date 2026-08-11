@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { PlusIcon, PencilIcon as Edit2Icon, TrashIcon as Trash2Icon, PhotoIcon as ImageIcon, ArrowUpTrayIcon as UploadIcon, XMarkIcon as XIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { AdminPagination } from './AdminPagination';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const AdminSettings = () => {
   const { lang, triggerHaptic, showConfirm, getAdminHeaders, banners, setBanners, fetchBanners } = useStore();
@@ -111,10 +112,11 @@ export const AdminSettings = () => {
     triggerHaptic('light');
     setUploadingImage(true);
 
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
+      const compressedFile = await compressImage(file);
+      const formData = new FormData();
+      formData.append('image', compressedFile);
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: getAdminHeaders(), // Send admin token

@@ -10,6 +10,7 @@ import {
   LinkIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const AdminSiteSettings = () => {
   const { lang, triggerHaptic, getAdminHeaders, siteSettings, fetchSiteSettings } = useStore();
@@ -107,10 +108,11 @@ export const AdminSiteSettings = () => {
     setUploadingLogo(true);
     triggerHaptic('light');
 
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
+      const compressedFile = await compressImage(file);
+      const formData = new FormData();
+      formData.append('image', compressedFile);
+
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: getAdminHeaders(),
