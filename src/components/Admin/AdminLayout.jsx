@@ -23,6 +23,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminOrderDetail } from './AdminOrderDetail';
 import { AdminCategoryCreate } from './AdminCategoryCreate';
 import { AdminCategoryEdit } from './AdminCategoryEdit';
+import { AdminCategoryDetail } from './AdminCategoryDetail';
 import { AdminProductCreate } from './AdminProductCreate';
 import { AdminProductEdit } from './AdminProductEdit';
 import { AdminSiteSettings } from './AdminSiteSettings';
