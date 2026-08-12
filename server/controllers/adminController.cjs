@@ -181,6 +181,46 @@ const adminController = {
       await Order.updateStatus(id, status);
       console.log(`[Admin] Order ${id} status: ${oldStatus} → ${status}`);
 
+      // Restore stock if the order is cancelled
+      if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        const orderItems = await Order.getItems(id);
+        const Product = require('../models/Product.cjs');
+        const { dbRun } = require('../config/database.cjs');
+        for (const item of orderItems) {
+          // Increase main stock for each cancelled item
+          await dbRun(
+            "UPDATE products SET stock = stock + ? WHERE id = ?",
+            [item.quantity, item.product_id]
+          );
+
+          // Restore variant stock if applicable
+          if (item.selected_variant) {
+            const product = await Product.getById(item.product_id);
+            if (product && product.attributes) {
+              try {
+                const attrs = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : product.attributes;
+                if (attrs.combinations) {
+                  const selVar = typeof item.selected_variant === 'string' ? JSON.parse(item.selected_variant) : item.selected_variant;
+                  const combKeys = Object.keys(selVar);
+                  const comb = attrs.combinations.find(c => {
+                    return combKeys.every(k => c.values[k] === selVar[k]);
+                  });
+                  if (comb) {
+                    const currentStock = parseInt(comb.stock, 10) || 0;
+                    comb.stock = (currentStock + item.quantity).toString();
+                    await dbRun("UPDATE products SET attributes = ? WHERE id = ?", [JSON.stringify(attrs), product.id]);
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to restore variant stock:', e);
+              }
+            }
+          }
+        }
+        cacheService.clear('products');
+        console.log(`[Admin] Restored stock for cancelled order ${id}`);
+      }
+
       // Send Telegram notification (non-blocking)
       if (order.user_id) {
         try {

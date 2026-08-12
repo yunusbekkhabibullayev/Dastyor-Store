@@ -252,7 +252,7 @@ export const ProductDetailModal = () => {
             )}
             <ProductImage
               product={selectedProduct}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain p-4 drop-shadow-md"
               containerClassName="w-full h-full flex items-center justify-center bg-[#f5f5f7]"
             />
           </div>
@@ -343,13 +343,13 @@ export const ProductDetailModal = () => {
               <h2 className="text-[18px] font-extrabold text-gray-900 leading-tight">
                 {selectedProduct.title[lang]}
               </h2>
-              <div className="text-[14px] text-gray-600 leading-relaxed">
-                <p className="inline">
+              <div className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-wrap">
+                <span>
                   {isDescExpanded
                     ? selectedProduct.description[lang]
                     : `${selectedProduct.description[lang].slice(0, 100)}${selectedProduct.description[lang].length > 100 ? '...' : ''}`
                   }
-                </p>
+                </span>
                 {selectedProduct.description[lang].length > 100 && (
                   <button
                     onClick={() => {

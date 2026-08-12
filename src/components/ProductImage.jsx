@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SparklesIcon, GiftIcon, ShoppingBagIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 export const ProductImage = ({ 
@@ -8,11 +8,17 @@ export const ProductImage = ({
 }) => {
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef(null);
 
   // Reset states if product image URL changes
   useEffect(() => {
     setError(false);
     setLoaded(false);
+    
+    // Check if image is already loaded from cache
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
   }, [product.image]);
 
   if (error || !product.image) {
@@ -52,6 +58,7 @@ export const ProductImage = ({
       )}
 
       <img
+        ref={imgRef}
         src={product.image}
         alt={product.title ? (product.title.uz || product.title.ru || 'Product') : 'Product'}
         className={`${className} transition-opacity duration-300 ${loaded ? 'opacity-100 relative z-10' : 'opacity-0 absolute z-0'}`}

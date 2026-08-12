@@ -23,7 +23,7 @@ export const ProductCard = ({ product }) => {
     <div className="bg-white rounded-2xl flex flex-col relative border border-gray-100 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
       {/* Product Image Area - gray background with rounded top */}
       <div
-        className="relative bg-[#f5f5f7] cursor-pointer flex items-center justify-center h-44 overflow-hidden"
+        className="relative bg-[#f5f5f7] cursor-pointer flex items-center justify-center h-44 overflow-hidden group"
         onClick={() => setSelectedProduct(product)}
       >
         {/* Discount badge top-left */}
@@ -36,7 +36,7 @@ export const ProductCard = ({ product }) => {
         {/* Product image - fills the entire container */}
         <ProductImage
           product={product}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain p-3 drop-shadow-sm transition-transform duration-500 group-hover:scale-110"
         />
 
         {/* Favorite Heart top-right in a white circle */}

@@ -36,7 +36,10 @@ const Category = {
 
   /** Delete category by ID */
   delete: async (id) => {
-    await dbRun("UPDATE products SET category_id = NULL WHERE category_id = ?", [id]);
+    const check = await dbGet("SELECT COUNT(*) as count FROM products WHERE category_id = ?", [id]);
+    if (check && parseInt(check.count, 10) > 0) {
+      throw new Error("Ushbu kategoriyada mahsulotlar mavjud bo'lgani uchun uni o'chirib bo'lmaydi. Iltimos, oldin ichidagi mahsulotlarni boshqa kategoriyaga o'tkazing yoki o'chiring.");
+    }
     return dbRun("DELETE FROM categories WHERE id = ?", [id]);
   },
 

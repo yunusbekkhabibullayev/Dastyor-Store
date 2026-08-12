@@ -49,7 +49,10 @@ const Product = {
 
   /** Delete product by ID */
   delete: async (id) => {
-    await dbRun("DELETE FROM order_items WHERE product_id = ?", [id]);
+    const check = await dbGet("SELECT COUNT(*) as count FROM order_items WHERE product_id = ?", [id]);
+    if (check && parseInt(check.count, 10) > 0) {
+      throw new Error("Ushbu mahsulot oldin sotib olinganligi sababli, uni o'chirib bo'lmaydi. O'rniga mahsulot sonini 0 qilib qo'yishingiz mumkin (Tarixni saqlash uchun).");
+    }
     return dbRun("DELETE FROM products WHERE id = ?", [id]);
   },
 

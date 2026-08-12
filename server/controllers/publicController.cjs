@@ -142,7 +142,11 @@ const publicController = {
     };
 
     try {
-      // Stock validation — check all items before creating order
+      // Security Fix: Calculate total from database prices, do not trust client 'total' or 'item.price'
+      let calculatedTotal = 0;
+      const validItems = [];
+
+      // Stock validation & Price Calculation
       for (const item of cart) {
         const product = await Product.getById(item.id);
         if (!product) {
@@ -153,6 +157,7 @@ const publicController = {
         }
         
         let availableStock = product.stock;
+        let itemPrice = product.price; // Use base price from DB
         let title = product.title_uz || product.id;
         
         let attrs = null;
@@ -173,6 +178,9 @@ const publicController = {
             });
           }
           availableStock = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseInt(comb.stock, 10) : 0;
+          if (comb.price) {
+             itemPrice = parseInt(comb.price, 10);
+          }
           if (item.selectedVariant) {
             const variantDesc = Object.entries(item.selectedVariant).map(([k, v]) => `${v}`).join(', ');
             title = `${title} (${variantDesc})`;
@@ -185,19 +193,29 @@ const publicController = {
             message: `"${title}" uchun yetarli zaxira yo'q. Mavjud: ${availableStock} ta.`
           });
         }
+
+        calculatedTotal += itemPrice * item.quantity;
+        validItems.push({
+          id: item.id,
+          quantity: item.quantity,
+          price: itemPrice, // Secure DB price
+          selectedVariant: item.selectedVariant ? JSON.stringify(item.selectedVariant) : null
+        });
+      }
+
+      // Add delivery price if applicable
+      const isDelivery = ['Yetkazib berish', 'Доставка', 'Delivery'].includes(paymentMethod);
+      if (isDelivery) {
+        const { dbGet } = require('../config/database.cjs');
+        const settings = await dbGet("SELECT delivery_price FROM site_settings WHERE id = 1");
+        const deliveryPrice = settings && settings.delivery_price !== undefined ? settings.delivery_price : 30000;
+        calculatedTotal += deliveryPrice;
       }
 
       // Generate order ID
       const chatId = user.id;
       const numId = orderId ? orderId.replace('ORD-', '') : Math.floor(100 + Math.random() * 900);
       const dbOrderId = orderId || `ORD-${numId}`;
-
-      const items = cart.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        selectedVariant: item.selectedVariant ? JSON.stringify(item.selectedVariant) : null
-      }));
 
       const orderRecord = {
         id: dbOrderId,
@@ -206,10 +224,10 @@ const publicController = {
         phone,
         address,
         paymentMethod,
-        totalAmount: total,
+        totalAmount: calculatedTotal, // Using backend calculated total
         status: 'processing',
         createdAt: new Date().toISOString().split('T')[0],
-        items
+        items: validItems
       };
 
       // 1. Save order to database
