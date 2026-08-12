@@ -155,7 +155,7 @@ export const CartDrawer = ({ onProceedCheckout }) => {
               type="text"
               value={promoInput}
               onChange={(e) => setPromoInput(e.target.value)}
-              placeholder="QLAY2026"
+              placeholder="RavshanRivoj2026"
               className="w-full bg-gray-50 text-xs text-gray-900 pl-8 pr-3 py-2.5 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 uppercase font-bold tracking-wider"
             />
           </div>

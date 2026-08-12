@@ -480,8 +480,8 @@ export const StoreProvider = ({ children }) => {
     }
 
     // 3. Fallback default code
-    if (cleanCode === 'QLAY2026') {
-      setAppliedPromo({ code: 'QLAY2026', discountPercent: 15 });
+    if (cleanCode === 'RAVSHANRIVOJ2026') {
+      setAppliedPromo({ code: 'RAVSHANRIVOJ2026', discountPercent: 15 });
       return { success: true };
     }
 

@@ -201,7 +201,7 @@ class TelegramService {
       ``,
       `👤 *Mijoz:* ${orderData.name || 'Noma\'lum'}`,
       `📞 *Telefon:* ${orderData.phone || '—'}`,
-      `📍 *Manzil:* ${orderData.address || '—'}`,
+      `📍 *Manzil:* [${orderData.address || '—'}](https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderData.address || '')})`,
       `💳 *To'lov:* ${orderData.paymentMethod || '—'}`,
       ``,
       `📦 *Mahsulotlar:*`,
