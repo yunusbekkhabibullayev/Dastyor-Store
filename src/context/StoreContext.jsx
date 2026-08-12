@@ -95,7 +95,7 @@ export const StoreProvider = ({ children }) => {
       .then(data => {
         if (data && data.success && Array.isArray(data.products)) {
           setProducts(prev => {
-            if (prev.length === data.products.length && prev[0]?.id === data.products[0]?.id && prev[prev.length-1]?.price === data.products[data.products.length-1]?.price) return prev;
+            if (JSON.stringify(prev) === JSON.stringify(data.products)) return prev;
             return data.products;
           });
         }
@@ -109,7 +109,7 @@ export const StoreProvider = ({ children }) => {
       .then(data => {
         if (data && data.success && Array.isArray(data.categories)) {
           setCategories(prev => {
-            if (prev.length === data.categories.length && prev[0]?.id === data.categories[0]?.id) return prev;
+            if (JSON.stringify(prev) === JSON.stringify(data.categories)) return prev;
             return data.categories;
           });
         }
