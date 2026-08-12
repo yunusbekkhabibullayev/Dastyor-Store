@@ -252,7 +252,7 @@ export const ProductDetailModal = () => {
             )}
             <ProductImage
               product={selectedProduct}
-              className="w-full h-full object-contain p-4 drop-shadow-md"
+              className="w-full h-full object-cover"
               containerClassName="w-full h-full flex items-center justify-center bg-[#f5f5f7]"
             />
           </div>

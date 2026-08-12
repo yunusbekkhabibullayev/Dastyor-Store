@@ -36,7 +36,7 @@ export const ProductCard = ({ product }) => {
         {/* Product image - fills the entire container */}
         <ProductImage
           product={product}
-          className="w-full h-full object-contain p-3 drop-shadow-sm transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
 
         {/* Favorite Heart top-right in a white circle */}
