@@ -296,6 +296,7 @@ const publicController = {
           name: orderRecord.name,
           phone: orderRecord.phone,
           address: orderRecord.address,
+          addressCoords: req.body.addressCoords || null,
           paymentMethod: orderRecord.paymentMethod,
           total: orderRecord.totalAmount,
           items: detailedItems

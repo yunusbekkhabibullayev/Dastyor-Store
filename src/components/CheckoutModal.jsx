@@ -212,7 +212,10 @@ const MapModal = ({ isOpen, onClose, onSelect }) => {
           <button
             type="button"
             onClick={() => {
-              if (address) onSelect(address);
+              if (address) {
+                const center = mapRef.current ? mapRef.current.getCenter() : null;
+                onSelect(address, center ? { lat: center.lat, lng: center.lng } : null);
+              }
             }}
             disabled={loading}
             className="flex-1 py-3.5 bg-[#3b82f6] hover:bg-blue-700 active:scale-95 text-white font-bold text-sm rounded-[16px] transition-all shadow-md shadow-blue-500/10 disabled:bg-gray-300 disabled:cursor-not-allowed"
@@ -264,6 +267,7 @@ export const CheckoutModal = ({ onClose }) => {
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState(profileUser?.name || telegramUser?.first_name || '');
   const [address, setAddress] = useState(profileUser?.address || '');
+  const [addressCoords, setAddressCoords] = useState(null);
   const [phone, setPhone] = useState(formatUzPhone(profileUser?.phone || ''));
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(false);
   const [error, setError] = useState('');
@@ -313,6 +317,7 @@ export const CheckoutModal = ({ onClose }) => {
       address: isDeliveryEnabled 
         ? address
         : (address || (lang === 'uz' ? 'Olib ketish' : lang === 'ru' ? 'Самовывоз' : 'Self-pickup')),
+      addressCoords,
       phone,
       paymentMethod: isDeliveryEnabled 
         ? (lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery')
@@ -331,10 +336,11 @@ export const CheckoutModal = ({ onClose }) => {
     }
   };
 
-  const handleMapSelect = (selectedAddr) => {
+  const handleMapSelect = (selectedAddr, coords) => {
     setIsMapOpen(false);
     triggerHaptic('medium');
     setAddress(selectedAddr);
+    if (coords) setAddressCoords(coords);
   };
 
   const formatPrice = (price) => {

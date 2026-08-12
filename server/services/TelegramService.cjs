@@ -196,12 +196,21 @@ class TelegramService {
       })
       .join('\n');
 
+    // Build address line: use precise coordinates if available, otherwise text-based search
+    const coords = orderData.addressCoords;
+    let addressLine;
+    if (coords && coords.lat && coords.lng) {
+      addressLine = `📍 *Manzil:* [${orderData.address || '—'}](https://www.google.com/maps?q=${coords.lat},${coords.lng})`;
+    } else {
+      addressLine = `📍 *Manzil:* [${orderData.address || '—'}](https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderData.address || '')})`;
+    }
+
     const message = [
       `🛒 *Yangi buyurtma #${numId}*`,
       ``,
       `👤 *Mijoz:* ${orderData.name || 'Noma\'lum'}`,
       `📞 *Telefon:* ${orderData.phone || '—'}`,
-      `📍 *Manzil:* [${orderData.address || '—'}](https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderData.address || '')})`,
+      addressLine,
       `💳 *To'lov:* ${orderData.paymentMethod || '—'}`,
       ``,
       `📦 *Mahsulotlar:*`,
@@ -214,6 +223,10 @@ class TelegramService {
     for (const adminId of adminIds) {
       try {
         await this.bot.sendMessage(adminId, message, { parse_mode: 'Markdown' });
+        // Send a separate location pin if coordinates are available (one-tap navigation)
+        if (coords && coords.lat && coords.lng) {
+          await this.bot.sendLocation(adminId, coords.lat, coords.lng);
+        }
         console.log(`[Telegram] Order notification sent to admin ${adminId}`);
         sent = true;
       } catch (error) {

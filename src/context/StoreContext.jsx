@@ -512,6 +512,7 @@ export const StoreProvider = ({ children }) => {
           orderId: newOrder.id,
           cart: newOrder.items,
           address: newOrder.address,
+          addressCoords: orderDetails.addressCoords || null,
           phone: newOrder.phone,
           paymentMethod: newOrder.paymentMethod,
           user: telegramUser || { id: 1165441564, first_name: 'Yunusbek' }, // Fallback for testing
