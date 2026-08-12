@@ -100,6 +100,7 @@ const dbInit = async () => {
       stock INTEGER DEFAULT 0 CHECK(stock >= 0),
       image TEXT,
       attributes TEXT,
+      unit TEXT DEFAULT 'dona',
       FOREIGN KEY (category_id) REFERENCES categories(id)
     )
   `);
@@ -153,16 +154,16 @@ const dbInit = async () => {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS site_settings (
       id SERIAL PRIMARY KEY,
-      name TEXT DEFAULT 'Dastyor Store',
-      description TEXT DEFAULT 'Eng sara kosmetika va gullar do''koni',
+      name TEXT DEFAULT 'Ravshan Rivoj Market',
+      description TEXT DEFAULT 'Oziq-ovqat mahsulotlari do''koni',
       logo TEXT DEFAULT '',
       phone TEXT DEFAULT '+998 90 123 45 67',
-      address TEXT DEFAULT 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy',
+      address TEXT DEFAULT 'Toshkent sh.',
       working_hours TEXT DEFAULT '09:00 - 22:00',
-      telegram_channel TEXT DEFAULT 'https://t.me/qlaystore',
-      instagram TEXT DEFAULT 'https://instagram.com/qlaystore',
+      telegram_channel TEXT DEFAULT '',
+      instagram TEXT DEFAULT '',
       bot_token TEXT DEFAULT '',
-      bot_username TEXT DEFAULT 'qlay_store_bot',
+      bot_username TEXT DEFAULT 'ravshan_rivoj_bot',
       delivery_price INTEGER DEFAULT 0,
       bts_delivery_price INTEGER DEFAULT 50000,
       admin_ids TEXT DEFAULT '',
@@ -175,10 +176,8 @@ const dbInit = async () => {
   if (parseInt(settingsCount.count, 10) === 0) {
     await dbRun(`
       INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, bts_delivery_price, is_active)
-      VALUES (1, 'Dastyor Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 50000, 1)
+      VALUES (1, 'Ravshan Rivoj Market', 'Oziq-ovqat mahsulotlari do''koni', '', '+998 90 123 45 67', 'Toshkent sh.', '09:00 - 22:00', '', '', '', 'ravshan_rivoj_bot', 0, 50000, 1)
     `);
-  } else {
-    await dbRun("UPDATE site_settings SET logo = '' WHERE logo = '/images/mascara.png'");
   }
 
   // Create indexes for better query performance
@@ -212,56 +211,12 @@ const dbInit = async () => {
   if (!(await checkColumn('order_items', 'selected_variant'))) {
     try { await dbRun("ALTER TABLE order_items ADD COLUMN selected_variant TEXT"); } catch (e) {}
   }
-
-  // ─── Seed Data ──────────────────────────────────────────────
-  const catCount = await dbGet("SELECT COUNT(*) as count FROM categories");
-  if (parseInt(catCount.count, 10) === 0) {
-    const defaultCategories = [
-      { id: 'cosmetics', name: { uz: 'Kosmetika', ru: 'Косметика', en: 'Cosmetics' } },
-      { id: 'flowers', name: { uz: 'Gullar', ru: 'Цветы', en: 'Flowers' } },
-      { id: 'men', name: { uz: 'Erkaklar modasi', ru: 'Мужская мода', en: "Men's Fashion" } },
-      { id: 'women', name: { uz: 'Ayollar modasi', ru: 'Женская мода', en: "Women's Fashion" } },
-      { id: 'electronics', name: { uz: 'Elektronika', ru: 'Электроника', en: 'Electronics' } },
-    ];
-    for (const cat of defaultCategories) {
-      await dbRun(
-        "INSERT INTO categories (id, name_uz, name_ru, name_en, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?)",
-        [cat.id, cat.name.uz, cat.name.ru, cat.name.en, 0, 1]
-      );
-    }
-    console.log('[DB] Seeded default categories');
+  if (!(await checkColumn('products', 'unit'))) {
+    try { await dbRun("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'dona'"); } catch (e) {}
   }
 
-  const prodCount = await dbGet("SELECT COUNT(*) as count FROM products");
-  if (parseInt(prodCount.count, 10) === 0) {
-    const defaultProducts = [
-      {
-        id: 'prod_1', category_id: 'cosmetics', price: 145000, old_price: 180000, stock: 10,
-        title: { uz: "L'Oréal Paris Bambi Ko'z Tushi", ru: "Тушь L'Oréal Paris Bambi", en: "L'Oréal Paris Bambi Mascara" },
-        description: { uz: 'Kipriklarni uzaytiruvchi va qalinlashtiruvchi tush', ru: 'Удлиняющая и утолщающая тушь', en: 'Lengthening and thickening mascara' },
-        image: '/images/mascara.png'
-      },
-      {
-        id: 'prod_2', category_id: 'cosmetics', price: 210000, old_price: null, stock: 5,
-        title: { uz: 'SKIN1004 Centella Ampulasi', ru: 'Ампула SKIN1004 Centella', en: 'SKIN1004 Centella Ampoule' },
-        description: { uz: 'Yuz terisini tinchlantiruvchi va namlovchi zardob', ru: 'Успокаивающая и увлажняющая сыворотка', en: 'Soothing and moisturizing serum' },
-        image: '/images/ampoule.png'
-      },
-      {
-        id: 'prod_3', category_id: 'flowers', price: 350000, old_price: 400000, stock: 3,
-        title: { uz: '101 ta Qizil Atirgul Guldastasi', ru: 'Букет из 101 красной розы', en: 'Букет из 101 красной розы' },
-        description: { uz: 'Yaqinlar uchun maxsus sovg\'a', ru: 'Особый подарок для близких', en: 'Special gift for loved ones' },
-        image: '/images/roses.png'
-      }
-    ];
-    for (const prod of defaultProducts) {
-      await dbRun(
-        "INSERT INTO products (id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [prod.id, prod.category_id, prod.title.uz, prod.title.ru, prod.title.en, prod.description.uz, prod.description.ru, prod.description.en, prod.price, prod.old_price, prod.stock, prod.image]
-      );
-    }
-    console.log('[DB] Seeded default products');
-  }
+  // ─── Seed Data (Disabled for Production) ──────────────────────────────────────────────
+  // No initial seeding of categories/products to start with a completely empty catalog.
 };
 
 module.exports = {

@@ -56,7 +56,7 @@ class TelegramService {
       await this.bot.setChatMenuButton({
         menu_button: JSON.stringify({
           type: 'web_app',
-          text: '🛍️ Dastyor Store',
+          text: '🛍️ Ravshan Rivoj Market',
           web_app: { url: telegramConfig.ngrokUrl }
         })
       });
@@ -83,7 +83,7 @@ class TelegramService {
 
       const text = payload
         ? `Assalomu alaykum, ${firstName}! 😊\n\nSiz tanlagan mahsulotni do'konda ko'rish uchun quyidagi tugmani bosing:`
-        : `Assalomu alaykum, ${firstName}! 😊\n\nDastyor Store do'konimizga xush kelibsiz. Do'konni ochish uchun quyidagi tugmani bosing:`;
+        : `Assalomu alaykum, ${firstName}! 😊\n\nRavshan Rivoj Market do'konimizga xush kelibsiz. Do'konni ochish uchun quyidagi tugmani bosing:`;
 
       this.bot.sendMessage(chatId, text, {
         reply_markup: {
@@ -138,7 +138,7 @@ class TelegramService {
 
     const statusText = statusTexts[status] || status;
     const numId = orderId.replace('ORD-', '');
-    const userMessage = `🔔 *Buyurtma holati yangilandi!*\n\nSizning #${numId}-sonli buyurtmangiz holati: *${statusText}* holatiga o'zgartirildi.\n\nDastyor Store do'koni xizmatlaridan foydalanganingiz uchun rahmat!`;
+    const userMessage = `🔔 *Buyurtma holati yangilandi!*\n\nSizning #${numId}-sonli buyurtmangiz holati: *${statusText}* holatiga o'zgartirildi.\n\nRavshan Rivoj Market do'koni xizmatlaridan foydalanganingiz uchun rahmat!`;
 
     try {
       await this.bot.sendMessage(chatId, userMessage, { parse_mode: 'Markdown' });
@@ -191,7 +191,8 @@ class TelegramService {
           const varObj = typeof sv === 'string' ? JSON.parse(sv) : sv;
           variantDesc = ` (${Object.values(varObj).join(', ')})`;
         }
-        return `  • ${title}${variantDesc} × ${item.quantity}`;
+        const unit = item.unit || 'dona';
+        return `  • ${title}${variantDesc} × ${item.quantity} ${unit}`;
       })
       .join('\n');
 

@@ -122,7 +122,7 @@ export const CartDrawer = ({ onProceedCheckout }) => {
 
                 {/* Bottom Row: Price (left) & Quantity Counter (right) */}
                 <div className="flex items-center justify-between gap-2 mt-auto">
-                  <span className="text-[13px] font-black text-gray-900 whitespace-nowrap">{formatPrice(item.price)}</span>
+                  <span className="text-[13px] font-black text-gray-900 whitespace-nowrap">{formatPrice(item.price)} {item.unit ? `/ ${item.unit}` : ''}</span>
                   
                   <div className="flex items-center gap-1 bg-[#f2f2f7] rounded-xl p-0.5 border border-gray-200/60 shrink-0">
                     <button
@@ -131,7 +131,7 @@ export const CartDrawer = ({ onProceedCheckout }) => {
                     >
                       <MinusIcon className="w-3 h-3" />
                     </button>
-                    <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{item.quantity}</span>
+                    <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{item.quantity} {item.unit || ''}</span>
                     <button
                       onClick={() => updateCartQuantity(itemCartId, 1)}
                       className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"

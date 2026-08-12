@@ -101,7 +101,7 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
           {lang === 'uz' ? 'Admin panelga kirish' : 'Вход в админ-панель'}
         </h2>
         <p className="text-[10px] text-blue-600 font-extrabold tracking-wider uppercase mb-7">
-          Dastyor Store Manager
+          Ravshan Rivoj Market Manager
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -117,7 +117,7 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
                 value={email}
                 onBlur={() => setEmailTouched(true)}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                placeholder="admin@dastyor.uz"
+                placeholder="admin@ravshanrivoj.uz"
                 className={`w-full bg-gray-50/50 border pl-10 pr-4 py-3 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 transition-all placeholder-gray-400 ${
                   emailTouched && !isEmailValid
                     ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 bg-rose-50/30' 
@@ -342,7 +342,7 @@ const MainLayout = () => {
 
   // Check if we are inside Telegram WebApp
   const isInsideTelegram = !!(window.Telegram?.WebApp?.initData);
-  const showTelegramRedirectBanner = showBanner && !isInsideTelegram && botUsername;
+  const showTelegramRedirectBanner = false;
 
   // Get current product ID from search params
   const urlParams = new URLSearchParams(window.location.search);

@@ -63,7 +63,8 @@ const publicController = {
             stock: p.stock,
             image: p.image,
             images: [p.image],
-            attributes: attributesObj
+            attributes: attributesObj,
+            unit: p.unit || 'dona'
           };
         });
         cacheService.set('products', mapped);
@@ -268,7 +269,8 @@ const publicController = {
             title: product ? { uz: product.title_uz, ru: product.title_ru, en: product.title_en } : { uz: item.id },
             quantity: item.quantity,
             price: item.price,
-            selectedVariant: item.selectedVariant
+            selectedVariant: item.selectedVariant,
+            unit: product ? (product.unit || 'dona') : 'dona'
           });
         }
         await telegramService.sendNotification({

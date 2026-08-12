@@ -15,7 +15,7 @@ const SiteSettings = {
     if (!settings) {
       await dbRun(`
         INSERT INTO site_settings (id, name, description, logo, phone, address, working_hours, telegram_channel, instagram, bot_token, bot_username, delivery_price, bts_delivery_price, is_active)
-        VALUES (1, 'Dastyor Store', 'Eng sara kosmetika va gullar do''koni', '', '+998 90 123 45 67', 'Toshkent sh., Chilonzor tumani, Qatortol ko''chasi 15-uy', '09:00 - 22:00', 'https://t.me/qlaystore', 'https://instagram.com/qlaystore', '', 'qlay_store_bot', 0, 50000, 1)
+        VALUES (1, 'Ravshan Rivoj Market', 'Oziq-ovqat mahsulotlari do''koni', '', '+998 90 123 45 67', 'Jizzax viloyati, Mirzacho''l tumani', '09:00 - 22:00', '', '', '', 'ravshan_rivoj_bot', 0, 0, 1)
       `);
       settings = await dbGet("SELECT * FROM site_settings WHERE id = 1");
     }

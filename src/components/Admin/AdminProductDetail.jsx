@@ -128,12 +128,12 @@ export const AdminProductDetail = () => {
                 {product[`title_${lang}`] || product.title_uz}
               </h4>
               <div className="flex gap-4 mt-3 font-bold text-sm">
-                <span className="text-blue-600">{formatPrice(product.price)} {t.currency}</span>
+                <span className="text-blue-600">{formatPrice(product.price)} {t.currency} {product.unit ? `/ ${product.unit}` : ''}</span>
                 {product.old_price && (
-                  <span className="text-gray-400 line-through">{formatPrice(product.old_price)} {t.currency}</span>
+                  <span className="text-gray-400 line-through">{formatPrice(product.old_price)} {t.currency} {product.unit ? `/ ${product.unit}` : ''}</span>
                 )}
                 <span className={product.stock > 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                  {product.stock > 0 ? `${lang === 'uz' ? 'Omborda' : 'В наличии'}: ${product.stock} ta` : 'Tugagan'}
+                  {product.stock > 0 ? `${lang === 'uz' ? 'Omborda' : 'В наличии'}: ${product.stock} ${product.unit || 'dona'}` : 'Tugagan'}
                 </span>
               </div>
             </div>

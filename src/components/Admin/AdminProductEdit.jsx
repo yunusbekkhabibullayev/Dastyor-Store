@@ -84,6 +84,7 @@ export const AdminProductEdit = () => {
     price: product.price ?? '',
     old_price: product.old_price ?? '',
     stock: product.stock ?? 0,
+    unit: product.unit || 'dona',
     image: product.image || '',
     attributes: product.attributes || {}
   });
@@ -408,6 +409,31 @@ export const AdminProductEdit = () => {
                 }}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
               />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-455 uppercase tracking-wide block mb-1">
+                {lang === 'uz' ? 'O\'lchov birligi' : lang === 'ru' ? 'Единица измерения' : 'Unit of measure'}
+              </label>
+              <select
+                required
+                value={form.unit}
+                onChange={(e) => setForm(prev => ({ ...prev, unit: e.target.value }))}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              >
+                <option value="dona">{lang === 'uz' ? 'dona (shtuk)' : lang === 'ru' ? 'шт (штука)' : 'pcs'}</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="l">l</option>
+                <option value="ml">ml</option>
+                <option value="qadoq">{lang === 'uz' ? 'qadoq (pachka)' : 'упаковка (пачка)'}</option>
+                <option value="qop">{lang === 'uz' ? 'qop' : 'мешок'}</option>
+                <option value="blok">{lang === 'uz' ? 'blok' : 'блок'}</option>
+                <option value="banka">{lang === 'uz' ? 'banka' : 'банка'}</option>
+                <option value="bog\'">{lang === 'uz' ? 'bog\' (bog\'lam)' : 'пучок'}</option>
+                <option value="bo\'lak">{lang === 'uz' ? 'bo\'lak' : 'долька / кусок'}</option>
+                <option value="porsiya">{lang === 'uz' ? 'porsiya' : 'порция'}</option>
+              </select>
             </div>
           </div>
 

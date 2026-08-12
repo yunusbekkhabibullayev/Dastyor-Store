@@ -1,204 +1,14 @@
 export const CATEGORIES = [
-  { id: 'all', name: { uz: 'Barchasi', ru: 'Все', en: 'All' } },
-  { id: 'cosmetics', name: { uz: 'Kosmetika', ru: 'Косметика', en: 'Cosmetics' } },
-  { id: 'flowers', name: { uz: 'Gullar', ru: 'Цветы', en: 'Flowers' } },
-  { id: 'men', name: { uz: 'Erkaklar modasi', ru: 'Мужская мода', en: "Men's Fashion" } },
-  { id: 'women', name: { uz: 'Ayollar modasi', ru: 'Женская мода', en: "Women's Fashion" } },
-  { id: 'electronics', name: { uz: 'Elektronika', ru: 'Электроника', en: 'Electronics' } },
+  { id: 'all', name: { uz: 'Barchasi', ru: 'Все', en: 'All' } }
 ];
 
-export const BANNERS = [
-  {
-    id: 1,
-    title: { uz: 'SPRING BOUQUET', ru: 'SPRING BOUQUET', en: 'SPRING BOUQUET' },
-    subtitle: { uz: 'Gullar kolleksiyasi 2026', ru: 'Коллекция цветов 2026', en: 'Flower Collection 2026' },
-    image: '/images/spring_bouquet.png',
-    badge: { uz: 'YANGI', ru: 'НОВИНКА', en: 'NEW' },
-    buttonText: { uz: 'Ko\'rish', ru: 'Смотреть', en: 'View' }
-  },
-  {
-    id: 2,
-    title: { uz: 'Madagascar Centella Skincare', ru: 'Madagascar Centella Skincare', en: 'Madagascar Centella Skincare' },
-    subtitle: { uz: 'Tabiiy parvarish va go\'zallik', ru: 'Натуральный уход и красота', en: 'Natural Care and Beauty' },
-    image: '/images/skincare_banner.png',
-    badge: { uz: 'TOP', ru: 'ТОП', en: 'TOP' },
-    buttonText: { uz: 'Batafsil', ru: 'Подробнее', en: 'Details' }
-  },
-  {
-    id: 3,
-    title: { uz: 'Yozgi Kolleksiya 2026', ru: 'Летняя Коллекция 2026', en: 'Summer Collection 2026' },
-    subtitle: { uz: 'Zamonaviy kiyimlar to\'plami', ru: 'Стильная одежда', en: 'Stylish clothing collection' },
-    image: '/images/mens_fashion_banner.png',
-    badge: { uz: 'MODA', ru: 'МОДА', en: 'FASHION' },
-    buttonText: { uz: 'Tanlash', ru: 'Выбрать', en: 'Select' }
-  },
-  {
-    id: 4,
-    title: { uz: 'Premium Elektronika', ru: 'Премиум Электроника', en: 'Premium Electronics' },
-    subtitle: { uz: 'Eng yaxshi naushniklar va gadjetlar', ru: 'Лучшие наушники и гаджеты', en: 'Best headphones and gadgets' },
-    image: '/images/electronics_banner.png',
-    badge: { uz: 'AKSION', ru: 'АКЦИЯ', en: 'SALE' },
-    buttonText: { uz: 'Ko\'rish', ru: 'Смотреть', en: 'View' }
-  }
-];
+export const BANNERS = [];
 
-
-export const PRODUCTS = [
-  {
-    id: 'p1',
-    categoryId: 'cosmetics',
-    title: { uz: "L'Oréal Paris Bambi Eye Mascarasi", ru: "L'Oréal Paris Bambi Eye Mascarasi", en: "L'Oréal Paris Bambi Eye Mascara" },
-    description: {
-      uz: 'Kipriklarga maksimal hajm va uzunlik beruvchi professional tush. Suv va terga chidamli formula.',
-      ru: 'Профессиональная тушь для максимального объема и удлинения ресниц. Водостойкая и устойчивая формула.',
-      en: 'Professional mascara that gives maximum volume and length to lashes. Water and sweat resistant formula.'
-    },
-    price: 100000,
-    oldPrice: null,
-    stock: 7,
-    image: '/images/mascara.png',
-    images: ['/images/mascara.png']
-  },
-  {
-    id: 'p2',
-    categoryId: 'cosmetics',
-    title: { uz: 'Ампула SKIN1004 с центеллой', ru: 'Ампула SKIN1004 с центеллой', en: 'SKIN1004 Centella Ampoule' },
-    description: {
-      uz: 'Centella asiatica o\'simligidan tayyorlangan terini tinchlantiruvchi va namlantiruvchi ampula.',
-      ru: 'Успокаивающая и увлажняющая ампула на основе экстракта центеллы азиатской.',
-      en: 'Soothing and hydrating ampoule made with pure Centella Asiatica extract.'
-    },
-    price: 100000,
-    oldPrice: null,
-    stock: 3,
-    image: '/images/centella.png',
-    images: ['/images/centella.png']
-  },
-  {
-    id: 'p3',
-    categoryId: 'cosmetics',
-    title: { uz: 'NARS Radiant Krem Konsiler', ru: 'NARS Radiant Krem Konsiler', en: 'NARS Radiant Creamy Concealer' },
-    description: {
-      uz: 'Yuqori qoplamali, namlantiruvchi va tabiiy ko\'rinish beruvchi konsiler.',
-      ru: 'Высокое покрытие, увлажняющий консилер с естественным финишем.',
-      en: 'High coverage, hydrating, and natural-looking creamy concealer.'
-    },
-    price: 90000,
-    oldPrice: 130000,
-    stock: 1,
-    image: '/images/concealer.png',
-    images: ['/images/concealer.png']
-  },
-  {
-    id: 'p4',
-    categoryId: 'cosmetics',
-    title: { uz: 'Revolution bronzeri', ru: 'Revolution bronzeri', en: 'Revolution Compact Bronzer' },
-    description: {
-      uz: 'Yuzga tabiiy bronz rang beruvchi kompakt pudra.',
-      ru: 'Компактная пудра для естественного бронзового сияния.',
-      en: 'Compact powder for a natural bronze glow.'
-    },
-    price: 150000,
-    oldPrice: null,
-    stock: 1,
-    image: '/images/bronzer.png',
-    images: ['/images/bronzer.png']
-  },
-  {
-    id: 'p5',
-    categoryId: 'flowers',
-    title: { uz: 'Букет красных роз', ru: 'Букет красных роз', en: 'Red Roses Bouquet' },
-    description: {
-      uz: 'Qizil gullardan iborat chiroyli guldasta.',
-      ru: 'Красивый букет из свежих красных роз, перевязанный лентой.',
-      en: 'A beautiful bouquet of fresh red roses wrapped with a ribbon.'
-    },
-    price: 300000,
-    oldPrice: null,
-    stock: 3,
-    image: '/images/roses.png',
-    images: ['/images/roses.png']
-  },
-  {
-    id: 'p6',
-    categoryId: 'flowers',
-    title: { uz: 'Букет "Летний луг"', ru: 'Букет "Летний луг"', en: 'Summer Meadow Bouquet' },
-    description: {
-      uz: 'Yovvoyi gullardan iborat yozgi guldasta.',
-      ru: 'Летний букет из полевых ромашек, васильков и диких маков.',
-      en: 'A summer bouquet of field daisies, cornflowers, and wild poppies.'
-    },
-    price: 220000,
-    oldPrice: null,
-    stock: 4,
-    image: '/images/wildflowers.png',
-    images: ['/images/wildflowers.png']
-  },
-  {
-    id: 'p7',
-    categoryId: 'men',
-    title: { uz: 'Мужская рубашка-жакет', ru: 'Мужская рубашка-жакет', en: "Men's Shirt Jacket" },
-    description: {
-      uz: 'Erkaklar uchun zamonaviy katak naqshli jilet-ko\'ylak. Kundalik kiyish uchun juda qulay.',
-      ru: 'Стильная мужская рубашка-жакет в клетку. Отличный вариант для повседневного стиля.',
-      en: 'Stylish plaid men\'s shirt-jacket. Great option for casual style.'
-    },
-    price: 75000,
-    oldPrice: null,
-    stock: 5,
-    image: '/images/shirt.png',
-    images: ['/images/shirt.png']
-  },
-  {
-    id: 'p8',
-    categoryId: 'women',
-    title: { uz: 'Синий вязаный кардиган с воротником', ru: 'Синий вязаный кардиган с воротником', en: 'Blue Knitted Cardigan with Collar' },
-    description: {
-      uz: 'Trikotaj yoqali va tugmali nafis ayollar ko\'k kardigani. Yumshoq va iliq material.',
-      ru: 'Уютный синий вязаный кардиган с широким воротником и узором косы.',
-      en: 'Cozy blue knitted cardigan with a wide collar and cable knit pattern.'
-    },
-    price: 100000,
-    oldPrice: 200000,
-    stock: 10,
-    image: '/images/cardigan.png',
-    images: ['/images/cardigan.png']
-  },
-  {
-    id: 'p9',
-    categoryId: 'electronics',
-    title: { uz: 'Wireless Earbuds Pro', ru: 'Wireless Earbuds Pro', en: 'Wireless Earbuds Pro' },
-    description: {
-      uz: 'Shovqinni bostiruvchi va yuqori chastotali ovoz beruvchi premium simsiz quloqchinlar.',
-      ru: 'Беспроводные наушники с активным шумоподавлением и премиальным звуком.',
-      en: 'Premium wireless earbuds with active noise cancellation and high fidelity sound.'
-    },
-    price: 490000,
-    oldPrice: 650000,
-    stock: 8,
-    image: '/images/headphones.png',
-    images: ['/images/headphones.png']
-  },
-  {
-    id: 'p10',
-    categoryId: 'men',
-    title: { uz: 'Krossovki Asics Gel-1130', ru: 'Кроссовки Asics Gel-1130', en: 'Asics Gel-1130 Sneakers' },
-    description: {
-      uz: 'Krem va ko\'k rangli zamonaviy hamda yugurish uchun o\'ta qulay krossovkalar. Kundalik kiyish uchun ham mos keladi.',
-      ru: 'Удобные и стильные кроссовки Asics в кремово-синем исполнении. Идеальны для бега и на каждый день.',
-      en: 'Comfortable and stylish Asics sneakers in cream-blue. Ideal for running and everyday wear.'
-    },
-    price: 850000,
-    oldPrice: 1200000,
-    stock: 6,
-    image: '/images/sneakers.png',
-    images: ['/images/sneakers.png']
-  }
-];
+export const PRODUCTS = [];
 
 export const TRANSLATIONS = {
   uz: {
-    storeName: 'Dastyor Store',
+    storeName: 'Ravshan Rivoj Market',
     searchPlaceholder: 'Mahsulotlarni qidirish...',
     catalog: 'Katalog',
     cart: 'Savat',
@@ -240,7 +50,7 @@ export const TRANSLATIONS = {
     itemsCount: 'ta'
   },
   ru: {
-    storeName: 'Dastyor Store',
+    storeName: 'Ravshan Rivoj Market',
     searchPlaceholder: 'Поиск товаров...',
     catalog: 'Каталог',
     cart: 'Корзина',
@@ -282,7 +92,7 @@ export const TRANSLATIONS = {
     itemsCount: 'шт'
   },
   en: {
-    storeName: 'Dastyor Store',
+    storeName: 'Ravshan Rivoj Market',
     searchPlaceholder: 'Search products...',
     catalog: 'Catalog',
     cart: 'Cart',

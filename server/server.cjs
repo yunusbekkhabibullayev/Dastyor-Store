@@ -1,5 +1,5 @@
 /**
- * Dastyor Store — Server Entry Point
+ * Ravshan Rivoj Market — Server Entry Point
  * 
  * Clean entry point: initializes express, mounts middleware & routes, serves frontend.
  * All business logic is in controllers/, services/, models/.
@@ -48,7 +48,7 @@ app.get(['/health', '/ping'], (req, res) => {
   res.status(200).json({
     success: true,
     status: 'ok',
-    message: 'Dastyor Store Server is active',
+    message: 'Ravshan Rivoj Market Server is active',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
@@ -59,25 +59,14 @@ app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
 // ─── Dynamic OG Meta Tags ──────────────────────────────────────
-const backendProducts = [
-  { id: 'p1', title: { uz: "L'Oréal Paris Mascarasi", ru: "L'Oréal Paris Mascarasi", en: "L'Oréal Paris Mascara" }, description: { uz: "Kipriklarga maksimal hajm va uzunlik beruvchi professional tush.", ru: "Профессиональная тушь для объема и удлинения ресниц.", en: "Professional mascara for volume and length." }, image: '/images/mascara.png' },
-  { id: 'p2', title: { uz: 'Ампула SKIN1004 с центеллой', ru: 'Ампула SKIN1004 с центеллой', en: 'SKIN1004 Centella Ampoule' }, description: { uz: "Centella asiatica terini tinchlantiruvchi va namlantiruvchi ampula.", ru: "Успокаивающая ампула на основе экстракта центеллы.", en: "Soothing and hydrating Centella ampoule." }, image: '/images/centella.png' },
-  { id: 'p3', title: { uz: 'NARS Radiant Konsiler', ru: 'NARS Radiant Консилер', en: 'NARS Radiant Concealer' }, description: { uz: "Yuqori qoplamali, namlantiruvchi va tabiiy ko'rinish beruvchi konsiler.", ru: "Высокое покрытие, увлажняющий консилер.", en: "High coverage, hydrating creamy concealer." }, image: '/images/concealer.png' },
-  { id: 'p4', title: { uz: 'Revolution bronzeri', ru: 'Revolution бронзер', en: 'Revolution Bronzer' }, description: { uz: "Yuzga tabiiy bronz rang beruvchi kompakt pudra.", ru: "Компактная пудра для естественного бронзового сияния.", en: "Compact powder for natural bronze glow." }, image: '/images/bronzer.png' },
-  { id: 'p5', title: { uz: 'Qizil atirgullar guldastasi', ru: 'Букет красных роз', en: 'Red Roses Bouquet' }, description: { uz: "Qizil gullardan iborat chiroyli guldasta.", ru: "Красивый букет из свежих красных роз.", en: "Beautiful bouquet of fresh red roses." }, image: '/images/roses.png' },
-  { id: 'p6', title: { uz: 'Summer Meadow guldastasi', ru: 'Букет "Летний луг"', en: 'Summer Meadow Bouquet' }, description: { uz: "Yovvoyi gullardan iborat yozgi guldasta.", ru: "Летний букет из полевых цветов.", en: "Summer bouquet of field daisies and poppies." }, image: '/images/wildflowers.png' },
-  { id: 'p7', title: { uz: 'Erkaklar ko\'ylak-jileti', ru: 'Мужская рубашка-жакет', en: "Men's Shirt Jacket" }, description: { uz: "Erkaklar uchun zamonaviy katak naqshli jilet-ko'ylak.", ru: "Стильная мужская рубашка-жакет в клетку.", en: "Stylish plaid men's shirt-jacket." }, image: '/images/shirt.png' },
-  { id: 'p8', title: { uz: 'Ayollar trikotaj kardigani', ru: 'Синий вязаный кардиган', en: 'Blue Knitted Cardigan' }, description: { uz: "Trikotaj yoqali va tugmali nafis ayollar ko'k kardigani.", ru: "Уютный синий вязаный кардиган с воротником.", en: "Cozy blue knitted cardigan with collar." }, image: '/images/cardigan.png' },
-  { id: 'p9', title: { uz: 'Wireless Earbuds Pro', ru: 'Wireless Earbuds Pro', en: 'Wireless Earbuds Pro' }, description: { uz: "Shovqinni bostiruvchi premium simsiz quloqchinlar.", ru: "Беспроводные наушники с активным шумоподавлением.", en: "Premium wireless earbuds with active noise cancellation." }, image: '/images/headphones.png' },
-  { id: 'p10', title: { uz: 'Krossovki Asics Gel-1130', ru: 'Кроссовки Asics Gel-1130', en: 'Asics Gel-1130 Sneakers' }, description: { uz: 'Krem va ko\'k rangli zamonaviy hamda yugurish uchun o\'ta qulay krossovkalar.', ru: 'Удобные и стильные кроссовки Asics.', en: 'Comfortable and stylish Asics sneakers.' }, image: '/images/sneakers.png' }
-];
+const backendProducts = [];
 
 app.get('/', (req, res, next) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
   if (!fs.existsSync(indexPath)) {
     return res.status(200).json({
       success: true,
-      service: 'Dastyor Store Backend API',
+      service: 'Ravshan Rivoj Market Backend API',
       status: 'online',
       timestamp: new Date().toISOString(),
       healthCheck: '/api/health'
@@ -89,9 +78,9 @@ app.get('/', (req, res, next) => {
   const productId = req.query.product || req.query.productId;
   const lang = req.query.lang || 'uz';
 
-  let ogTitle = "Dastyor Store — Telegram Mini App";
+  let ogTitle = "Ravshan Rivoj Market — Telegram Mini App";
   let ogDesc = "Siz xohlagan mahsulotlar arzon va tezkor yetkazib berish bilan!";
-  let ogImage = NGROK_URL + "/images/skincare_banner.png";
+  let ogImage = NGROK_URL + "/uploads/logo.png";
 
   if (productId) {
     const product = backendProducts.find(p => p.id === productId);
@@ -133,7 +122,7 @@ app.use((req, res) => {
     } else {
       res.status(200).json({
         success: true,
-        service: 'Dastyor Store Backend API',
+        service: 'Ravshan Rivoj Market Backend API',
         status: 'online',
         timestamp: new Date().toISOString()
       });

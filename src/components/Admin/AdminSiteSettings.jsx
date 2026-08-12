@@ -72,7 +72,7 @@ export const AdminSiteSettings = () => {
   useEffect(() => {
     if (siteSettings) {
       setForm({
-        name: siteSettings.name || 'Dastyor Store',
+        name: siteSettings.name || 'Ravshan Rivoj Market',
         logo: siteSettings.logo || '',
         bot_token: siteSettings.bot_token || '',
         delivery_price: siteSettings.delivery_price || 0,
@@ -147,8 +147,8 @@ export const AdminSiteSettings = () => {
     const fullPhone = phoneDigits ? `+998${phoneDigits}` : '';
 
     const payload = {
-      name: form.name || 'Dastyor Store',
-      logo: form.logo || '/images/mascara.png',
+      name: form.name || 'Ravshan Rivoj Market',
+      logo: form.logo || '',
       phone: fullPhone,
       bot_token: form.bot_token || '',
       delivery_price: parseInt(form.delivery_price, 10) || 0,

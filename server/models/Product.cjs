@@ -29,21 +29,21 @@ const Product = {
 
   /** Create new product */
   create: (data) => {
-    const { id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes } = data;
+    const { id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes, unit } = data;
     const attrString = attributes ? (typeof attributes === 'string' ? attributes : JSON.stringify(attributes)) : null;
     return dbRun(
-      "INSERT INTO products (id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attrString]
+      "INSERT INTO products (id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes, unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [id, category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attrString, unit || 'dona']
     );
   },
 
   /** Update existing product */
   update: (id, data) => {
-    const { category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes } = data;
+    const { category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attributes, unit } = data;
     const attrString = attributes ? (typeof attributes === 'string' ? attributes : JSON.stringify(attributes)) : null;
     return dbRun(
-      "UPDATE products SET category_id = ?, title_uz = ?, title_ru = ?, title_en = ?, description_uz = ?, description_ru = ?, description_en = ?, price = ?, old_price = ?, stock = ?, image = ?, attributes = ? WHERE id = ?",
-      [category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attrString, id]
+      "UPDATE products SET category_id = ?, title_uz = ?, title_ru = ?, title_en = ?, description_uz = ?, description_ru = ?, description_en = ?, price = ?, old_price = ?, stock = ?, image = ?, attributes = ?, unit = ? WHERE id = ?",
+      [category_id, title_uz, title_ru, title_en, description_uz, description_ru, description_en, price, old_price, stock, image, attrString, unit || 'dona', id]
     );
   },
 

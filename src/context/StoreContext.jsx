@@ -162,16 +162,16 @@ export const StoreProvider = ({ children }) => {
   };
 
   const [siteSettings, setSiteSettings] = useState({
-    name: 'Dastyor Store',
-    description: 'Eng sara kosmetika va gullar do\'koni',
+    name: 'Ravshan Rivoj Market',
+    description: 'Oziq-ovqat mahsulotlari do\'koni',
     logo: '',
     phone: '+998 90 123 45 67',
-    address: 'Toshkent sh., Chilonzor tumani, Qatortol ko\'chasi 15-uy',
+    address: 'Toshkent sh.',
     working_hours: '09:00 - 22:00',
-    telegram_channel: 'https://t.me/qlaystore',
-    instagram: 'https://instagram.com/qlaystore',
+    telegram_channel: '',
+    instagram: '',
     bot_token: '',
-    bot_username: 'qlay_store_bot',
+    bot_username: 'ravshan_rivoj_bot',
     delivery_price: 0,
     is_active: 1
   });

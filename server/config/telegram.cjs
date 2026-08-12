@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const telegramConfig = {
   botToken: process.env.BOT_TOKEN || '',
-  ngrokUrl: process.env.WEBAPP_URL || process.env.NGROK_URL || 'https://dastyor-store.vercel.app',
+  ngrokUrl: process.env.WEBAPP_URL || process.env.NGROK_URL || '',
   adminIds: (process.env.ADMIN_IDS || process.env.ADMIN_TELEGRAM_ID || '1165441564')
     .toString()
     .split(',')

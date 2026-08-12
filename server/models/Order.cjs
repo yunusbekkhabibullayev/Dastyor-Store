@@ -31,7 +31,7 @@ const Order = {
   /** Get order items with product info */
   getItems: (orderId) => {
     return dbAll(
-      `SELECT oi.*, p.title_uz, p.title_ru, p.title_en, p.image 
+      `SELECT oi.*, p.title_uz, p.title_ru, p.title_en, p.image, p.unit 
        FROM order_items oi 
        LEFT JOIN products p ON oi.product_id = p.id 
        WHERE oi.order_id = ?`,

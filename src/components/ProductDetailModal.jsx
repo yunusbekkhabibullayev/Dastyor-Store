@@ -281,8 +281,8 @@ export const ProductDetailModal = () => {
                   <MinusIcon className="w-5 h-5" />
                 </button>
                 <div className="flex flex-col items-center justify-center leading-tight min-w-[70px]">
-                  <span className="text-[17px] font-bold text-gray-900">{inCartCount}</span>
-                  <span className="text-[10px] text-gray-400 font-medium">в корзине</span>
+                  <span className="text-[17px] font-bold text-gray-900">{inCartCount} {selectedProduct.unit || ''}</span>
+                  <span className="text-[10px] text-gray-400 font-medium">{lang === 'uz' ? 'savatda' : lang === 'ru' ? 'в корзине' : 'in cart'}</span>
                 </div>
                 <button
                   onClick={() => updateCartQuantity(currentCartId, 1)}
@@ -306,13 +306,13 @@ export const ProductDetailModal = () => {
           <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] space-y-4">
             {/* Price & Stock info row */}
             <div className="flex items-start justify-between">
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <span className="text-[22px] font-extrabold text-[#3b82f6]">
-                  {formatPrice(currentPrice)}
+                  {formatPrice(currentPrice)} {selectedProduct.unit ? `/ ${selectedProduct.unit}` : ''}
                 </span>
                 {currentOldPrice && (
                   <span className="text-[14px] text-gray-400 line-through mt-0.5">
-                    {formatPrice(currentOldPrice)}
+                    {formatPrice(currentOldPrice)} {selectedProduct.unit ? `/ ${selectedProduct.unit}` : ''}
                   </span>
                 )}
               </div>
@@ -323,16 +323,16 @@ export const ProductDetailModal = () => {
                   </span>
                 ) : currentStock <= 3 ? (
                   <span className="text-[13px] font-semibold text-[#ff3b30]">
-                    {lang === 'uz' ? `Faqat ${currentStock} ta qoldi` : lang === 'ru' ? `Осталось ${currentStock} шт` : `Only ${currentStock} left`}
+                    {lang === 'uz' ? `Faqat ${currentStock} ${selectedProduct.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${currentStock} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `Only ${currentStock} ${selectedProduct.unit || 'pcs'} left`}
                   </span>
                 ) : (
                   <span className="text-[13px] font-medium text-gray-500">
-                    {lang === 'uz' ? `Sotuvda bor: ${currentStock} ta` : lang === 'ru' ? `В наличии: ${currentStock} шт` : `In stock: ${currentStock} pcs`}
+                    {lang === 'uz' ? `Sotuvda bor: ${currentStock} ${selectedProduct.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${currentStock} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `In stock: ${currentStock} ${selectedProduct.unit || 'pcs'}`}
                   </span>
                 )}
                 {benefit > 0 && (
                   <span className="text-[13px] font-bold text-[#34c759] mt-0.5">
-                    Выгода: {formatPrice(benefit)}
+                    {lang === 'uz' ? 'Tejamkorlik' : lang === 'ru' ? 'Выгода' : 'Savings'}: {formatPrice(benefit)}
                   </span>
                 )}
               </div>

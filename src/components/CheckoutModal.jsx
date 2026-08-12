@@ -3,7 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { XMarkIcon, MapPinIcon, ChevronLeftIcon, ArrowRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 // Leaflet Full-Screen Map Picker Modal Component (100% matches screenshot)
-const MapModal = ({ isOpen, onClose, onSelect, target }) => {
+const MapModal = ({ isOpen, onClose, onSelect }) => {
   const { lang, triggerHaptic } = useStore();
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,12 +23,12 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
         mapRef.current = null;
       }
 
-      const defaultLoc = [41.311081, 69.240562]; // Tashkent center (Adiblar xiyoboni / Milliy bog' area)
+      const defaultLoc = [40.5269, 67.5614]; // Jizzax viloyati, Mirzacho'l tumani markazi
       
       // Initialize map without default zoom control to place it on top-right
       const map = window.L.map('map-container', {
         zoomControl: false
-      }).setView(defaultLoc, 15);
+      }).setView(defaultLoc, 14);
       mapRef.current = map;
 
       window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -39,30 +39,7 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
       // Add Zoom Control to the top-right
       window.L.control.zoom({ position: 'topright' }).addTo(map);
 
-      if (target === 'bts') {
-        // BTS branches markers
-        const btsBranches = [
-          { name: 'BTS Chilonzor filiali (Qatortol ko\'chasi, 15)', loc: [41.277943, 69.213197] },
-          { name: 'BTS Yunusobod filiali (Amir Temur shoh ko\'chasi, 95)', loc: [41.353381, 69.284241] },
-          { name: 'BTS Mirobod filiali (Mirobod ko\'chasi, 21)', loc: [41.298132, 69.278381] },
-          { name: 'BTS Chorsu filiali (Navoiy ko\'chasi, 40)', loc: [41.321233, 69.238329] }
-        ];
-
-        setAddress(btsBranches[0].name);
-
-        btsBranches.forEach((branch, idx) => {
-          const m = window.L.marker(branch.loc).addTo(map);
-          m.bindPopup(`<b>${branch.name}</b>`).openPopup();
-          
-          if (idx === 0) {
-            map.setView(branch.loc, 15);
-          }
-
-          m.on('click', () => {
-            setAddress(branch.name);
-          });
-        });
-      } else {
+      {
         // For general address: fixed pin in center, geocode center on pan (moveend)
         const updateAddressFromCenter = () => {
           const center = map.getCenter();
@@ -74,7 +51,7 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
                 const addr = data.address;
                 const road = addr.road || '';
                 const suburb = addr.suburb || addr.district || '';
-                const city = addr.city || addr.town || 'Toshkent';
+                const city = addr.city || addr.town || addr.county || 'Mirzacho\'l';
                 
                 // Format matching Seul ko'chasi, Chilonzor Tumani, Toshkent format
                 const formatted = [
@@ -85,7 +62,7 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
                 
                 setAddress(formatted || data.display_name.split(',').slice(0, 3).join(', '));
               } else {
-                setAddress(`Toshkent, koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
+                setAddress(`Mirzacho'l, koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
               }
               setLoading(false);
             })
@@ -112,7 +89,7 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
         mapRef.current = null;
       }
     };
-  }, [isOpen, target]);
+  }, [isOpen]);
 
   const handleLocateUser = () => {
     triggerHaptic('light');
@@ -187,30 +164,26 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
       </button>
 
       {/* Target marker in center of map */}
-      {target !== 'bts' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[400]">
-          <div className="flex flex-col items-center -mt-9">
-            <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-md mb-1.5 animate-bounce">
-              {lang === 'uz' ? 'Yetkazish joyi' : lang === 'ru' ? 'Точка доставки' : 'Delivery point'}
-            </div>
-            <MapPinIcon className="w-9 h-9 text-blue-600 drop-shadow-md" />
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[400]">
+        <div className="flex flex-col items-center -mt-9">
+          <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-md mb-1.5 animate-bounce">
+            {lang === 'uz' ? 'Yetkazish joyi' : lang === 'ru' ? 'Точка доставки' : 'Delivery point'}
           </div>
+          <MapPinIcon className="w-9 h-9 text-blue-600 drop-shadow-md" />
         </div>
-      )}
+      </div>
 
       {/* Map Element Container */}
       <div id="map-container" className="flex-1 w-full bg-gray-150 relative" />
 
       {/* Locate Me GPS overlay bottom-right */}
-      {target !== 'bts' && (
-        <button
-          type="button"
-          onClick={handleLocateUser}
-          className="absolute bottom-40 right-4 z-[400] w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-[0_3px_10px_rgba(0,0,0,0.15)] text-gray-750 hover:text-blue-600 active:scale-95 transition-all border border-gray-100"
-        >
-          <MapPinIcon className="w-5.5 h-5.5 text-gray-600" />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleLocateUser}
+        className="absolute bottom-40 right-4 z-[400] w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-[0_3px_10px_rgba(0,0,0,0.15)] text-gray-750 hover:text-blue-600 active:scale-95 transition-all border border-gray-100"
+      >
+        <MapPinIcon className="w-5.5 h-5.5 text-gray-600" />
+      </button>
 
       {/* Selected Location Card at the bottom */}
       <div className="p-5 bg-white border-t border-gray-100 space-y-4 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] shrink-0">
@@ -223,9 +196,7 @@ const MapModal = ({ isOpen, onClose, onSelect, target }) => {
             )}
           </h4>
           <p className="text-[13px] text-gray-400 font-medium">
-            {target === 'bts' 
-              ? (lang === 'uz' ? 'Tegishli filialni bosing' : lang === 'ru' ? 'Нажмите на соответствующий филиал' : 'Click on the matching branch') 
-              : (lang === 'uz' ? 'Aniq joyni ko\'rsatish uchun xaritani suring' : lang === 'ru' ? 'Переместите карту для точного указания' : 'Drag map to point exact location')}
+            {lang === 'uz' ? 'Aniq joyni ko\'rsatish uchun xaritani suring' : lang === 'ru' ? 'Переместите карту для точного указания' : 'Drag map to point exact location'}
           </p>
         </div>
 
@@ -288,24 +259,21 @@ const formatUzPhone = (inputValue) => {
 };
 
 export const CheckoutModal = ({ onClose }) => {
-  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings } = useStore();
+  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings, botUsername } = useStore();
 
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState(profileUser?.name || telegramUser?.first_name || '');
   const [address, setAddress] = useState(profileUser?.address || '');
   const [phone, setPhone] = useState(formatUzPhone(profileUser?.phone || ''));
-  const [btsBranch, setBtsBranch] = useState('');
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState('city'); // 'city', 'bts'
   const [error, setError] = useState('');
   
   // Map Modal settings
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapTarget, setMapTarget] = useState('address'); // 'address', 'bts'
+  const [mapTarget, setMapTarget] = useState('address');
 
-  const cityDeliveryPrice = siteSettings?.delivery_price !== undefined ? siteSettings.delivery_price : 30000;
-  const btsDeliveryPrice = siteSettings?.bts_delivery_price !== undefined ? siteSettings.bts_delivery_price : 50000;
-  const deliveryCost = isDeliveryEnabled ? (deliveryMethod === 'city' ? cityDeliveryPrice : btsDeliveryPrice) : 0;
+  const deliveryPrice = siteSettings?.delivery_price !== undefined ? siteSettings.delivery_price : 30000;
+  const deliveryCost = isDeliveryEnabled ? deliveryPrice : 0;
   const finalTotal = cartTotal + deliveryCost;
 
   const handleSubmit = async (e) => {
@@ -333,12 +301,7 @@ export const CheckoutModal = ({ onClose }) => {
       triggerHaptic('warning');
       return;
     }
-    if (isDeliveryEnabled && deliveryMethod === 'bts' && !btsBranch.trim()) {
-      setError(lang === 'uz' ? 'Iltimos, BTS filialini tanlang' : lang === 'ru' ? 'Пожалуйста, выберите филиал BTS' : 'Please select a BTS branch');
-      triggerHaptic('warning');
-      return;
-    }
-    if (isDeliveryEnabled && deliveryMethod === 'city' && !address.trim()) {
+    if (isDeliveryEnabled && !address.trim()) {
       setError(lang === 'uz' ? 'Iltimos, yetkazib berish manzilini kiriting' : lang === 'ru' ? 'Пожалуйста, введите адрес доставки' : 'Please enter a delivery address');
       triggerHaptic('warning');
       return;
@@ -348,12 +311,12 @@ export const CheckoutModal = ({ onClose }) => {
     const result = await placeOrder({
       name,
       address: isDeliveryEnabled 
-        ? (deliveryMethod === 'bts' ? btsBranch : address) 
+        ? address
         : (address || (lang === 'uz' ? 'Olib ketish' : lang === 'ru' ? 'Самовывоз' : 'Self-pickup')),
       phone,
       paymentMethod: isDeliveryEnabled 
-        ? (deliveryMethod === 'city' ? (lang === 'uz' ? 'Click (Shahar ichida)' : lang === 'ru' ? 'Click (Внутри города)' : 'Click (In city)') : 'Click (BTS)') 
-        : (lang === 'uz' ? 'Click (Olib ketish)' : lang === 'ru' ? 'Click (Самовывоз)' : 'Click (Self-pickup)'),
+        ? (lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery')
+        : (lang === 'uz' ? 'Olib ketish' : lang === 'ru' ? 'Самовывоз' : 'Self-pickup'),
       total: finalTotal
     });
 
@@ -371,11 +334,7 @@ export const CheckoutModal = ({ onClose }) => {
   const handleMapSelect = (selectedAddr) => {
     setIsMapOpen(false);
     triggerHaptic('medium');
-    if (mapTarget === 'bts') {
-      setBtsBranch(selectedAddr);
-    } else {
-      setAddress(selectedAddr);
-    }
+    setAddress(selectedAddr);
   };
 
   const formatPrice = (price) => {
@@ -457,13 +416,12 @@ export const CheckoutModal = ({ onClose }) => {
               </div>
 
               {/* Only show personal address location picker if delivery is disabled or city-delivery selected */}
-              {(!isDeliveryEnabled || deliveryMethod === 'city') && (
-                <div>
-                  <label className="text-[13px] font-semibold text-gray-700 block mb-1">
-                    {isDeliveryEnabled 
-                      ? (lang === 'uz' ? 'Yetkazib berish manzili' : lang === 'ru' ? 'Адрес доставки' : 'Delivery address') 
-                      : (lang === 'uz' ? 'Lokatsiya (ixtiyoriy)' : lang === 'ru' ? 'Локация (опционально)' : 'Location (optional)')} 
-                    {isDeliveryEnabled && <span className="text-red-500">*</span>}
+              <div>
+                <label className="text-[13px] font-semibold text-gray-700 block mb-1">
+                  {isDeliveryEnabled 
+                    ? (lang === 'uz' ? 'Yetkazib berish manzili' : lang === 'ru' ? 'Адрес доставки' : 'Delivery address') 
+                    : (lang === 'uz' ? 'Lokatsiya (ixtiyoriy)' : lang === 'ru' ? 'Локация (опционально)' : 'Location (optional)')} 
+                  {isDeliveryEnabled && <span className="text-red-500">*</span>}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -488,8 +446,7 @@ export const CheckoutModal = ({ onClose }) => {
                       <MapPinIcon className="w-5 h-5 text-gray-400" />
                     </button>
                   </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -499,7 +456,7 @@ export const CheckoutModal = ({ onClose }) => {
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[14px] font-bold text-gray-900">
-                {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'} {isDeliveryEnabled && <span className="text-gray-400 font-normal text-xs ml-1">+{formatPrice(deliveryCost)}</span>}
+                {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'} {isDeliveryEnabled && <span className="text-gray-400 font-normal text-xs ml-1">+{formatPrice(deliveryPrice)}</span>}
               </span>
               <button
                 type="button"
@@ -519,74 +476,20 @@ export const CheckoutModal = ({ onClose }) => {
               </button>
             </div>
 
-            {/* Delivery Methods Options (4-rasm) */}
+            {/* Delivery info */}
             {isDeliveryEnabled && (
-              <div className="mt-3 space-y-3 animate-scaleUp">
-                <div
-                  onClick={() => { triggerHaptic('light'); setDeliveryMethod('city'); }}
-                  className={`p-3 border rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
-                    deliveryMethod === 'city'
-                      ? 'border-blue-500 bg-[#f0f6ff]'
-                      : 'border-gray-150 bg-white hover:bg-gray-50'
-                  }`}
-                >
+              <div className="mt-3 animate-scaleUp">
+                <div className="p-3 border border-blue-500 bg-[#f0f6ff] rounded-2xl flex items-center justify-between">
                   <div>
                     <h5 className="text-xs font-bold text-blue-600">
-                      {lang === 'uz' ? 'Shahar ichida yetkazib berish' : lang === 'ru' ? 'Доставка по городу' : 'City delivery'}
+                      {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'}
                     </h5>
                     <p className="text-[10px] text-gray-400 font-medium">
-                      {lang === 'uz' ? '5 kg gacha, 1 soatda' : lang === 'ru' ? 'до 5 кг, за 1 час' : 'up to 5kg, in 1 hour'}
+                      {lang === 'uz' ? 'Mirzacho\'l tumani ichida' : lang === 'ru' ? 'В пределах Мирзачуля' : 'Within Mirzachul area'}
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-blue-600">{formatPrice(cityDeliveryPrice)}</span>
+                  <span className="text-xs font-bold text-blue-600">{formatPrice(deliveryPrice)}</span>
                 </div>
-
-                <div
-                  onClick={() => { triggerHaptic('light'); setDeliveryMethod('bts'); }}
-                  className={`p-3 border rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
-                    deliveryMethod === 'bts'
-                      ? 'border-blue-500 bg-[#f0f6ff]'
-                      : 'border-gray-150 bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  <div>
-                    <h5 className="text-xs font-bold text-gray-800 font-bold">BTS</h5>
-                    <p className="text-[10px] text-gray-400 font-medium">
-                      {lang === 'uz' ? '5 kg gacha, 1 kunda' : lang === 'ru' ? 'до 5 кг, за 1 день' : 'up to 5kg, in 1 day'}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-gray-800">{formatPrice(btsDeliveryPrice)}</span>
-                </div>
-
-                {/* BTS Branch Selection Input (1-rasm) */}
-                {deliveryMethod === 'bts' && (
-                  <div className="pt-2 border-t border-gray-100 space-y-1.5 animate-scaleUp">
-                    <label className="text-[13px] font-semibold text-gray-750 block mb-1">
-                      {lang === 'uz' ? 'BTS filiali' : lang === 'ru' ? 'Филиал BTS' : 'BTS Branch'} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        required
-                        placeholder={lang === 'uz' ? "filialni tanlang yoki kiriting" : lang === 'ru' ? "выберите или введите филиал" : "select or enter branch"}
-                        value={btsBranch}
-                        onChange={(e) => setBtsBranch(e.target.value)}
-                        className="bg-[#fcfcfd] border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-900 w-full flex-1 focus:border-blue-500 focus:outline-none transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setMapTarget('bts');
-                          setIsMapOpen(true);
-                        }}
-                        className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-sm text-gray-400 hover:text-blue-500 active:scale-95 transition-all shrink-0 hover:border-blue-300"
-                      >
-                        <MapPinIcon className="w-5 h-5 text-gray-400" />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -609,7 +512,7 @@ export const CheckoutModal = ({ onClose }) => {
                     <span>
                       {item.title[lang]}
                       <span className="text-[10px] text-gray-400 font-semibold">{variantDesc}</span>
-                      {" "}× {item.quantity} {lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs'}
+                      {" "}× {item.quantity} {item.unit || (lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs')}
                     </span>
                     <span className="font-semibold">{formatPrice(item.price * item.quantity)}</span>
                   </div>
@@ -617,7 +520,7 @@ export const CheckoutModal = ({ onClose }) => {
               })}
               {isDeliveryEnabled && (
                 <div className="flex justify-between text-gray-600">
-                  <span>{deliveryMethod === 'city' ? (lang === 'uz' ? 'Shahar ichida yetkazib berish' : lang === 'ru' ? 'Доставка по городу' : 'City delivery') : 'BTS'}</span>
+                  <span>{lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'}</span>
                   <span className="font-semibold">{formatPrice(deliveryCost)}</span>
                 </div>
               )}
@@ -648,14 +551,13 @@ export const CheckoutModal = ({ onClose }) => {
         
         {/* Bot Username Footer */}
         <span className="text-[12px] text-gray-400/80 text-center mt-3 block font-semibold">
-          @dastyor_bola_bot
+          @{botUsername || 'ravshan_rivoj_bot'}
         </span>
       </form>
 
       {/* Interactive Map Picker Modal wrapper */}
       <MapModal
         isOpen={isMapOpen}
-        target={mapTarget}
         onClose={() => setIsMapOpen(false)}
         onSelect={handleMapSelect}
       />

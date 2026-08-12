@@ -70,11 +70,11 @@ export const ProductCard = ({ product }) => {
           {/* Price */}
           <div className="mb-1">
             <span className="font-bold text-[16px] text-gray-900 block leading-tight">
-              {formatPrice(product.price)}
+              {formatPrice(product.price)} {product.unit ? `/ ${product.unit}` : ''}
             </span>
             {product.oldPrice && (
               <span className="text-[12px] text-gray-400 line-through block leading-tight mt-0.5">
-                {formatPrice(product.oldPrice)}
+                {formatPrice(product.oldPrice)} {product.unit ? `/ ${product.unit}` : ''}
               </span>
             )}
           </div>
@@ -87,11 +87,11 @@ export const ProductCard = ({ product }) => {
               </span>
             ) : product.stock <= 3 ? (
               <span className="text-[12px] font-semibold text-[#ff9500]">
-                {lang === 'uz' ? `Faqat ${product.stock} ta qoldi` : lang === 'ru' ? `Осталось ${product.stock} шт` : `Only ${product.stock} left`}
+                {lang === 'uz' ? `Faqat ${product.stock} ${product.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${product.stock} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `Only ${product.stock} ${product.unit || 'pcs'} left`}
               </span>
             ) : (
               <span className="text-[12px] font-medium text-gray-400">
-                {lang === 'uz' ? `Sotuvda bor: ${product.stock} ta` : lang === 'ru' ? `В наличии: ${product.stock} шт` : `In stock: ${product.stock} pcs`}
+                {lang === 'uz' ? `Sotuvda bor: ${product.stock} ${product.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${product.stock} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `In stock: ${product.stock} ${product.unit || 'pcs'}`}
               </span>
             )}
           </div>
@@ -118,8 +118,8 @@ export const ProductCard = ({ product }) => {
             </button>
 
             <div className="flex flex-col items-center justify-center leading-tight flex-1 px-1">
-              <span className="text-sm font-bold text-gray-900">{inCartCount}</span>
-              <span className="text-[9px] text-gray-400 font-medium">в корзине</span>
+              <span className="text-sm font-bold text-gray-900">{inCartCount} {product.unit || ''}</span>
+              <span className="text-[9px] text-gray-400 font-medium">{lang === 'uz' ? 'savatda' : lang === 'ru' ? 'в корзине' : 'in cart'}</span>
             </div>
 
             <button
