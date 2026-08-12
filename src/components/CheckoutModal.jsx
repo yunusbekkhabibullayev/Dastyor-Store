@@ -23,7 +23,7 @@ const MapModal = ({ isOpen, onClose, onSelect }) => {
         mapRef.current = null;
       }
 
-      const defaultLoc = [40.5269, 67.5614]; // Jizzax viloyati, Mirzacho'l tumani markazi
+      const defaultLoc = [40.6635, 68.1681]; // Jizzax viloyati, Mirzacho'l tumani markazi (Gagarin)
       
       // Initialize map without default zoom control to place it on top-right
       const map = window.L.map('map-container', {
@@ -49,18 +49,21 @@ const MapModal = ({ isOpen, onClose, onSelect }) => {
             .then(data => {
               if (data && data.address) {
                 const addr = data.address;
+                const houseNumber = addr.house_number || '';
                 const road = addr.road || '';
+                const neighbourhood = addr.neighbourhood || addr.quarter || '';
                 const suburb = addr.suburb || addr.district || '';
                 const city = addr.city || addr.town || addr.county || 'Mirzacho\'l';
                 
-                // Format matching Seul ko'chasi, Chilonzor Tumani, Toshkent format
+                // Format: Uy raqami, Ko'cha, Mahalla, Tuman, Shahar
                 const formatted = [
-                  road,
+                  houseNumber && road ? `${road} ${houseNumber}` : road,
+                  neighbourhood,
                   suburb || (addr.county ? addr.county : ''),
                   city
                 ].filter(Boolean).join(', ');
                 
-                setAddress(formatted || data.display_name.split(',').slice(0, 3).join(', '));
+                setAddress(formatted || data.display_name.split(',').slice(0, 4).join(', '));
               } else {
                 setAddress(`Mirzacho'l, koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
               }
@@ -100,7 +103,7 @@ const MapModal = ({ isOpen, onClose, onSelect }) => {
           (position) => {
             const { latitude, longitude } = position.coords;
             if (mapRef.current) {
-              mapRef.current.setView([latitude, longitude], 16);
+              mapRef.current.setView([latitude, longitude], 18);
             }
           },
           () => {
@@ -122,7 +125,7 @@ const MapModal = ({ isOpen, onClose, onSelect }) => {
           if (location && location.latitude && location.longitude) {
             const { latitude, longitude } = location;
             if (mapRef.current) {
-              mapRef.current.setView([latitude, longitude], 16);
+              mapRef.current.setView([latitude, longitude], 18);
             }
           } else {
             fallbackBrowserLocation();
