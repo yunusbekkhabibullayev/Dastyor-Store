@@ -603,7 +603,7 @@ export const StoreProvider = ({ children }) => {
     }
     const token = localStorage.getItem('qlay_admin_token') || sessionStorage.getItem('qlay_admin_token');
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers['X-Admin-Token'] = `Bearer ${token}`;
     }
     return headers;
   };

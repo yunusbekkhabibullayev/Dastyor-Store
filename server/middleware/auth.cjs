@@ -39,9 +39,9 @@ const isAdmin = async (req, res, next) => {
   }
 
   // 2. Authenticate via JWT Bearer Token (Desktop Web Browser environment)
-  const authHeader = req.headers['authorization'];
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
+  if (authHeader) {
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
