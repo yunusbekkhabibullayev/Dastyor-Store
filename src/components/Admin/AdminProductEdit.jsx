@@ -68,29 +68,29 @@ export const AdminProductEdit = () => {
 
   const product = selectedAdminProduct;
 
-  if (!product) return null;
-
-  const activeCategories = categories.filter(c => c.is_active === 1 || c.is_active === true || c.id === product.category_id);
+  const activeCategories = categories.filter(c => c.is_active === 1 || c.is_active === true || (product && c.id === product.category_id));
 
   const [form, setForm] = useState({
-    id: product.id,
-    category_id: product.category_id || '',
-    title_uz: product.title_uz || '',
-    title_ru: product.title_ru || '',
-    title_en: product.title_en || '',
-    description_uz: product.description_uz || '',
-    description_ru: product.description_ru || '',
-    description_en: product.description_en || '',
-    price: product.price ?? '',
-    old_price: product.old_price ?? '',
-    stock: product.stock ?? 0,
-    unit: product.unit || 'dona',
-    image: product.image || '',
-    attributes: product.attributes || {}
+    id: product?.id || '',
+    category_id: product?.category_id || '',
+    title_uz: product?.title_uz || '',
+    title_ru: product?.title_ru || '',
+    title_en: product?.title_en || '',
+    description_uz: product?.description_uz || '',
+    description_ru: product?.description_ru || '',
+    description_en: product?.description_en || '',
+    price: product?.price ?? '',
+    old_price: product?.old_price ?? '',
+    stock: product?.stock ?? 0,
+    unit: product?.unit || 'dona',
+    image: product?.image || '',
+    attributes: product?.attributes || {}
   });
 
   const [varNameInput, setVarNameInput] = useState('');
   const [varOptsInput, setVarOptsInput] = useState('');
+
+  if (!product) return null;
 
   const generateCombinations = (vList) => {
     if (!vList || vList.length === 0) return [];

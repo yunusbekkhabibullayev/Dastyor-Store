@@ -8,15 +8,15 @@ export const AdminCategoryEdit = () => {
 
   const category = selectedAdminCategory;
 
-  if (!category) return null;
-
   const [form, setForm] = useState({
-    name_uz: category.name_uz || '',
-    name_ru: category.name_ru || '',
-    name_en: category.name_en || '',
-    sort_order: category.sort_order || 0,
-    is_active: category.is_active === 1 || category.is_active === true
+    name_uz: category?.name_uz || '',
+    name_ru: category?.name_ru || '',
+    name_en: category?.name_en || '',
+    sort_order: category?.sort_order || 0,
+    is_active: category?.is_active === 1 || category?.is_active === true
   });
+
+  if (!category) return null;
 
   const translations = {
     uz: {
