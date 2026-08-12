@@ -177,15 +177,15 @@ export const AdminOrderDetail = () => {
               {t.info}
             </h3>
 
-            <div className="flex items-center gap-3">
+            <a href={`tel:${order.phone.replace(/[^0-9+]/g, '')}`} className="flex items-center gap-3 hover:bg-gray-50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer">
               <div className="w-10 h-10 rounded-xl bg-blue-50/50 flex items-center justify-center text-blue-600 shrink-0">
                 <PhoneIcon className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t.phone}</p>
-                <p className="text-xs font-bold text-gray-800 mt-0.5">{order.phone}</p>
+                <p className="text-xs font-bold text-blue-600 mt-0.5 hover:underline">{order.phone}</p>
               </div>
-            </div>
+            </a>
 
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50/50 flex items-center justify-center text-blue-600 shrink-0">
