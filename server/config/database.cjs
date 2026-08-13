@@ -135,9 +135,9 @@ const dbInit = async () => {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS banners (
       id SERIAL PRIMARY KEY,
-      title_uz TEXT NOT NULL,
-      title_ru TEXT NOT NULL,
-      title_en TEXT NOT NULL,
+      title_uz TEXT,
+      title_ru TEXT,
+      title_en TEXT,
       subtitle_uz TEXT,
       subtitle_ru TEXT,
       subtitle_en TEXT,
@@ -228,6 +228,16 @@ const dbInit = async () => {
     console.log("[DB Migration] Migrated products.stock to NUMERIC(10,2)");
   } catch (e) {
     console.error("[DB Migration] Error migrating products.stock:", e.message);
+  }
+
+  // Drop NOT NULL constraint on banners title columns to make them optional
+  try {
+    await dbRun("ALTER TABLE banners ALTER COLUMN title_uz DROP NOT NULL");
+    await dbRun("ALTER TABLE banners ALTER COLUMN title_ru DROP NOT NULL");
+    await dbRun("ALTER TABLE banners ALTER COLUMN title_en DROP NOT NULL");
+    console.log("[DB Migration] Dropped NOT NULL constraints on banner title columns");
+  } catch (e) {
+    console.warn("[DB Migration] Failed to drop NOT NULL constraints on banner title columns:", e.message);
   }
 
   // ─── Seed Data (Disabled for Production) ──────────────────────────────────────────────

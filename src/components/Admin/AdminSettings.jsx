@@ -99,8 +99,8 @@ export const AdminSettings = () => {
       title: banner.title?.uz || banner.title_uz || banner.title || '',
       subtitle: banner.subtitle ? (banner.subtitle?.uz || banner.subtitle_uz || banner.subtitle || '') : '',
       image: banner.image || '',
-      badge: banner.badge ? (banner.badge?.uz || banner.badge_uz || banner.badge || 'YANGI') : 'YANGI',
-      button_text: banner.buttonText ? (banner.buttonText?.uz || banner.buttonText_uz || banner.buttonText || 'Batafsil') : 'Batafsil'
+      badge: banner.badge ? (banner.badge?.uz || banner.badge_uz || banner.badge || '') : '',
+      button_text: banner.buttonText ? (banner.buttonText?.uz || banner.buttonText_uz || banner.buttonText || '') : ''
     });
     setView('edit');
   };
@@ -151,19 +151,19 @@ export const AdminSettings = () => {
     const method = isEdit ? 'PUT' : 'POST';
 
     const payload = {
-      title_uz: form.title || 'Banner',
-      title_ru: form.title || 'Banner',
-      title_en: form.title || 'Banner',
+      title_uz: form.title || '',
+      title_ru: form.title || '',
+      title_en: form.title || '',
       subtitle_uz: form.subtitle || '',
       subtitle_ru: form.subtitle || '',
       subtitle_en: form.subtitle || '',
       image: form.image,
-      badge_uz: form.badge || 'YANGI',
-      badge_ru: form.badge || 'YANGI',
-      badge_en: form.badge || 'YANGI',
-      button_text_uz: form.button_text || 'Batafsil',
-      button_text_ru: form.button_text || 'Batafsil',
-      button_text_en: form.button_text || 'Batafsil'
+      badge_uz: form.badge || '',
+      badge_ru: form.badge || '',
+      badge_en: form.badge || '',
+      button_text_uz: form.button_text || '',
+      button_text_ru: form.button_text || '',
+      button_text_en: form.button_text || ''
     };
 
     try {
@@ -268,7 +268,7 @@ export const AdminSettings = () => {
               <div>
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide block mb-1">{t.title}</label>
                 <input
-                  type="text" required
+                  type="text"
                   value={form.title}
                   onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
@@ -400,15 +400,17 @@ export const AdminSettings = () => {
                       className="w-full h-full object-cover" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3 text-left">
-                      {badge && (
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white mb-1 shadow-sm uppercase">
-                          {badge}
-                        </span>
-                      )}
-                      <h4 className="text-white font-bold text-sm leading-tight">{title}</h4>
-                      {subtitle && <p className="text-white/80 text-[10px] font-medium mt-0.5">{subtitle}</p>}
-                    </div>
+                    {(badge || title || subtitle) && (
+                      <div className="absolute bottom-3 left-3 right-3 text-left">
+                        {badge && (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white mb-1 shadow-sm uppercase">
+                            {badge}
+                          </span>
+                        )}
+                        {title && <h4 className="text-white font-bold text-sm leading-tight">{title}</h4>}
+                        {subtitle && <p className="text-white/80 text-[10px] font-medium mt-0.5">{subtitle}</p>}
+                      </div>
+                    )}
                   </div>
 
                   {/* Banner Actions Footer */}

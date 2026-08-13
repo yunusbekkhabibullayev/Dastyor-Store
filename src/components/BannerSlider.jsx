@@ -100,21 +100,25 @@ export const BannerSlider = () => {
                   draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent z-20" />
-                <div className="absolute bottom-4 left-4 right-4 text-left z-30">
-                  {badge && (
-                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#3b82f6] text-white mb-1.5 shadow-sm">
-                      {badge}
-                    </span>
-                  )}
-                  <h2 className="text-white font-bold text-base leading-tight drop-shadow-sm">
-                    {title}
-                  </h2>
-                  {subtitle && (
-                    <p className="text-white/80 text-[11px] font-medium mt-0.5 drop-shadow-xs">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
+                {(badge || title || subtitle) && (
+                  <div className="absolute bottom-4 left-4 right-4 text-left z-30">
+                    {badge && (
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#3b82f6] text-white mb-1.5 shadow-sm">
+                        {badge}
+                      </span>
+                    )}
+                    {title && (
+                      <h2 className="text-white font-bold text-base leading-tight drop-shadow-sm">
+                        {title}
+                      </h2>
+                    )}
+                    {subtitle && (
+                      <p className="text-white/80 text-[11px] font-medium mt-0.5 drop-shadow-xs">
+                        {subtitle}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
