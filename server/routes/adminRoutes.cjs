@@ -41,6 +41,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       .from('uploads')
       .upload(filename, req.file.buffer, {
         contentType: req.file.mimetype,
+        cacheControl: 'public, max-age=31536000, immutable',
         upsert: false
       });
 

@@ -5,7 +5,7 @@
  * This saves network bandwidth, increases upload speed, and saves database storage.
  */
 
-export const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) => {
+export const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.75) => {
   return new Promise((resolve, reject) => {
     // Return early if file is not an image
     if (!file || !file.type.startsWith('image/')) {
@@ -46,14 +46,13 @@ export const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality =
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert PNG to JPEG (or keep as PNG if it has alpha transparency but with compression)
-        // JPEG offers the highest compression ratio for normal photos
-        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        // Convert to WebP format for maximum compression and bandwidth savings
+        const outputType = 'image/webp';
 
         canvas.toBlob((blob) => {
           if (blob) {
             // Recreate File object
-            const extension = outputType === 'image/jpeg' ? '.jpg' : '.png';
+            const extension = '.webp';
             const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
             const compressedFile = new File([blob], `${nameWithoutExt}${extension}`, {
               type: outputType,
