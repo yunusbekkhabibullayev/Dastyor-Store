@@ -5,7 +5,7 @@ import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { ProductImage } from './ProductImage';
 
 export const ProductDetailModal = () => {
-  const { lang, t, selectedProduct, setSelectedProduct, addToCart, updateCartQuantity, cart, favorites, toggleFavorite, triggerHaptic, products } = useStore();
+  const { lang, t, selectedProduct, setSelectedProduct, addToCart, updateCartQuantity, cart, favorites, toggleFavorite, triggerHaptic, products, getUnitStep, formatQuantity } = useStore();
 
   const [selectedOptions, setSelectedOptions] = useState({});
   const [isDescExpanded, setIsDescExpanded] = useState(false);
@@ -275,17 +275,17 @@ export const ProductDetailModal = () => {
             ) : inCartCount > 0 ? (
               <div className="flex items-center gap-6">
                 <button
-                  onClick={() => updateCartQuantity(currentCartId, -1)}
+                  onClick={() => updateCartQuantity(currentCartId, -getUnitStep(selectedProduct.unit))}
                   className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50"
                 >
                   <MinusIcon className="w-5 h-5" />
                 </button>
                 <div className="flex flex-col items-center justify-center leading-tight min-w-[70px]">
-                  <span className="text-[17px] font-bold text-gray-900">{inCartCount} {selectedProduct.unit || ''}</span>
+                  <span className="text-[17px] font-bold text-gray-900">{formatQuantity(inCartCount)} {selectedProduct.unit || ''}</span>
                   <span className="text-[10px] text-gray-400 font-medium">{lang === 'uz' ? 'savatda' : lang === 'ru' ? 'в корзине' : 'in cart'}</span>
                 </div>
                 <button
-                  onClick={() => updateCartQuantity(currentCartId, 1)}
+                  onClick={() => updateCartQuantity(currentCartId, getUnitStep(selectedProduct.unit))}
                   disabled={inCartCount >= currentStock}
                   className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm active:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -294,7 +294,7 @@ export const ProductDetailModal = () => {
               </div>
             ) : (
               <button
-                onClick={() => addToCart(productWithVariant)}
+                onClick={() => addToCart(productWithVariant, getUnitStep(selectedProduct.unit))}
                 className="w-full py-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:bg-[#1d4ed8] text-white font-bold text-[15px] transition-colors"
               >
                 {lang === 'uz' ? 'Korzinaga' : lang === 'ru' ? 'В корзину' : 'To Cart'}

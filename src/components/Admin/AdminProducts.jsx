@@ -229,8 +229,8 @@ export const AdminProducts = () => {
                             {title}
                           </span>
                           <div className="flex items-center gap-1.5 mt-1 text-[10px] font-semibold text-gray-455">
-                            <span className={`px-1.5 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 'bg-rose-50 text-rose-600 border border-rose-100/50'}`}>
-                              {p.stock > 0 ? `${lang === 'uz' ? 'Qoldiq' : 'Остаток'}: ${p.stock}` : (lang === 'uz' ? 'Tugagan' : 'Нет в наличии')}
+                            <span className={`px-1.5 py-0.5 rounded font-bold ${parseFloat(p.stock) > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 'bg-rose-50 text-rose-600 border border-rose-100/50'}`}>
+                              {parseFloat(p.stock) > 0 ? `${lang === 'uz' ? 'Qoldiq' : 'Остаток'}: ${Number(p.stock).toString()} ${p.unit || ''}` : (lang === 'uz' ? 'Tugagan' : 'Нет в наличии')}
                             </span>
                           </div>
                         </div>

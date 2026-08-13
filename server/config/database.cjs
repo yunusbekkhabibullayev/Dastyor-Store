@@ -97,7 +97,7 @@ const dbInit = async () => {
       description_en TEXT,
       price INTEGER NOT NULL CHECK(price >= 0),
       old_price INTEGER CHECK(old_price IS NULL OR old_price >= 0),
-      stock INTEGER DEFAULT 0 CHECK(stock >= 0),
+      stock NUMERIC(10,2) DEFAULT 0 CHECK(stock >= 0),
       image TEXT,
       attributes TEXT,
       unit TEXT DEFAULT 'dona',
@@ -124,7 +124,7 @@ const dbInit = async () => {
       id SERIAL PRIMARY KEY,
       order_id TEXT NOT NULL,
       product_id TEXT NOT NULL,
-      quantity INTEGER NOT NULL CHECK(quantity > 0),
+      quantity NUMERIC(10,2) NOT NULL CHECK(quantity > 0),
       price INTEGER NOT NULL CHECK(price >= 0),
       selected_variant TEXT,
       FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -213,6 +213,21 @@ const dbInit = async () => {
   }
   if (!(await checkColumn('products', 'unit'))) {
     try { await dbRun("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'dona'"); } catch (e) {}
+  }
+
+  // Alter column types to NUMERIC(10,2) to support decimal quantities and stocks
+  try {
+    await dbRun("ALTER TABLE order_items ALTER COLUMN quantity TYPE NUMERIC(10,2)");
+    console.log("[DB Migration] Migrated order_items.quantity to NUMERIC(10,2)");
+  } catch (e) {
+    console.error("[DB Migration] Error migrating order_items.quantity:", e.message);
+  }
+
+  try {
+    await dbRun("ALTER TABLE products ALTER COLUMN stock TYPE NUMERIC(10,2)");
+    console.log("[DB Migration] Migrated products.stock to NUMERIC(10,2)");
+  } catch (e) {
+    console.error("[DB Migration] Error migrating products.stock:", e.message);
   }
 
   // ─── Seed Data (Disabled for Production) ──────────────────────────────────────────────

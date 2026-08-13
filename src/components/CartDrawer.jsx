@@ -7,7 +7,7 @@ export const CartDrawer = ({ onProceedCheckout }) => {
   const {
     lang, t, cart, updateCartQuantity, removeFromCart, clearCart,
     appliedPromo, applyPromoCode, cartSubtotal, promoDiscount, cartTotal,
-    triggerHaptic, setActiveTab, showConfirm
+    triggerHaptic, setActiveTab, showConfirm, getUnitStep, formatQuantity
   } = useStore();
 
   const [promoInput, setPromoInput] = useState('');
@@ -126,14 +126,14 @@ export const CartDrawer = ({ onProceedCheckout }) => {
                   
                   <div className="flex items-center gap-1 bg-[#f2f2f7] rounded-xl p-0.5 border border-gray-200/60 shrink-0">
                     <button
-                      onClick={() => updateCartQuantity(itemCartId, -1)}
+                      onClick={() => updateCartQuantity(itemCartId, -getUnitStep(item.unit))}
                       className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
                     >
                       <MinusIcon className="w-3 h-3" />
                     </button>
-                    <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{item.quantity} {item.unit || ''}</span>
+                    <span className="text-xs font-black px-1.5 text-gray-900 min-w-[16px] text-center">{formatQuantity(item.quantity)} {item.unit || ''}</span>
                     <button
-                      onClick={() => updateCartQuantity(itemCartId, 1)}
+                      onClick={() => updateCartQuantity(itemCartId, getUnitStep(item.unit))}
                       className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-gray-700 font-bold shadow-2xs hover:bg-gray-50 active:scale-90 transition-all cursor-pointer"
                     >
                       <PlusIcon className="w-3 h-3" />

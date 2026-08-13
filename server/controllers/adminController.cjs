@@ -206,8 +206,8 @@ const adminController = {
                     return combKeys.every(k => c.values[k] === selVar[k]);
                   });
                   if (comb) {
-                    const currentStock = parseInt(comb.stock, 10) || 0;
-                    comb.stock = (currentStock + item.quantity).toString();
+                    const currentStock = parseFloat(comb.stock) || 0;
+                    comb.stock = (currentStock + parseFloat(item.quantity)).toString();
                     await dbRun("UPDATE products SET attributes = ? WHERE id = ?", [JSON.stringify(attrs), product.id]);
                   }
                 }

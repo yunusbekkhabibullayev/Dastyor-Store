@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const AdminDashboard = () => {
-  const { lang, telegramUser, setAdminTab, triggerHaptic, getAdminHeaders, setSelectedAdminOrder } = useStore();
+  const { lang, telegramUser, setAdminTab, triggerHaptic, getAdminHeaders, setSelectedAdminOrder, formatQuantity } = useStore();
   const [stats, setStats] = useState({
     todayOrders: 0,
     totalRevenue: 0,
@@ -383,7 +383,7 @@ export const AdminDashboard = () => {
                     <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-gray-100 last:border-b-0">
                       <span className="font-semibold text-gray-800">{item.title_uz || item.title_ru || 'Mahsulot'}</span>
                       <span className="font-extrabold text-gray-900 whitespace-nowrap">
-                        {item.quantity} x {formatPrice(item.price)} {t.currency}
+                        {formatQuantity(item.quantity)} x {formatPrice(item.price)} {t.currency}
                       </span>
                     </div>
                   ))}

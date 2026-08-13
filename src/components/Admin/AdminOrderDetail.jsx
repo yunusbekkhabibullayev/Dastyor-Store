@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const AdminOrderDetail = () => {
-  const { lang, selectedAdminOrder, setAdminTab, triggerHaptic, getAdminHeaders } = useStore();
+  const { lang, selectedAdminOrder, setAdminTab, triggerHaptic, getAdminHeaders, formatQuantity } = useStore();
   const [updating, setUpdating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [order, setOrder] = useState(selectedAdminOrder);
@@ -140,7 +140,7 @@ export const AdminOrderDetail = () => {
                       {item.title_uz || item.title_ru || item.title || 'Mahsulot'}
                     </p>
                     <p className="text-xs text-gray-400 font-semibold mt-1">
-                      {formatPrice(item.price)} {t.currency} × {item.quantity}
+                      {formatPrice(item.price)} {t.currency} × {formatQuantity(item.quantity)}
                     </p>
                   </div>
                   <div className="text-right">

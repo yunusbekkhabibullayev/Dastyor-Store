@@ -48,7 +48,7 @@ const formatUzPhone = (inputValue) => {
 
 export const ProfileView = () => {
   const {
-    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings
+    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings, formatQuantity
   } = useStore();
 
   const checkIsAdmin = () => {
@@ -298,7 +298,7 @@ export const ProfileView = () => {
                   {item.title ? (item.title[lang] || item.title.uz) : 'Mahsulot'}
                 </span>
                 <span className="text-gray-500 font-bold shrink-0">
-                  {item.quantity} x {formatPrice(item.price)}
+                  {formatQuantity(item.quantity)} x {formatPrice(item.price)}
                 </span>
               </div>
             ))}

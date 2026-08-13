@@ -126,7 +126,7 @@ export const AdminProductEdit = () => {
     setForm(prev => {
       let nextStock = prev.stock;
       if (mergedCombs.length > 0) {
-        nextStock = mergedCombs.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+        nextStock = mergedCombs.reduce((sum, c) => sum + (parseFloat(c.stock) || 0), 0);
       }
       return {
         ...prev,
@@ -150,7 +150,7 @@ export const AdminProductEdit = () => {
       
       let nextStock = prev.stock;
       if (field === 'stock') {
-        nextStock = nextCombs.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+        nextStock = nextCombs.reduce((sum, c) => sum + (parseFloat(c.stock) || 0), 0);
       }
       
       return {
@@ -287,7 +287,7 @@ export const AdminProductEdit = () => {
       description_en: form.description_uz || '',
       price: parseInt(form.price, 10) || 0,
       old_price: form.old_price !== '' ? parseInt(form.old_price, 10) : null,
-      stock: parseInt(form.stock, 10) || 0
+      stock: parseFloat(form.stock) || 0
     };
 
     try {
@@ -397,7 +397,7 @@ export const AdminProductEdit = () => {
                 {t.stock}
               </label>
               <input
-                type="number" min="0" required
+                type="number" min="0" step="any" required
                 value={form.stock}
                 onWheel={(e) => e.target.blur()}
                 onChange={(e) => {
@@ -709,6 +709,7 @@ export const AdminProductEdit = () => {
                               <input
                                 type="number"
                                 min="0"
+                                step="any"
                                 required
                                 value={comb.stock ?? ''}
                                 onWheel={(e) => e.target.blur()}

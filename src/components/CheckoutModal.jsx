@@ -265,7 +265,7 @@ const formatUzPhone = (inputValue) => {
 };
 
 export const CheckoutModal = ({ onClose }) => {
-  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings, botUsername } = useStore();
+  const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings, botUsername, formatQuantity } = useStore();
 
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState(profileUser?.name || telegramUser?.first_name || '');
@@ -521,7 +521,7 @@ export const CheckoutModal = ({ onClose }) => {
                     <span>
                       {item.title[lang]}
                       <span className="text-[10px] text-gray-400 font-semibold">{variantDesc}</span>
-                      {" "}× {item.quantity} {item.unit || (lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs')}
+                      {" "}× {formatQuantity(item.quantity)} {item.unit || (lang === 'uz' ? 'dona' : lang === 'ru' ? 'шт' : 'pcs')}
                     </span>
                     <span className="font-semibold">{formatPrice(item.price * item.quantity)}</span>
                   </div>

@@ -156,7 +156,7 @@ const publicController = {
           });
         }
         
-        let availableStock = product.stock;
+        let availableStock = parseFloat(product.stock) || 0;
         let itemPrice = product.price; // Use base price from DB
         let title = product.title_uz || product.id;
         
@@ -177,7 +177,7 @@ const publicController = {
               message: `"${title}" uchun tanlangan variant mavjud emas.`
             });
           }
-          availableStock = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseInt(comb.stock, 10) : 0;
+          availableStock = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseFloat(comb.stock) : 0;
           if (comb.price) {
              itemPrice = parseInt(comb.price, 10);
           }
@@ -250,11 +250,11 @@ const publicController = {
           if (attrs && attrs.variants && attrs.variants.length > 0) {
             const comb = findCombination(attrs, item.selectedVariant);
             if (comb) {
-              const currentStockVal = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseInt(comb.stock, 10) : 0;
+              const currentStockVal = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseFloat(comb.stock) : 0;
               comb.stock = Math.max(0, currentStockVal - item.quantity).toString();
               
               // Also update main product stock as sum of all variant combination stocks
-              const totalStock = attrs.combinations.reduce((sum, c) => sum + (parseInt(c.stock, 10) || 0), 0);
+              const totalStock = attrs.combinations.reduce((sum, c) => sum + (parseFloat(c.stock) || 0), 0);
               
               await Product.update(product.id, {
                 ...product,

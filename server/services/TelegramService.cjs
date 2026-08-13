@@ -192,7 +192,8 @@ class TelegramService {
           variantDesc = ` (${Object.values(varObj).join(', ')})`;
         }
         const unit = item.unit || 'dona';
-        return `  • ${title}${variantDesc} × ${item.quantity} ${unit}`;
+        const formattedQty = Number(item.quantity).toString();
+        return `  • ${title}${variantDesc} × ${formattedQty} ${unit}`;
       })
       .join('\n');
 

@@ -20,7 +20,7 @@ import {
 import { AdminPagination } from './AdminPagination';
 
 export const AdminOrders = () => {
-  const { lang, telegramUser, triggerHaptic, getAdminHeaders } = useStore();
+  const { lang, telegramUser, triggerHaptic, getAdminHeaders, formatQuantity } = useStore();
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -484,7 +484,7 @@ export const AdminOrders = () => {
                                   </span>
                                 </div>
                                 <span className="font-bold text-gray-800 whitespace-nowrap">
-                                  {item.quantity} x {formatPrice(item.price)} {t.currency}
+                                  {formatQuantity(item.quantity)} x {formatPrice(item.price)} {t.currency}
                                 </span>
                               </div>
                             ))}

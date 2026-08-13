@@ -378,6 +378,20 @@ export const StoreProvider = ({ children }) => {
     setConfirmModal(prev => ({ ...prev, isOpen: false }));
   };
 
+  const getUnitStep = (unit) => {
+    if (!unit) return 1;
+    const norm = unit.toLowerCase().trim();
+    if (norm === 'kg' || norm === 'kilogram' || norm === 'l' || norm === 'litr' || norm === 'litri' || norm === 'l.' || norm === 'kg.') {
+      return 0.5;
+    }
+    return 1;
+  };
+
+  const formatQuantity = (qty) => {
+    if (qty === undefined || qty === null) return '0';
+    return Number(qty).toString();
+  };
+
   const toggleLanguage = () => {
     triggerHaptic('light');
     const nextLang = lang === 'uz' ? 'ru' : lang === 'ru' ? 'en' : 'uz';
@@ -385,26 +399,28 @@ export const StoreProvider = ({ children }) => {
     localStorage.setItem('qlay_lang', nextLang);
   };
 
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product, quantity) => {
     triggerHaptic('medium');
+    const step = getUnitStep(product.unit);
+    const qty = quantity !== undefined ? quantity : step;
     const cartId = product.cartId || product.id;
-    const maxStock = (product.stock !== undefined && product.stock !== null) ? product.stock : 999;
+    const maxStock = (product.stock !== undefined && product.stock !== null) ? parseFloat(product.stock) : 999;
     setCart(prev => {
       const existingIndex = prev.findIndex(item => (item.cartId || item.id) === cartId);
       const currentQty = existingIndex > -1 ? prev[existingIndex].quantity : 0;
-      if (currentQty + quantity > maxStock) {
+      if (currentQty + qty > maxStock) {
         alert(lang === 'uz' 
-          ? `Kechirasiz, omborda faqat ${maxStock} ta mahsulot bor!` 
-          : `Извините, в наличии только ${maxStock} шт.!`
+          ? `Kechirasiz, omborda faqat ${formatQuantity(maxStock)} ${product.unit || 'ta'} mahsulot bor!` 
+          : `Извините, в наличии только ${formatQuantity(maxStock)} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}.!`
         );
         return prev;
       }
       if (existingIndex > -1) {
         const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
+        updated[existingIndex].quantity = parseFloat((updated[existingIndex].quantity + qty).toFixed(2));
         return updated;
       }
-      return [...prev, { ...product, quantity }];
+      return [...prev, { ...product, quantity: qty }];
     });
   };
 
@@ -414,12 +430,12 @@ export const StoreProvider = ({ children }) => {
       return prev.map(item => {
         const itemCartId = item.cartId || item.id;
         if (itemCartId === cartId) {
-          const maxStock = (item.stock !== undefined && item.stock !== null) ? item.stock : 999;
-          const newQty = item.quantity + delta;
+          const maxStock = (item.stock !== undefined && item.stock !== null) ? parseFloat(item.stock) : 999;
+          const newQty = parseFloat((item.quantity + delta).toFixed(2));
           if (delta > 0 && newQty > maxStock) {
             alert(lang === 'uz' 
-              ? `Kechirasiz, omborda faqat ${maxStock} ta mahsulot bor!` 
-              : `Извините, в наличии только ${maxStock} шт.!`
+              ? `Kechirasiz, omborda faqat ${formatQuantity(maxStock)} ${item.unit || 'ta'} mahsulot bor!` 
+              : `Извините, в наличии только ${formatQuantity(maxStock)} ${item.unit === 'dona' ? 'шт' : item.unit || 'шт'}.!`
             );
             return item;
           }
@@ -611,6 +627,8 @@ export const StoreProvider = ({ children }) => {
 
   return (
     <StoreContext.Provider value={{
+      getUnitStep,
+      formatQuantity,
       getAdminHeaders,
       lang,
       toggleLanguage,

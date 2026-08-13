@@ -5,7 +5,7 @@ import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { ProductImage } from './ProductImage';
 
 export const ProductCard = ({ product }) => {
-  const { lang, t, addToCart, updateCartQuantity, cart, favorites, toggleFavorite, setSelectedProduct } = useStore();
+  const { lang, t, addToCart, updateCartQuantity, cart, favorites, toggleFavorite, setSelectedProduct, getUnitStep, formatQuantity } = useStore();
 
   const isFavorite = favorites.includes(product.id);
   const cartItem = cart.find(item => item.id === product.id);
@@ -110,7 +110,7 @@ export const ProductCard = ({ product }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                updateCartQuantity(product.id, -1);
+                updateCartQuantity(product.id, -getUnitStep(product.unit));
               }}
               className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 active:bg-gray-50 shadow-sm"
             >
@@ -118,16 +118,16 @@ export const ProductCard = ({ product }) => {
             </button>
 
             <div className="flex flex-col items-center justify-center leading-tight flex-1 px-1">
-              <span className="text-sm font-bold text-gray-900">{inCartCount} {product.unit || ''}</span>
+              <span className="text-sm font-bold text-gray-900">{formatQuantity(inCartCount)} {product.unit || ''}</span>
               <span className="text-[9px] text-gray-400 font-medium">{lang === 'uz' ? 'savatda' : lang === 'ru' ? 'в корзине' : 'in cart'}</span>
             </div>
 
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                updateCartQuantity(product.id, 1);
+                updateCartQuantity(product.id, getUnitStep(product.unit));
               }}
-              disabled={product.stock !== undefined && product.stock !== null && inCartCount >= product.stock}
+              disabled={product.stock !== undefined && product.stock !== null && inCartCount >= parseFloat(product.stock)}
               className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-900 active:bg-gray-50 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <PlusIcon className="w-4 h-4" />
@@ -137,7 +137,7 @@ export const ProductCard = ({ product }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              addToCart(product);
+              addToCart(product, getUnitStep(product.unit));
             }}
             className="w-full h-10 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:bg-[#1d4ed8] text-white font-bold text-[14px] transition-colors mt-1"
           >

@@ -132,8 +132,8 @@ export const AdminProductDetail = () => {
                 {product.old_price && (
                   <span className="text-gray-400 line-through">{formatPrice(product.old_price)} {t.currency} {product.unit ? `/ ${product.unit}` : ''}</span>
                 )}
-                <span className={product.stock > 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                  {product.stock > 0 ? `${lang === 'uz' ? 'Omborda' : 'В наличии'}: ${product.stock} ${product.unit || 'dona'}` : 'Tugagan'}
+                <span className={parseFloat(product.stock) > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                  {parseFloat(product.stock) > 0 ? `${lang === 'uz' ? 'Omborda' : 'В наличии'}: ${Number(product.stock).toString()} ${product.unit || 'dona'}` : 'Tugagan'}
                 </span>
               </div>
             </div>
