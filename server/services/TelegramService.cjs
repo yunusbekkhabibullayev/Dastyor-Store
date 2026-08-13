@@ -223,10 +223,6 @@ class TelegramService {
     for (const adminId of adminIds) {
       try {
         await this.bot.sendMessage(adminId, message, { parse_mode: 'Markdown' });
-        // Send a separate location pin if coordinates are available (one-tap navigation)
-        if (coords && coords.lat && coords.lng) {
-          await this.bot.sendLocation(adminId, coords.lat, coords.lng);
-        }
         console.log(`[Telegram] Order notification sent to admin ${adminId}`);
         sent = true;
       } catch (error) {
