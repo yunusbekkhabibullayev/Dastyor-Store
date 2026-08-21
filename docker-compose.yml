@@ -1,0 +1,44 @@
+services:
+  dastyor-store:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dastyor-store-app
+    restart: always
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - web-network
+
+  db:
+    image: postgres:17-alpine
+    container_name: dastyor-store-db
+    restart: always
+    environment:
+      - POSTGRES_DB=dastyor_store
+      - POSTGRES_USER=dastyor
+      - POSTGRES_PASSWORD=1517254cc0cd7842597cfed134822a3b15207561
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - web-network
+
+  dastyor-store-fm:
+    image: php:8.2-cli
+    container_name: dastyor-store-fm
+    restart: always
+    user: "1000:1000"
+    working_dir: /var/www/html
+    volumes:
+      - ./fm:/var/www/html/fm
+      - .:/var/www/project
+    command: php -S 0.0.0.0:80 -t /var/www/html
+    networks:
+      - web-network
+
+networks:
+  web-network:
+    external: true

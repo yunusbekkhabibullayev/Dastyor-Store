@@ -17,3 +17,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Server deploy runtime (bu serverga xos, repo qismi emas)
+fm/
+uploads/
+pgdata/
+*.dump
+*-credentials.txt

@@ -8,9 +8,10 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // Initialize PostgreSQL Pool
+// SSL o'chirilgan — lokal Docker tarmog'idagi Postgres SSL'siz ishlaydi.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: false
 });
 
 pool.on('error', (err) => {
