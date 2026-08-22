@@ -31,20 +31,8 @@ export const ProductDetailModal = () => {
       : (Array.isArray(prodAttrs.colors) ? prodAttrs.colors : []);
   }
 
-  const isShoes = selectedProduct?.id === 'p10' ||
-                  selectedProduct?.title[lang]?.toLowerCase().includes('krossovki') ||
-                  selectedProduct?.title[lang]?.toLowerCase().includes('poyafzali') ||
-                  selectedProduct?.title[lang]?.toLowerCase().includes('кроссовки');
-                  
-  const isClothing = selectedProduct?.categoryId === 'men' || selectedProduct?.categoryId === 'women';
-
-  const sizes = parsedSizes.length > 0
-    ? parsedSizes
-    : (isShoes ? ['38', '39', '40', '41', '42'] : (isClothing ? ['XS', 'S', 'M', 'L', 'XL', 'XXL'] : []));
-
-  const colors = parsedColors.length > 0
-    ? parsedColors
-    : (isClothing ? ['Qora', 'Oq', 'Ko\'k'] : []);
+  const sizes = parsedSizes;
+  const colors = parsedColors;
 
   let productVariants = [];
   if (attrs && attrs.variants && attrs.variants.length > 0) {

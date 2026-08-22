@@ -123,7 +123,7 @@ const schemas = {
     title_ru: { required: true, type: 'string', minLength: 1, maxLength: 500 },
     title_en: { required: true, type: 'string', minLength: 1, maxLength: 500 },
     price: { required: true, type: 'integer', min: 0 },
-    stock: { required: true, type: 'integer', min: 0 },
+    stock: { required: true, type: 'number', min: 0 },
     unit: { required: false, type: 'string' }
   },
 

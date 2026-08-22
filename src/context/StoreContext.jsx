@@ -471,16 +471,7 @@ export const StoreProvider = ({ children }) => {
     triggerHaptic('medium');
     const cleanCode = code.trim().toUpperCase();
 
-    // 1. Check Global Promocodes created in Admin Panel
-    if (promocodes && promocodes.length > 0) {
-      const found = promocodes.find(p => p.code?.toUpperCase() === cleanCode && (p.is_active === 1 || p.is_active === true));
-      if (found) {
-        setAppliedPromo({ code: found.code, discountPercent: found.discount_percent || 10 });
-        return { success: true };
-      }
-    }
-
-    // 2. Check Product-Specific Promocodes assigned on products in cart or products list
+    // 1. Check Product-Specific Promocodes assigned on products in cart or products list
     if (products && products.length > 0) {
       for (const prod of products) {
         let attrs = prod.attributes;
@@ -495,9 +486,13 @@ export const StoreProvider = ({ children }) => {
       }
     }
 
-    // 3. Fallback default code
-    if (cleanCode === 'RAVSHANRIVOJ2026') {
-      setAppliedPromo({ code: 'RAVSHANRIVOJ2026', discountPercent: 15 });
+    // 2. Fallback default codes
+    if (cleanCode === 'RAVSHANRIVOJ2026' || cleanCode === 'PROMO15') {
+      setAppliedPromo({ code: cleanCode, discountPercent: 15 });
+      return { success: true };
+    }
+    if (cleanCode === 'PROMO10' || cleanCode === 'SKIDKA10') {
+      setAppliedPromo({ code: cleanCode, discountPercent: 10 });
       return { success: true };
     }
 
@@ -529,6 +524,7 @@ export const StoreProvider = ({ children }) => {
           addressCoords: orderDetails.addressCoords || null,
           phone: orderDraft.phone,
           paymentMethod: orderDraft.paymentMethod,
+          appliedPromo: appliedPromo ? { code: appliedPromo.code, discountPercent: appliedPromo.discountPercent } : null,
           user: telegramUser || { id: 1165441564, first_name: 'Yunusbek' }, // Fallback for testing
           total: orderDraft.total
         })
