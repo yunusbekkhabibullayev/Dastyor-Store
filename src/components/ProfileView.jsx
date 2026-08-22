@@ -26,13 +26,22 @@ import {
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
-  BuildingOfficeIcon,
-  HomeIcon,
-  ChatBubbleLeftRightIcon,
-  QuestionMarkCircleIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import { ProductImage } from './ProductImage';
+
+// Authentic SVG Icons
+const TelegramIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.87 7.97-3.44 3.79-1.61 4.58-1.89 5.09-1.9.11 0 .37.03.54.17.14.12.18.28.2.45-.02.07-.02.21-.04.37z"/>
+  </svg>
+);
+
+const InstagramIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
 
 const formatUzPhone = (inputValue) => {
   let digits = inputValue || '';
@@ -53,18 +62,29 @@ const formatUzPhone = (inputValue) => {
     formatted += digits.slice(2, 5);
   }
   if (digits.length >= 5) {
-    formatted += '-';
+    formatted += ' ';
   }
   if (digits.length > 5) {
     formatted += digits.slice(5, 7);
   }
   if (digits.length >= 7) {
-    formatted += '-';
+    formatted += ' ';
   }
   if (digits.length > 7) {
     formatted += digits.slice(7, 9);
   }
-  return formatted;
+  return formatted.trim();
+};
+
+const cleanSocialHandle = (urlOrHandle) => {
+  if (!urlOrHandle) return '';
+  let str = String(urlOrHandle).trim();
+  str = str.replace(/^https?:\/\/(www\.)?(t\.me|instagram\.com)\//i, '');
+  str = str.replace(/^\/+|\/+$/g, '');
+  if (!str.startsWith('@')) {
+    str = '@' + str;
+  }
+  return str;
 };
 
 export const ProfileView = () => {
@@ -679,35 +699,35 @@ export const ProfileView = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // MAIN PROFILE SCREEN (AUTHENTICATED & GUEST ADAPTIVE)
   // ─────────────────────────────────────────────────────────────────────────────
-  const initial = (profileUser?.name || 'M').charAt(0).toUpperCase();
-
   return (
     <div className="p-4 space-y-3.5 max-w-lg mx-auto text-left animate-fadeIn pb-28">
       
-      {/* 1. Profile / Auth Header */}
+      {/* 1. Profile / Auth Header Card */}
       {isUserAuthenticated ? (
         !isEditing ? (
           <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-purple-500/20 shrink-0">
-                {initial}
+            {/* Avatar & User Details Side-by-Side */}
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0">
+                <UserIcon className="w-7 h-7 stroke-[2.2]" />
               </div>
-              <div>
-                <h3 className="text-sm font-black text-gray-900 leading-tight">
+              <div className="min-w-0">
+                <h3 className="text-base font-black text-gray-900 truncate leading-snug">
                   {profileUser?.name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}
                 </h3>
                 <p className="text-xs text-gray-500 font-mono font-bold mt-0.5">
-                  {profileUser?.phone || '+998 ( ) xxx xx xx'}
+                  {profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ( ) xxx xx xx'}
                 </p>
               </div>
             </div>
 
+            {/* Edit Button */}
             <button
               onClick={() => {
                 triggerHaptic('light');
                 setIsEditing(true);
               }}
-              className="p-2.5 bg-gray-50 hover:bg-purple-50 hover:text-[#7000ff] text-gray-600 rounded-2xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              className="p-2.5 bg-gray-50 hover:bg-purple-50 hover:text-[#7000ff] text-gray-600 rounded-2xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0"
               title="Profilni tahrirlash"
             >
               <PencilSquareIcon className="w-4 h-4" />
@@ -1037,15 +1057,19 @@ export const ProfileView = () => {
               {siteSettings?.phone && (
                 <a
                   href={`tel:${siteSettings.phone.replace(/[^\d+]/g, '')}`}
-                  className="p-4 rounded-2xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-blue-50/70 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                      <PhoneIcon className="w-5 h-5" />
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-2xs shrink-0">
+                      <PhoneIcon className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
-                      <span className="text-[11px] text-gray-400 font-bold block uppercase">{lang === 'uz' ? 'Telefon raqam' : 'Телефон'}</span>
-                      <span className="text-xs font-black text-gray-900 group-hover:text-blue-600">{siteSettings.phone}</span>
+                      <span className="text-[10px] text-gray-400 font-extrabold block uppercase tracking-wider">
+                        {lang === 'uz' ? 'Telefon raqam' : 'Телефон'}
+                      </span>
+                      <span className="text-xs font-black text-gray-900 group-hover:text-blue-600 font-mono">
+                        {formatUzPhone(siteSettings.phone)}
+                      </span>
                     </div>
                   </div>
                   <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
@@ -1055,19 +1079,21 @@ export const ProfileView = () => {
               {/* Telegram */}
               {(siteSettings?.telegram_channel || siteSettings?.bot_username) && (
                 <a
-                  href={`https://t.me/${(siteSettings.telegram_channel || siteSettings.bot_username || '').replace('@', '')}`}
+                  href={`https://t.me/${(siteSettings.telegram_channel || siteSettings.bot_username || '').replace('@', '').replace('https://t.me/', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-4 rounded-2xl bg-gray-50 hover:bg-sky-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-sky-50/70 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-black">
-                      ✈️
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center shadow-2xs shrink-0">
+                      <TelegramIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-[11px] text-gray-400 font-bold block uppercase">Telegram</span>
+                      <span className="text-[10px] text-gray-400 font-extrabold block uppercase tracking-wider">
+                        Telegram
+                      </span>
                       <span className="text-xs font-black text-gray-900 group-hover:text-sky-600">
-                        {siteSettings.telegram_channel || `@${siteSettings.bot_username}`}
+                        {cleanSocialHandle(siteSettings.telegram_channel || siteSettings.bot_username)}
                       </span>
                     </div>
                   </div>
@@ -1078,18 +1104,22 @@ export const ProfileView = () => {
               {/* Instagram */}
               {siteSettings?.instagram && (
                 <a
-                  href={`https://instagram.com/${siteSettings.instagram.replace('@', '')}`}
+                  href={`https://instagram.com/${siteSettings.instagram.replace('@', '').replace('https://instagram.com/', '').replace('https://www.instagram.com/', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-4 rounded-2xl bg-gray-50 hover:bg-pink-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-pink-50/70 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-black">
-                      📸
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center shadow-2xs shrink-0">
+                      <InstagramIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-[11px] text-gray-400 font-bold block uppercase">Instagram</span>
-                      <span className="text-xs font-black text-gray-900 group-hover:text-pink-600">{siteSettings.instagram}</span>
+                      <span className="text-[10px] text-gray-400 font-extrabold block uppercase tracking-wider">
+                        Instagram
+                      </span>
+                      <span className="text-xs font-black text-gray-900 group-hover:text-pink-600">
+                        {cleanSocialHandle(siteSettings.instagram)}
+                      </span>
                     </div>
                   </div>
                   <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-pink-600" />
