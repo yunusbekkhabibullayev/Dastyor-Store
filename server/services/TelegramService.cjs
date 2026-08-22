@@ -215,8 +215,11 @@ class TelegramService {
       addressLine = `📍 *Manzil:* [${orderData.address || '—'}](https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderData.address || '')})`;
     }
 
+    const orderTime = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+
     const message = [
       `🛒 *Yangi buyurtma #${numId}*`,
+      `🕐 ${orderTime}`,
       ``,
       `👤 *Mijoz:* ${orderData.name || 'Noma\'lum'}`,
       `📞 *Telefon:* ${orderData.phone || '—'}`,
