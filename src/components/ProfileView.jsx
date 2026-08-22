@@ -27,7 +27,10 @@ import {
   PlusIcon,
   TrashIcon,
   BuildingOfficeIcon,
-  HomeIcon
+  HomeIcon,
+  ChatBubbleLeftRightIcon,
+  QuestionMarkCircleIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import { ProductImage } from './ProductImage';
 
@@ -69,7 +72,7 @@ export const ProfileView = () => {
     lang, toggleLanguage, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
     customerToken, customerUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, 
     showConfirm, telegramUser, siteSettings, formatQuantity, adminAuth,
-    isCustomerLoggedIn, openAuthModal, setActiveTab
+    isCustomerLoggedIn, openAuthModal, setActiveTab, favorites
   } = useStore();
 
   // Logged-in Edit states
@@ -79,6 +82,10 @@ export const ProfileView = () => {
   const [editPassword, setEditPassword] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  // Contact / About modal states
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false);
 
   // Address management states
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -227,7 +234,6 @@ export const ProfileView = () => {
         triggerHaptic('medium');
         const updatedList = savedAddresses.filter(a => a.id !== addrId);
         
-        // If deleted address was default, make first remaining default
         if (updatedList.length > 0 && !updatedList.some(a => a.is_default)) {
           updatedList[0].is_default = true;
         }
@@ -333,7 +339,6 @@ export const ProfileView = () => {
   if (profileSubView === 'addresses') {
     return (
       <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-28">
-        {/* Top Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -372,7 +377,6 @@ export const ProfileView = () => {
           </button>
         </div>
 
-        {/* Addresses List */}
         {savedAddresses.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 border border-gray-150 text-center space-y-3 shadow-2xs">
             <div className="w-14 h-14 bg-purple-50 text-[#7000ff] rounded-2xl flex items-center justify-center mx-auto">
@@ -493,7 +497,6 @@ export const ProfileView = () => {
               )}
 
               <form onSubmit={handleSaveAddress} className="space-y-4">
-                {/* Title Preset Chips */}
                 <div>
                   <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                     {lang === 'uz' ? 'Manzil nomi' : 'Название адреса'}
@@ -524,7 +527,6 @@ export const ProfileView = () => {
                   />
                 </div>
 
-                {/* Address Textarea */}
                 <div>
                   <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                     {lang === 'uz' ? 'To\'liq manzil va mo\'ljal *' : 'Полный адрес и ориентир *'}
@@ -540,7 +542,6 @@ export const ProfileView = () => {
                   />
                 </div>
 
-                {/* Set as Default Checkbox */}
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -676,25 +677,127 @@ export const ProfileView = () => {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // UZUM STYLE GUEST PROFILE MENU (IF NOT LOGGED IN)
+  // MAIN PROFILE SCREEN (AUTHENTICATED & GUEST ADAPTIVE)
   // ─────────────────────────────────────────────────────────────────────────────
-  if (!isUserAuthenticated) {
-    return (
-      <div className="p-4 max-w-lg mx-auto text-left space-y-3 animate-fadeIn pb-24">
-        <div className="flex items-center justify-end px-1 pb-1">
-          <button
-            onClick={() => {
-              triggerHaptic('medium');
-              openAuthModal();
-            }}
-            className="text-xs font-extrabold text-[#7000ff] hover:underline cursor-pointer flex items-center gap-1"
-          >
-            <span>{lang === 'uz' ? 'Kirish' : 'Войти'}</span>
-            <span>/</span>
-            <span>{lang === 'uz' ? 'Ro\'yxatdan o\'tish' : 'Регистрация'}</span>
-          </button>
-        </div>
+  const initial = (profileUser?.name || 'M').charAt(0).toUpperCase();
 
+  return (
+    <div className="p-4 space-y-3.5 max-w-lg mx-auto text-left animate-fadeIn pb-28">
+      
+      {/* 1. Profile / Auth Header */}
+      {isUserAuthenticated ? (
+        !isEditing ? (
+          <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-purple-500/20 shrink-0">
+                {initial}
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-gray-900 leading-tight">
+                  {profileUser?.name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}
+                </h3>
+                <p className="text-xs text-gray-500 font-mono font-bold mt-0.5">
+                  {profileUser?.phone || '+998 ( ) xxx xx xx'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setIsEditing(true);
+              }}
+              className="p-2.5 bg-gray-50 hover:bg-purple-50 hover:text-[#7000ff] text-gray-600 rounded-2xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Profilni tahrirlash"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          /* Inline Edit Profile Form */
+          <form onSubmit={handleSaveEdit} className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="font-extrabold text-sm text-gray-900">
+                {lang === 'uz' ? 'Profilni Tahrirlash' : 'Редактировать профиль'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg cursor-pointer"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
+                ⚠️ {editError}
+              </div>
+            )}
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">Ism va Familiya *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">Telefon Raqami *</label>
+                <input
+                  type="text"
+                  required
+                  value={editPhone}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.length < 5) {
+                      setEditPhone('+998 ');
+                      return;
+                    }
+                    setEditPhone(formatUzPhone(val));
+                  }}
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">Yangi Parol (Ixtiyoriy)</label>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="O'zgartirmaslik uchun bo'sh qoldiring"
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Bekor qilish
+              </button>
+
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="px-5 py-2.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-extrabold rounded-xl text-xs shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {editSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+              </button>
+            </div>
+          </form>
+        )
+      ) : (
+        /* Guest Header Card */
         <div 
           onClick={() => {
             triggerHaptic('medium');
@@ -720,215 +823,33 @@ export const ProfileView = () => {
             {lang === 'uz' ? 'Kirish' : 'Войти'}
           </div>
         </div>
-
-        <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              openAuthModal();
-            }}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5">
-              <ShoppingBagIcon className="w-5 h-5 text-gray-600" />
-              <span className="text-xs font-bold text-gray-800">
-                {lang === 'uz' ? 'Buyurtmalarim' : 'Мои заказы'}
-              </span>
-            </div>
-            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
-          </button>
-
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              setActiveTab('favorites');
-            }}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5">
-              <HeartIcon className="w-5 h-5 text-gray-600" />
-              <span className="text-xs font-bold text-gray-800">
-                {lang === 'uz' ? 'Saralangan' : 'Избранное'}
-              </span>
-            </div>
-            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
-          </button>
-
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              toggleLanguage();
-            }}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5">
-              <GlobeAltIcon className="w-5 h-5 text-gray-600" />
-              <span className="text-xs font-bold text-gray-800">
-                {lang === 'uz' ? 'Sayt tili: O\'zbekcha' : 'Язык сайта: Русский'}
-              </span>
-            </div>
-            <span className="text-xs font-extrabold text-blue-600 uppercase">
-              {lang}
-            </span>
-          </button>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 border border-gray-150 shadow-2xs space-y-2 text-xs">
-          <div className="flex items-center gap-2 text-gray-900 font-extrabold">
-            <InformationCircleIcon className="w-4 h-4 text-purple-600" />
-            <span>{siteSettings?.name || 'Dastyor Market'}</span>
-          </div>
-          <p className="text-gray-500 font-medium text-[11px] leading-relaxed">
-            {siteSettings?.description || 'Oziq-ovqat va sifatli mahsulotlar yetkazib berish xizmati.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // MAIN VIEW: LOGGED-IN CUSTOMER PROFILE
-  // ─────────────────────────────────────────────────────────────────────────────
-  const initial = (profileUser?.name || 'M').charAt(0).toUpperCase();
-
-  return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-24">
-      
-      {/* Profile Card */}
-      {!isEditing ? (
-        <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-blue-500/20 shrink-0">
-                {initial}
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-gray-900 leading-tight">
-                  {profileUser?.name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}
-                </h3>
-                <p className="text-xs text-gray-500 font-mono font-bold mt-0.5">
-                  {profileUser?.phone || '+998 ( ) xxx xx xx'}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                triggerHaptic('light');
-                setIsEditing(true);
-              }}
-              className="p-2 bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
-              title="Profilni tahrirlash"
-            >
-              <PencilSquareIcon className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Edit Profile Form */
-        <form onSubmit={handleSaveEdit} className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4 animate-scaleUp">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <h3 className="font-extrabold text-sm text-gray-900">
-              {lang === 'uz' ? 'Profilni Tahrirlash' : 'Редактировать профиль'}
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="p-1 text-gray-400 hover:text-gray-700 rounded-lg cursor-pointer"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-
-          {editError && (
-            <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
-              ⚠️ {editError}
-            </div>
-          )}
-
-          <div className="space-y-3 text-xs">
-            <div>
-              <label className="font-extrabold text-gray-700 block mb-1">Ism va Familiya *</label>
-              <input
-                type="text"
-                required
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="font-extrabold text-gray-700 block mb-1">Telefon Raqami *</label>
-              <input
-                type="text"
-                required
-                value={editPhone}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val.length < 5) {
-                    setEditPhone('+998 ');
-                    return;
-                  }
-                  setEditPhone(formatUzPhone(val));
-                }}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="font-extrabold text-gray-700 block mb-1">Yangi Parol (Ixtiyoriy)</label>
-              <input
-                type="password"
-                value={editPassword}
-                onChange={(e) => setEditPassword(e.target.value)}
-                placeholder="O'zgartirmaslik uchun bo'sh qoldiring"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs active:scale-95 transition-all cursor-pointer"
-            >
-              Bekor qilish
-            </button>
-
-            <button
-              type="submit"
-              disabled={editSaving}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {editSaving ? 'Saqlanmoqda...' : 'Saqlash'}
-            </button>
-          </div>
-        </form>
       )}
 
-      {/* Profile Actions List */}
+      {/* 2. Asosiy Menyu Bo'limlari (Core Store Menu) */}
       <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
-        {/* Order History Button */}
+        {/* Buyurtmalarim */}
         <button
           onClick={() => {
             triggerHaptic('light');
-            setProfileSubView('history');
-            window.scrollTo({ top: 0, behavior: 'instant' });
+            if (isUserAuthenticated) {
+              setProfileSubView('history');
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            } else {
+              openAuthModal();
+            }
           }}
           className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
         >
-          <div className="flex items-center gap-3">
-            <ClockIcon className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-3.5">
+            <ShoppingBagIcon className="w-5 h-5 text-gray-700" />
             <span className="text-xs font-bold text-gray-900">
-              {lang === 'uz' ? 'Barcha buyurtmalar tarixi' : 'История заказов'}
+              {lang === 'uz' ? 'Buyurtmalarim' : 'Мои заказы'}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             {orders.length > 0 && (
-              <span className="bg-blue-50 text-blue-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-100">
+              <span className="bg-purple-50 text-[#7000ff] text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-purple-100">
                 {orders.length}
               </span>
             )}
@@ -936,17 +857,46 @@ export const ProfileView = () => {
           </div>
         </button>
 
-        {/* Saved Delivery Addresses Button */}
+        {/* Saralangan */}
         <button
           onClick={() => {
             triggerHaptic('light');
-            setProfileSubView('addresses');
-            window.scrollTo({ top: 0, behavior: 'instant' });
+            setActiveTab('favorites');
           }}
           className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
         >
-          <div className="flex items-center gap-3">
-            <MapPinIcon className="w-5 h-5 text-[#7000ff]" />
+          <div className="flex items-center gap-3.5">
+            <HeartIcon className="w-5 h-5 text-gray-700" />
+            <span className="text-xs font-bold text-gray-900">
+              {lang === 'uz' ? 'Saralangan' : 'Избранное'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {favorites.length > 0 && (
+              <span className="bg-rose-50 text-rose-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-rose-100">
+                {favorites.length}
+              </span>
+            )}
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+          </div>
+        </button>
+
+        {/* Yetkazib berish manzillarim */}
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            if (isUserAuthenticated) {
+              setProfileSubView('addresses');
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            } else {
+              openAuthModal();
+            }
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5">
+            <MapPinIcon className="w-5 h-5 text-gray-700" />
             <span className="text-xs font-bold text-gray-900">
               {lang === 'uz' ? 'Yetkazib berish manzillarim' : 'Мои адреса доставки'}
             </span>
@@ -963,22 +913,193 @@ export const ProfileView = () => {
         </button>
       </div>
 
-      {/* Log out Button */}
-      <div className="pt-2">
+      {/* 3. Yordam va Sozlamalar (Support & Settings) */}
+      <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
+        {/* Biz bilan bog'lanish */}
         <button
           onClick={() => {
-            showConfirm(
-              lang === 'uz' ? 'Tizimdan chiqish' : 'Выйти из аккаунта',
-              lang === 'uz' ? 'Haqiqatan ham profilingizdan chiqmoqchimisiz?' : 'Вы действительно хотите выйти из своего профиля?',
-              logoutUser
-            );
+            triggerHaptic('light');
+            setIsContactModalOpen(true);
           }}
-          className="w-full py-3.5 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold text-xs shadow-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
         >
-          <LogOutIcon className="w-4 h-4 text-rose-600" />
-          <span>{lang === 'uz' ? 'Profildan chiqish' : 'Выйти'}</span>
+          <div className="flex items-center gap-3.5">
+            <EnvelopeIcon className="w-5 h-5 text-gray-700" />
+            <span className="text-xs font-bold text-gray-900">
+              {lang === 'uz' ? 'Biz bilan bog\'lanish' : 'Связаться с нами'}
+            </span>
+          </div>
+          <ChevronRightIcon className="w-4 h-4 text-gray-400" />
         </button>
+
+        {/* Sayt tili */}
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            toggleLanguage();
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5">
+            <GlobeAltIcon className="w-5 h-5 text-gray-700" />
+            <span className="text-xs font-bold text-gray-900">
+              {lang === 'uz' ? 'Sayt tili: O\'zbekcha' : lang === 'ru' ? 'Язык сайта: Русский' : 'Site language: English'}
+            </span>
+          </div>
+          <span className="text-xs font-extrabold text-[#7000ff] uppercase px-2 py-0.5 bg-purple-50 rounded-lg border border-purple-100">
+            {lang}
+          </span>
+        </button>
+
+        {/* Biz haqimizda (Accordion) */}
+        <div className="overflow-hidden">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setIsAboutExpanded(!isAboutExpanded);
+            }}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5">
+              <InformationCircleIcon className="w-5 h-5 text-gray-700" />
+              <span className="text-xs font-bold text-gray-900">
+                {lang === 'uz' ? 'Biz haqimizda' : 'О нас'}
+              </span>
+            </div>
+            <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isAboutExpanded ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isAboutExpanded && (
+            <div className="p-4 pt-1 border-t border-gray-100 bg-gray-50/50 space-y-2 text-xs text-gray-600 animate-fadeIn">
+              <p className="font-extrabold text-gray-900 text-xs">{siteSettings?.name || 'Dastyor Market'}</p>
+              <p className="text-[11px] leading-relaxed">{siteSettings?.description || 'Oziq-ovqat va sifatli mahsulotlar yetkazib berish xizmati.'}</p>
+              {siteSettings?.address && (
+                <div className="flex items-start gap-1.5 pt-1 text-[11px]">
+                  <MapPinIcon className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                  <span>{siteSettings.address}</span>
+                </div>
+              )}
+              {siteSettings?.working_hours && (
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <ClockIcon className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span>{lang === 'uz' ? 'Ish vaqti:' : 'Время работы:'} {siteSettings.working_hours}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* 4. Akkauntdan Chiqish (Faqat tizimga kirganlar uchun) */}
+      {isUserAuthenticated && (
+        <div className="pt-2">
+          <button
+            onClick={() => {
+              showConfirm(
+                lang === 'uz' ? 'Akkauntdan chiqish' : 'Выйти из аккаунта',
+                lang === 'uz' ? 'Haqiqatan ham profilingizdan chiqmoqchimisiz?' : 'Вы действительно хотите выйти из своего профиля?',
+                logoutUser
+              );
+            }}
+            className="w-full py-3.5 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold text-xs shadow-xs flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+          >
+            <LogOutIcon className="w-4 h-4 text-rose-600" />
+            <span>{lang === 'uz' ? 'Akkauntdan chiqish' : 'Выйти из аккаунта'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Contact Us Modal Drawer */}
+      {isContactModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
+          <div 
+            onClick={() => setIsContactModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fadeIn" 
+          />
+
+          <div className="relative w-full max-w-lg bg-white rounded-t-[32px] p-6 pb-9 shadow-2xl z-10 animate-slideUp">
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
+
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-black text-gray-900">
+                {lang === 'uz' ? 'Biz bilan bog\'lanish' : 'Связаться с нами'}
+              </h3>
+              <button
+                onClick={() => setIsContactModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer"
+              >
+                <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Phone */}
+              {siteSettings?.phone && (
+                <a
+                  href={`tel:${siteSettings.phone.replace(/[^\d+]/g, '')}`}
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                      <PhoneIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-gray-400 font-bold block uppercase">{lang === 'uz' ? 'Telefon raqam' : 'Телефон'}</span>
+                      <span className="text-xs font-black text-gray-900 group-hover:text-blue-600">{siteSettings.phone}</span>
+                    </div>
+                  </div>
+                  <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                </a>
+              )}
+
+              {/* Telegram */}
+              {(siteSettings?.telegram_channel || siteSettings?.bot_username) && (
+                <a
+                  href={`https://t.me/${(siteSettings.telegram_channel || siteSettings.bot_username || '').replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-sky-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-black">
+                      ✈️
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-gray-400 font-bold block uppercase">Telegram</span>
+                      <span className="text-xs font-black text-gray-900 group-hover:text-sky-600">
+                        {siteSettings.telegram_channel || `@${siteSettings.bot_username}`}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-sky-600" />
+                </a>
+              )}
+
+              {/* Instagram */}
+              {siteSettings?.instagram && (
+                <a
+                  href={`https://instagram.com/${siteSettings.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-4 rounded-2xl bg-gray-50 hover:bg-pink-50 border border-gray-200 flex items-center justify-between transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-black">
+                      📸
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-gray-400 font-bold block uppercase">Instagram</span>
+                      <span className="text-xs font-black text-gray-900 group-hover:text-pink-600">{siteSettings.instagram}</span>
+                    </div>
+                  </div>
+                  <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-pink-600" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
