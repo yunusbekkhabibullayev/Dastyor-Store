@@ -64,13 +64,22 @@ export const AdminLayout = () => {
   const userRole = adminAuth?.role || 'super_admin';
 
   const roleBadges = {
-    developer: { uz: '💻 Dasturchi', ru: '💻 Разработчик', en: '💻 Developer' },
-    super_admin: { uz: '👑 Super Admin', ru: '👑 Главный Админ', en: '👑 Super Admin' },
-    manager: { uz: '🧑‍💼 Menejer', ru: '🧑‍💼 Менеджер', en: '🧑‍💼 Manager' },
-    courier: { uz: '🚚 Kuryer', ru: '🚚 Курьер', en: '🚚 Courier' },
-    content_manager: { uz: '🎨 Kontent Menejer', ru: '🎨 Контент-менеджер', en: '🎨 Content Manager' }
+    developer: { uz: 'Dasturchi', ru: 'Разработчик', en: 'Developer' },
+    super_admin: { uz: 'Super Admin', ru: 'Главный Админ', en: 'Super Admin' },
+    manager: { uz: 'Menejer', ru: 'Менеджер', en: 'Manager' },
+    courier: { uz: 'Kuryer', ru: 'Курьер', en: 'Courier' },
+    content_manager: { uz: 'Kontent Menejer', ru: 'Контент-менеджер', en: 'Content Manager' }
   };
 
+  const roleIcons = {
+    developer: CommandLineIcon,
+    super_admin: ShieldCheckIcon,
+    manager: BriefcaseIcon,
+    courier: TruckIcon,
+    content_manager: PhotoIcon
+  };
+
+  const RoleIcon = roleIcons[userRole] || ShieldCheckIcon;
   const currentRoleBadge = roleBadges[userRole]?.[lang] || roleBadges[userRole]?.uz || 'Administrator';
 
   const translations = {
@@ -394,7 +403,17 @@ export const AdminLayout = () => {
             })()}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Saytga o'tish (Return to store) Top Header Button */}
+            <button
+              onClick={handleBackToStore}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 active:scale-95 text-gray-700 font-extrabold text-xs rounded-xl transition-all border border-gray-200 cursor-pointer shadow-2xs"
+              title={lang === 'uz' ? 'Saytga o\'tish' : 'Перейти на сайт'}
+            >
+              <StoreIcon className="w-4 h-4 text-blue-600 shrink-0" />
+              <span className="hidden sm:inline">{lang === 'uz' ? 'Saytga qaytish' : lang === 'ru' ? 'На сайт' : 'Store'}</span>
+            </button>
+
             {/* Lang Switch (Boxless) */}
             <button
               onClick={toggleLanguage}
@@ -421,7 +440,10 @@ export const AdminLayout = () => {
                     {adminName}
                     <ChevronDownIcon className={`w-3.5 h-3.5 text-gray-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
                   </span>
-                  <span className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">{currentRoleBadge}</span>
+                  <span className="text-[10px] text-blue-600 font-extrabold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                    <RoleIcon className="w-3 h-3 text-blue-600 shrink-0" />
+                    <span>{currentRoleBadge}</span>
+                  </span>
                 </div>
               </button>
 
@@ -430,7 +452,10 @@ export const AdminLayout = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-150 py-1.5 z-50 animate-scaleUp">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                     <p className="text-xs font-black text-gray-900 truncate">{adminName}</p>
-                    <p className="text-[10px] font-bold text-blue-600 mt-0.5">{currentRoleBadge}</p>
+                    <p className="text-[10px] font-extrabold text-blue-600 mt-1 flex items-center gap-1">
+                      <RoleIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>{currentRoleBadge}</span>
+                    </p>
                   </div>
 
                   <div className="p-1.5 space-y-0.5 text-xs">
@@ -439,9 +464,9 @@ export const AdminLayout = () => {
                         setProfileDropdownOpen(false);
                         setProfileModalOpen(true);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-bold transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-bold transition-colors text-left cursor-pointer"
                     >
-                      <UserCircleIcon className="w-4 h-4 text-blue-600" />
+                      <UserCircleIcon className="w-4 h-4 text-blue-600 shrink-0" />
                       <span>{lang === 'uz' ? 'Profil ma\'lumotlari' : 'Профиль'}</span>
                     </button>
 
@@ -450,9 +475,9 @@ export const AdminLayout = () => {
                         setProfileDropdownOpen(false);
                         handleBackToStore();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 font-bold transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 font-bold transition-colors text-left cursor-pointer"
                     >
-                      <StoreIcon className="w-4 h-4 text-gray-500" />
+                      <StoreIcon className="w-4 h-4 text-gray-500 shrink-0" />
                       <span>{t.store}</span>
                     </button>
 
@@ -463,9 +488,9 @@ export const AdminLayout = () => {
                         setProfileDropdownOpen(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-bold transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-bold transition-colors text-left cursor-pointer"
                     >
-                      <LogOutIcon className="w-4 h-4 text-rose-500" />
+                      <LogOutIcon className="w-4 h-4 text-rose-500 shrink-0" />
                       <span>{t.logout}</span>
                     </button>
                   </div>

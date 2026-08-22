@@ -218,37 +218,37 @@ export const AdminEmployees = () => {
     switch (empRole) {
       case 'developer':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
-            <CommandLineIcon className="w-3 h-3" />
-            <span>💻 Dasturchi</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
+            <CommandLineIcon className="w-3.5 h-3.5" />
+            <span>Dasturchi</span>
           </span>
         );
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
-            <ShieldCheckIcon className="w-3 h-3" />
-            <span>👑 Super Admin</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+            <ShieldCheckIcon className="w-3.5 h-3.5" />
+            <span>Super Admin</span>
           </span>
         );
       case 'manager':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <BriefcaseIcon className="w-3 h-3" />
-            <span>🧑‍💼 Menejer</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <BriefcaseIcon className="w-3.5 h-3.5" />
+            <span>Menejer</span>
           </span>
         );
       case 'courier':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <TruckIcon className="w-3 h-3" />
-            <span>🚚 Kuryer</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <TruckIcon className="w-3.5 h-3.5" />
+            <span>Kuryer</span>
           </span>
         );
       case 'content_manager':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
-            <PhotoIcon className="w-3 h-3" />
-            <span>🎨 Kontent</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
+            <PhotoIcon className="w-3.5 h-3.5" />
+            <span>Kontent</span>
           </span>
         );
       default:
@@ -561,13 +561,13 @@ export const AdminEmployees = () => {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
                 >
-                  <option value="developer">💻 Dasturchi (Developer - To'liq huquq)</option>
-                  <option value="super_admin">👑 Super Admin (Bosh boshqaruvchi)</option>
-                  <option value="manager">🧑‍💼 Menejer / Operator (Buyurtmalar & Mahsulotlar)</option>
-                  <option value="courier">🚚 Kuryer (Faqat Yetkazib berish)</option>
-                  <option value="content_manager">🎨 Kontent Menejer (Mahsulotlar & Bannerlar)</option>
+                  <option value="developer">Dasturchi (Developer - To'liq huquq)</option>
+                  <option value="super_admin">Super Admin (Bosh boshqaruvchi)</option>
+                  <option value="manager">Menejer / Operator (Buyurtmalar & Mahsulotlar)</option>
+                  <option value="courier">Kuryer (Faqat Yetkazib berish)</option>
+                  <option value="content_manager">Kontent Menejer (Mahsulotlar & Bannerlar)</option>
                 </select>
               </div>
 

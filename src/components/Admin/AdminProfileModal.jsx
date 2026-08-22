@@ -12,7 +12,10 @@ import {
   IdentificationIcon, 
   BuildingStorefrontIcon as StoreIcon, 
   ArrowRightOnRectangleIcon as LogOutIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  CheckCircleIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon
 } from '@heroicons/react/24/outline';
 import versionInfo from '../../version.json';
 
@@ -26,31 +29,31 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
 
   const roleConfigs = {
     developer: {
-      name: '💻 Bosh Dasturchi',
+      name: 'Bosh Dasturchi',
       desc: 'Tizimning to\'liq arxitekturasi va barcha ma\'lumotlar bazasiga kirish huquqi',
       color: 'bg-purple-50 text-purple-700 border-purple-200',
       icon: CommandLineIcon
     },
     super_admin: {
-      name: '👑 Super Administrator',
+      name: 'Super Administrator',
       desc: 'Do\'konning barcha bo\'limlari va xodimlarini to\'liq boshqarish',
       color: 'bg-blue-50 text-blue-700 border-blue-200',
       icon: ShieldCheckIcon
     },
     manager: {
-      name: '🧑‍💼 Menejer / Operator',
+      name: 'Menejer / Operator',
       desc: 'Buyurtmalar, mahsulotlar va mijozlar bilan ishlash huquqi',
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: BriefcaseIcon
     },
     courier: {
-      name: '🚚 Kuryer',
+      name: 'Kuryer',
       desc: 'Faqat buyurtmalar va yetkazib berish manzillari bilan ishlash',
       color: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: TruckIcon
     },
     content_manager: {
-      name: '🎨 Kontent Menejer',
+      name: 'Kontent Menejer',
       desc: 'Mahsulotlar, kategoriyalar va reklama bannerlarini tahrirlash',
       color: 'bg-pink-50 text-pink-700 border-pink-200',
       icon: PhotoIcon
@@ -65,14 +68,14 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
     : (adminAuth?.id || 'Yunusbek Khabibullayev');
 
   const permissionLabels = {
-    dashboard: '📊 Statistika',
-    orders: '🛒 Buyurtmalar',
-    products: '📦 Mahsulotlar',
-    categories: '🗂️ Kategoriyalar',
-    users: '👥 Mijozlar (CRM)',
-    employees: '🧑‍💼 Xodimlar & Rollar',
-    settings: '🖼️ Bannerlar',
-    'site-settings': '⚙️ Sayt Sozlamalari'
+    dashboard: 'Statistika',
+    orders: 'Buyurtmalar',
+    products: 'Mahsulotlar',
+    categories: 'Kategoriyalar',
+    users: 'Mijozlar (CRM)',
+    employees: 'Xodimlar & Rollar',
+    settings: 'Bannerlar',
+    'site-settings': 'Sayt Sozlamalari'
   };
 
   return (
@@ -86,15 +89,16 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-white leading-tight">{adminName}</h3>
-              <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider block mt-0.5">
-                {currentRoleConfig.name}
+              <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                <RoleIcon className="w-3.5 h-3.5 text-blue-300" />
+                <span>{currentRoleConfig.name}</span>
               </span>
             </div>
           </div>
 
           <button
             onClick={() => { triggerHaptic('light'); onClose(); }}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -129,14 +133,24 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
             )}
             <div className="flex items-center justify-between">
               <span className="text-gray-400 font-bold text-[11px]">Kirish usuli:</span>
-              <span className="font-bold text-gray-800">
-                {telegramUser ? '📱 Telegram WebApp (Auto-Auth)' : '🌐 Web Browser (JWT Session)'}
+              <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                {telegramUser ? (
+                  <>
+                    <DevicePhoneMobileIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Telegram WebApp (Auto-Auth)</span>
+                  </>
+                ) : (
+                  <>
+                    <ComputerDesktopIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Web Browser (JWT Session)</span>
+                  </>
+                )}
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-gray-100 pt-2">
               <span className="text-gray-400 font-bold text-[11px]">Tizim versiyasi:</span>
               <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[10px]">
-                {versionInfo?.version || 'v2.0.76'}
+                {versionInfo?.version || 'v2.0.83'}
               </span>
             </div>
           </div>
@@ -148,8 +162,9 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
             </span>
             <div className="flex flex-wrap gap-1.5">
               {permissions.map((p) => (
-                <span key={p} className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-[10px] rounded-lg border border-gray-200">
-                  {permissionLabels[p] || p}
+                <span key={p} className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-[10px] rounded-lg border border-gray-200 flex items-center gap-1">
+                  <CheckCircleIcon className="w-3 h-3 text-blue-600" />
+                  <span>{permissionLabels[p] || p}</span>
                 </span>
               ))}
             </div>
@@ -162,9 +177,9 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
                 onClose();
                 onBackToStore();
               }}
-              className="w-full py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all"
+              className="w-full py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
             >
-              <StoreIcon className="w-4 h-4 text-gray-500" />
+              <StoreIcon className="w-4 h-4 text-blue-600" />
               <span>{lang === 'uz' ? 'Saytga qaytish' : 'Вернуться в магазин'}</span>
             </button>
 
@@ -173,7 +188,7 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
                 onClose();
                 onLogout();
               }}
-              className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all"
+              className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
             >
               <LogOutIcon className="w-4 h-4 text-rose-600" />
               <span>{lang === 'uz' ? 'Tizimdan chiqish' : 'Выйти из системы'}</span>
