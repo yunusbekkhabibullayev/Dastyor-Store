@@ -15,7 +15,9 @@ import {
   AdjustmentsHorizontalIcon as SlidersIcon,
   PhotoIcon,
   UsersIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  ChevronDownIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminOrders } from './AdminOrders';
@@ -31,6 +33,7 @@ import { AdminCategoryDetail } from './AdminCategoryDetail';
 import { AdminProductCreate } from './AdminProductCreate';
 import { AdminProductEdit } from './AdminProductEdit';
 import { AdminSiteSettings } from './AdminSiteSettings';
+import { AdminProfileModal } from './AdminProfileModal';
 import { LanguageFlag } from '../FlagIcon';
 import { AdminProductDetail } from './AdminProductDetail';
 import { ConfirmationModal } from '../ConfirmationModal';
@@ -50,7 +53,10 @@ export const AdminLayout = () => {
     adminAuth
   } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const mainRef = useRef(null);
+  const profileDropdownRef = useRef(null);
 
   const permissions = adminAuth?.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users', 'employees'];
   const userRole = adminAuth?.role || 'super_admin';
@@ -120,6 +126,17 @@ export const AdminLayout = () => {
     }
     window.scrollTo(0, 0);
   }, [adminTab]);
+
+  // Click outside listener to close profile dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const adminName = telegramUser 
     ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() 
@@ -207,22 +224,21 @@ export const AdminLayout = () => {
           })}
         </nav>
 
-        {/* Sidebar Footer Links */}
-        <div className="p-4 border-t border-slate-800 space-y-1">
+        {/* Clean Minimal Sidebar Footer */}
+        <div className="p-3 border-t border-slate-800 flex items-center justify-between text-slate-400">
+          <div className="flex items-center gap-2 pl-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[10px] font-bold text-slate-400">Dastyor v2.0</span>
+          </div>
           <button
-            onClick={handleBackToStore}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            onClick={() => {
+              setSidebarOpen(false);
+              setProfileModalOpen(true);
+            }}
+            className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors"
+            title="Profil"
           >
-            <StoreIcon className="w-5 h-5 shrink-0 text-slate-400" />
-            <span>{t.store}</span>
-          </button>
-          
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide text-rose-450 hover:text-white hover:bg-rose-950/20 transition-colors"
-          >
-            <LogOutIcon className="w-5 h-5 shrink-0 text-rose-500" />
-            <span>{t.logout}</span>
+            <UserCircleIcon className="w-4 h-4" />
           </button>
         </div>
       </aside>
@@ -255,17 +271,73 @@ export const AdminLayout = () => {
               <LanguageFlag lang={lang} className="w-6 h-4 object-cover shadow-2xs" />
             </button>
 
-            {/* Profile badge desktop */}
-            <div className="flex items-center gap-2.5 border-l pl-3 border-gray-100">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <span className="text-blue-600 font-extrabold text-xs">
+            {/* Profile Dropdown Trigger */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => {
+                  triggerHaptic('light');
+                  setProfileDropdownOpen(prev => !prev);
+                }}
+                className="flex items-center gap-2.5 border-l pl-3 border-gray-100 hover:bg-gray-50/90 py-1 px-2 rounded-xl transition-all cursor-pointer select-none"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-extrabold text-xs shadow-xs">
                   {adminName.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="hidden md:flex flex-col text-left">
-                <span className="text-xs font-bold text-gray-800 leading-tight">{adminName}</span>
-                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{t.admin}</span>
-              </div>
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-bold text-gray-800 leading-tight flex items-center gap-1">
+                    {adminName}
+                    <ChevronDownIcon className={`w-3.5 h-3.5 text-gray-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+                  </span>
+                  <span className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">{currentRoleBadge}</span>
+                </div>
+              </button>
+
+              {/* Profile Dropdown Popup Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-150 py-1.5 z-50 animate-scaleUp">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                    <p className="text-xs font-black text-gray-900 truncate">{adminName}</p>
+                    <p className="text-[10px] font-bold text-blue-600 mt-0.5">{currentRoleBadge}</p>
+                  </div>
+
+                  <div className="p-1.5 space-y-0.5 text-xs">
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        setProfileModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-bold transition-colors text-left"
+                    >
+                      <UserCircleIcon className="w-4 h-4 text-blue-600" />
+                      <span>{lang === 'uz' ? 'Profil ma\'lumotlari' : 'Профиль'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleBackToStore();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 font-bold transition-colors text-left"
+                    >
+                      <StoreIcon className="w-4 h-4 text-gray-500" />
+                      <span>{t.store}</span>
+                    </button>
+
+                    <div className="my-1 border-t border-gray-100"></div>
+
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-bold transition-colors text-left"
+                    >
+                      <LogOutIcon className="w-4 h-4 text-rose-500" />
+                      <span>{t.logout}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -292,6 +364,12 @@ export const AdminLayout = () => {
         </main>
       </div>
       <ConfirmationModal />
+      <AdminProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+        onBackToStore={handleBackToStore} 
+        onLogout={handleLogout} 
+      />
     </div>
   );
 };

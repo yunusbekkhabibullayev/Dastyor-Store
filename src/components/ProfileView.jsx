@@ -375,7 +375,9 @@ export const ProfileView = () => {
               >
                 <SettingsIcon className="w-4 h-4 text-blue-600" />
                 <span>
-                  {adminAuth?.role === 'courier'
+                  {adminAuth?.role === 'developer'
+                    ? (lang === 'uz' ? '💻 Dasturchi paneliga o\'tish' : '💻 Панель разработчика')
+                    : adminAuth?.role === 'courier'
                     ? (lang === 'uz' ? '🚚 Kuryer paneliga o\'tish' : '🚚 Панель курьера')
                     : adminAuth?.role === 'manager'
                     ? (lang === 'uz' ? '🧑‍💼 Menejer paneliga o\'tish' : '🧑‍💼 Панель менеджера')
