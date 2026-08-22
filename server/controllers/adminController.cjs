@@ -147,13 +147,15 @@ const adminController = {
           : bearerToken;
         try {
           const decoded = jwt.verify(cleanToken, JWT_SECRET);
-          if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
+          if (decoded && decoded.role) {
             const role = decoded.role === 'admin' ? 'super_admin' : decoded.role;
             return res.json({
               success: true,
               isAdmin: true,
               user: {
-                id: decoded.email,
+                id: decoded.id || decoded.email || decoded.login,
+                name: decoded.name || 'Admin',
+                login: decoded.login,
                 role: role,
                 permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.super_admin,
                 source: 'jwt'
@@ -173,22 +175,31 @@ const adminController = {
   },
 
   /**
-   * POST /api/admin/verify-password — Admin login (returns JWT with role)
+   * POST /api/admin/verify-password — Staff / Admin login (returns JWT with role)
    */
-  verifyPassword: (req, res) => {
-    const { email, password } = req.body;
-    const result = AuthService.verifyAdmin(email, password);
+  verifyPassword: async (req, res) => {
+    try {
+      const { email, login, identifier, password } = req.body;
+      const username = login || identifier || email;
+      const result = await AuthService.verifyAdmin(username, password);
 
-    if (result.success) {
-      res.json({
-        success: true,
-        token: result.token,
-        role: 'super_admin',
-        permissions: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
-        message: 'Kirish muvaffaqiyatli!'
-      });
-    } else {
-      res.status(401).json({ success: false, message: 'Email yoki parol noto\'g\'ri!' });
+      if (result.success) {
+        const { ROLE_PERMISSIONS } = require('../middleware/auth.cjs');
+        const role = result.employee?.role || 'super_admin';
+        res.json({
+          success: true,
+          token: result.token,
+          role: role,
+          employee: result.employee,
+          permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.super_admin,
+          message: 'Kirish muvaffaqiyatli!'
+        });
+      } else {
+        res.status(401).json({ success: false, message: result.message || 'Login yoki parol noto\'g\'ri!' });
+      }
+    } catch (e) {
+      console.error('[Admin] verifyPassword error:', e);
+      res.status(500).json({ success: false, message: 'Server xatoligi' });
     }
   },
 

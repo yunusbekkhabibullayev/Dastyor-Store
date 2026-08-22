@@ -16,10 +16,10 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { BottomTabBar } from './components/BottomTabBar';
 import { OrderSuccessView } from './components/OrderSuccessView';
 
-// Full-screen secure Admin Password Login Screen for browser access
+// Full-screen secure Admin / Staff Password Login Screen for browser access
 const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
   const { lang, triggerHaptic } = useStore();
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -27,33 +27,27 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
 
   // Field validation flags
-  const [emailTouched, setEmailTouched] = useState(false);
+  const [loginTouched, setLoginTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const isPasswordValid = password.length >= 6;
+  const isLoginValid = login.trim().length >= 3;
+  const isPasswordValid = password.length >= 4;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setEmailTouched(true);
+    setLoginTouched(true);
     setPasswordTouched(true);
 
     // Validation checks
-    if (!email.trim() || !password.trim()) {
+    if (!login.trim() || !password.trim()) {
       triggerHaptic('warning');
-      setError(lang === 'uz' ? 'Iltimos, barcha maydonlarni to\'ldiring!' : 'Пожалуйста, заполните все поля!');
+      setError(lang === 'uz' ? 'Iltimos, login va parolni kiriting!' : 'Пожалуйста, заполните все поля!');
       return;
     }
 
-    if (!isEmailValid) {
+    if (!isLoginValid) {
       triggerHaptic('warning');
-      setError(lang === 'uz' ? 'Elektron pochta formati noto\'g\'ri!' : 'Неверный формат электронной почты!');
-      return;
-    }
-
-    if (!isPasswordValid) {
-      triggerHaptic('warning');
-      setError(lang === 'uz' ? 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak!' : 'Пароль должен состоять минимум из 6 символов!');
+      setError(lang === 'uz' ? 'Login kamida 3 ta belgidan iborat bo\'lishi kerak!' : 'Логин должен содержать минимум 3 символа!');
       return;
     }
 
@@ -65,7 +59,7 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
       const res = await fetch('/api/admin/verify-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
+        body: JSON.stringify({ login: login.trim(), email: login.trim(), password })
       });
       const data = await res.json();
       if (data.success && data.token) {
@@ -73,7 +67,7 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
         onLoginSuccess(data.token, rememberMe);
       } else {
         triggerHaptic('warning');
-        setError(data.message || (lang === 'uz' ? 'Email yoki parol noto\'g\'ri!' : 'Неверный email или пароль!'));
+        setError(data.message || (lang === 'uz' ? 'Login yoki parol noto\'g\'ri!' : 'Неверный логин или пароль!'));
       }
     } catch {
       triggerHaptic('warning');
@@ -98,28 +92,28 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
         </div>
         
         <h2 className="text-[20px] font-black text-gray-900 tracking-tight mb-1">
-          {lang === 'uz' ? 'Admin panelga kirish' : 'Вход в админ-панель'}
+          {lang === 'uz' ? 'Tizimga kirish' : 'Вход в систему'}
         </h2>
         <p className="text-[10px] text-blue-600 font-extrabold tracking-wider uppercase mb-7">
           Ravshan Rivoj Market Manager
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
-          {/* Email input field */}
+          {/* Login / Email input field */}
           <div>
             <label className="text-[11px] font-extrabold text-gray-600 tracking-wider block mb-1.5 pl-1">
-              Email
+              {lang === 'uz' ? 'Login yoki Email' : 'Логин или Email'}
             </label>
             <div className="relative">
               <EnvelopeIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="email"
-                value={email}
-                onBlur={() => setEmailTouched(true)}
-                onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                placeholder="admin@ravshanrivoj.uz"
+                type="text"
+                value={login}
+                onBlur={() => setLoginTouched(true)}
+                onChange={(e) => { setLogin(e.target.value); setError(''); }}
+                placeholder="masalan: admin yoki xodim_login"
                 className={`w-full bg-gray-50/50 border pl-10 pr-4 py-3 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 transition-all placeholder-gray-400 ${
-                  emailTouched && !isEmailValid
+                  loginTouched && !isLoginValid
                     ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 bg-rose-50/30' 
                     : 'border-gray-200/80 focus:border-blue-500 focus:ring-blue-500/10 focus:bg-white'
                 }`}

@@ -13,6 +13,9 @@ import {
   XMarkIcon,
   CheckCircleIcon,
   PhoneIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  KeyIcon,
   ArrowPathIcon as RefreshIcon
 } from '@heroicons/react/24/outline';
 
@@ -25,6 +28,9 @@ export const AdminEmployees = () => {
 
   // Form states
   const [name, setName] = useState('');
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [telegramId, setTelegramId] = useState('');
   const [role, setRole] = useState('manager');
@@ -58,6 +64,9 @@ export const AdminEmployees = () => {
     triggerHaptic('light');
     setEditingEmp(null);
     setName('');
+    setLogin('');
+    setPassword('');
+    setShowPassword(false);
     setPhone('');
     setTelegramId('');
     setRole('manager');
@@ -71,6 +80,9 @@ export const AdminEmployees = () => {
     triggerHaptic('light');
     setEditingEmp(emp);
     setName(emp.name || '');
+    setLogin(emp.login || '');
+    setPassword('');
+    setShowPassword(false);
     setPhone(emp.phone || '');
     setTelegramId(emp.telegram_id ? emp.telegram_id.toString() : '');
     setRole(emp.role || 'manager');
@@ -85,6 +97,12 @@ export const AdminEmployees = () => {
     if (!name.trim() || !telegramId.trim()) {
       triggerHaptic('warning');
       setFormError(lang === 'uz' ? 'Ism va Telegram ID kiritilishi shart!' : 'Имя и Telegram ID обязательны!');
+      return;
+    }
+
+    if (!editingEmp && !password.trim()) {
+      triggerHaptic('warning');
+      setFormError(lang === 'uz' ? 'Xodim uchun maxfiy parol kiriting!' : 'Введите пароль для сотрудника!');
       return;
     }
 
@@ -103,6 +121,8 @@ export const AdminEmployees = () => {
         },
         body: JSON.stringify({
           name: name.trim(),
+          login: login.trim() || undefined,
+          password: password.trim() || undefined,
           phone: phone.trim(),
           telegramId: telegramId.trim(),
           role,
@@ -160,70 +180,80 @@ export const AdminEmployees = () => {
     switch (empRole) {
       case 'developer':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-purple-50 text-purple-700 border border-purple-200">
-            <CommandLineIcon className="w-3.5 h-3.5 text-purple-600" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200">
+            <CommandLineIcon className="w-3 h-3" />
             <span>💻 Dasturchi</span>
           </span>
         );
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
-            <ShieldCheckIcon className="w-3.5 h-3.5 text-blue-600" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+            <ShieldCheckIcon className="w-3 h-3" />
             <span>👑 Super Admin</span>
+          </span>
+        );
+      case 'manager':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <BriefcaseIcon className="w-3 h-3" />
+            <span>🧑‍💼 Menejer</span>
           </span>
         );
       case 'courier':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200">
-            <TruckIcon className="w-3.5 h-3.5 text-amber-600" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <TruckIcon className="w-3 h-3" />
             <span>🚚 Kuryer</span>
           </span>
         );
       case 'content_manager':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-pink-50 text-pink-700 border border-pink-200">
-            <PhotoIcon className="w-3.5 h-3.5 text-pink-600" />
-            <span>🎨 Kontent Menejer</span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
+            <PhotoIcon className="w-3 h-3" />
+            <span>🎨 Kontent</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <BriefcaseIcon className="w-3.5 h-3.5 text-emerald-600" />
-            <span>🧑‍💼 Operator / Menejer</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
+            {empRole}
           </span>
         );
     }
   };
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
-            <UserGroupIcon className="w-6 h-6 text-blue-600" />
-            <span>{lang === 'uz' ? 'Xodimlar va Rollar Boshqaruvi' : 'Сотрудники и Роли'}</span>
-          </h2>
-          <p className="text-xs text-gray-500 font-medium">
-            {lang === 'uz' 
-              ? 'Do\'kon adminlari, menejerlari va kuryerlarini Telegram ID orqali boshqarish' 
-              : 'Управление администраторами, менеджерами и курьерами через Telegram ID'}
-          </p>
+    <div className="space-y-6 text-left max-w-5xl mx-auto pb-10 animate-fadeIn">
+      {/* Header card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-gray-150 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs">
+            <UserGroupIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-base font-black text-gray-900 leading-tight">
+              {lang === 'uz' ? 'Xodimlar va Rollar Boshqaruvi' : 'Сотрудники и роли'}
+            </h2>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              {lang === 'uz' 
+                ? 'Do\'kon adminlari, operatorlari va ularning login/parol va ruxsatlarini boshqarish' 
+                : 'Управление учетными записями, логинами/паролями и правами сотрудников'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => { triggerHaptic('light'); fetchEmployees(); }}
-            className="p-2.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-700 shadow-2xs active:scale-95 transition-all"
+            onClick={fetchEmployees}
+            className="p-2.5 bg-gray-50 hover:bg-gray-100 active:scale-95 text-gray-600 rounded-xl transition-all border border-gray-200"
             title="Yangilash"
           >
-            <RefreshIcon className="w-4 h-4" />
+            <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          
+
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-500/15 transition-all cursor-pointer"
           >
             <UserPlusIcon className="w-4 h-4" />
             <span>{lang === 'uz' ? 'Yangi Xodim Qo\'shish' : 'Добавить сотрудника'}</span>
@@ -231,11 +261,10 @@ export const AdminEmployees = () => {
         </div>
       </div>
 
-      {/* Employees Table / Cards */}
-      {loading ? (
-        <div className="bg-white rounded-2xl p-12 border border-gray-150 flex flex-col items-center justify-center space-y-3">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs font-bold text-gray-400">Xodimlar ro'yxati yuklanmoqda...</span>
+      {/* Employees Table */}
+      {loading && employees.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 border border-gray-150 flex items-center justify-center">
+          <div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : employees.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 border border-gray-150 text-center space-y-2">
@@ -248,7 +277,7 @@ export const AdminEmployees = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-50 border-b border-gray-150 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
                 <tr>
-                  <th className="py-3.5 px-4">Xodim</th>
+                  <th className="py-3.5 px-4">Xodim / Login</th>
                   <th className="py-3.5 px-4">Telegram ID</th>
                   <th className="py-3.5 px-4">Telefon</th>
                   <th className="py-3.5 px-4">Biriktirilgan Rol</th>
@@ -262,7 +291,7 @@ export const AdminEmployees = () => {
 
                   return (
                     <tr key={emp.id} className="hover:bg-blue-50/40 transition-colors">
-                      {/* Name & Note */}
+                      {/* Name & Login */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-black text-xs flex items-center justify-center shrink-0">
@@ -270,15 +299,24 @@ export const AdminEmployees = () => {
                           </div>
                           <div>
                             <span className="font-extrabold text-gray-900 block">{emp.name}</span>
-                            {emp.notes && (
-                              <span className="text-[10px] text-gray-400 font-medium block">{emp.notes}</span>
-                            )}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {emp.login ? (
+                                <span className="font-mono text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">
+                                  @{emp.login}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 font-mono">login yo'q</span>
+                              )}
+                              {emp.notes && (
+                                <span className="text-[10px] text-gray-400 font-medium">· {emp.notes}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Telegram ID */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600">
+                      <td className="py-3.5 px-4 font-mono font-bold text-gray-700">
                         {emp.telegram_id}
                       </td>
 
@@ -308,8 +346,8 @@ export const AdminEmployees = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => openEditModal(emp)}
-                            className="p-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-lg transition-colors"
-                            title="Tahrirlash"
+                            className="p-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                            title="Tahrirlash & Parolni yangilash"
                           >
                             <PencilSquareIcon className="w-4 h-4" />
                           </button>
@@ -317,7 +355,7 @@ export const AdminEmployees = () => {
                           {emp.role !== 'developer' && (
                             <button
                               onClick={() => handleDelete(emp)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
                               title="O'chirish"
                             >
                               <TrashIcon className="w-4 h-4" />
@@ -338,14 +376,17 @@ export const AdminEmployees = () => {
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white w-full max-w-md rounded-3xl border border-gray-150 shadow-2xl overflow-hidden animate-scaleUp">
-            <div className="p-5 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-150 bg-gray-50/50">
+              <div className="flex items-center gap-2">
                 <UserGroupIcon className="w-5 h-5 text-blue-600" />
-                <span>{editingEmp ? 'Xodimni Tahrirlash' : 'Yangi Xodim Qo\'shish'}</span>
-              </h3>
+                <h3 className="font-extrabold text-sm text-gray-900">
+                  {editingEmp ? 'Xodimni Tahrirlash' : 'Yangi Xodim Qo\'shish'}
+                </h3>
+              </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
@@ -369,6 +410,52 @@ export const AdminEmployees = () => {
                   placeholder="Masalan: Sardor Rahimov"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
                 />
+              </div>
+
+              {/* Login (Username) */}
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">
+                  Login / Foydalanuvchi nomi *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={login}
+                    onChange={(e) => setLogin(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    placeholder="masalan: jasur_admin"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-3 py-2.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">
+                  Xodim web brauzer orqali kirishda shu logindan foydalanadi.
+                </span>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">
+                  {editingEmp ? 'Yangi Parol (Ixtiyoriy)' : 'Maxfiy Parol *'}
+                </label>
+                <div className="relative">
+                  <KeyIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required={!editingEmp}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={editingEmp ? "O'zgartirmaslik uchun bo'sh qoldiring" : "••••••••"}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-10 py-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  >
+                    {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Telegram ID */}
@@ -446,7 +533,7 @@ export const AdminEmployees = () => {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl active:scale-95 transition-all"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
                 >
                   Bekor qilish
                 </button>
@@ -454,7 +541,7 @@ export const AdminEmployees = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-xs active:scale-95 transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? 'Saqlanmoqda...' : 'Saqlash'}
                 </button>

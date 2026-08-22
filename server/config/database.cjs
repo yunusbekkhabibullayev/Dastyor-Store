@@ -265,6 +265,31 @@ const dbInit = async () => {
     try { await dbRun("ALTER TABLE site_settings ADD COLUMN is_bts_active INTEGER DEFAULT 1"); } catch (e) {}
   }
 
+  // Employees login & password support
+  if (!(await checkColumn('employees', 'login'))) {
+    try { await dbRun("ALTER TABLE employees ADD COLUMN login TEXT"); } catch (e) {}
+  }
+  if (!(await checkColumn('employees', 'password_hash'))) {
+    try { await dbRun("ALTER TABLE employees ADD COLUMN password_hash TEXT"); } catch (e) {}
+  }
+  if (!(await checkColumn('employees', 'last_login_at'))) {
+    try { await dbRun("ALTER TABLE employees ADD COLUMN last_login_at TIMESTAMP WITH TIME ZONE"); } catch (e) {}
+  }
+
+  // Admin Activity Logs (Audit trail for employee actions)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS admin_activity_logs (
+      id SERIAL PRIMARY KEY,
+      employee_id INTEGER,
+      employee_name TEXT,
+      employee_login TEXT,
+      action TEXT NOT NULL,
+      details TEXT,
+      ip_address TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     await dbRun('CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)');
   } catch (e) {}
