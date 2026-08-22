@@ -661,6 +661,77 @@ const publicController = {
   },
 
   /**
+   * GET /api/geocode/reverse — Reverse geocode coordinates to full address text
+   */
+  reverseGeocode: async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat);
+      const lon = parseFloat(req.query.lon || req.query.lng);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ success: false, message: 'Koordinatalar noto\'g\'ri' });
+      }
+
+      const lang = req.query.lang || 'uz';
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=${lang}`;
+
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'DastyorStoreApp/2.0 (contact@dastyor.store)',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nominatim returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+      let formattedAddress = '';
+
+      if (data && data.address) {
+        const a = data.address;
+        const houseNumber = a.house_number || a.building || '';
+        const road = a.road || a.pedestrian || a.street || '';
+        const neighbourhood = a.neighbourhood || a.quarter || a.suburb || a.residential || '';
+        const cityDistrict = a.city_district || a.borough || a.district || a.county || '';
+        const city = a.city || a.town || a.village || a.municipality || a.state || '';
+
+        const parts = [
+          city,
+          cityDistrict && cityDistrict !== city ? cityDistrict : '',
+          neighbourhood,
+          road ? (houseNumber ? `${road}, ${houseNumber}-uy` : road) : (houseNumber ? `${houseNumber}-uy` : '')
+        ].filter(Boolean);
+
+        formattedAddress = parts.join(', ') || data.display_name.split(',').slice(0, 4).join(', ');
+      }
+
+      if (!formattedAddress) {
+        formattedAddress = data.display_name || `Koord: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      }
+
+      res.json({
+        success: true,
+        address: formattedAddress,
+        raw: data,
+        lat,
+        lon
+      });
+    } catch (err) {
+      console.warn('[Geocode API] Reverse geocode fallback:', err.message);
+      const lat = parseFloat(req.query.lat);
+      const lon = parseFloat(req.query.lon || req.query.lng);
+      res.json({
+        success: true,
+        address: `Koord: ${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+        lat,
+        lon
+      });
+    }
+  },
+
+  /**
    * GET /api/user/addresses — Get customer saved addresses
    */
   getUserAddresses: async (req, res) => {

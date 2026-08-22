@@ -47,6 +47,9 @@ router.post('/user/sync', publicLimiter, publicController.syncUser);
 // User order history
 router.get('/user/:userId/orders', publicLimiter, publicController.getUserOrders);
 
+// Geocode
+router.get('/geocode/reverse', publicLimiter, publicController.reverseGeocode);
+
 // Checkout (stricter rate limit + validation)
 router.post('/checkout', checkoutLimiter, validate(schemas.checkout), publicController.checkout);
 

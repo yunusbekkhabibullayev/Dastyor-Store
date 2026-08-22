@@ -93,12 +93,85 @@ const cleanSocialHandle = (urlOrHandle) => {
   return str;
 };
 
-// Leaflet Full-Screen Map Picker Modal
+// Leaflet Full-Screen Map Picker Modal with High-Accuracy GPS & Reverse Geocoding
 const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
   const { lang, triggerHaptic } = useStore();
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [gpsLocating, setGpsLocating] = useState(false);
   const mapRef = useRef(null);
+
+  const fetchReverseGeocode = async (lat, lon) => {
+    setLoading(true);
+    setCoords({ lat: parseFloat(lat.toFixed(5)), lon: parseFloat(lon.toFixed(5)) });
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lon}&lang=${lang}`);
+      const data = await res.json();
+      if (data && data.success && data.address) {
+        setAddress(data.address);
+      } else {
+        setAddress(`Manzil: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      }
+    } catch (e) {
+      console.warn('Geocoding error:', e);
+      setAddress(`Manzil: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const locateUser = () => {
+    triggerHaptic('light');
+    setGpsLocating(true);
+
+    const onSuccess = (position) => {
+      const { latitude, longitude } = position.coords;
+      if (mapRef.current) {
+        mapRef.current.setView([latitude, longitude], 18, { animate: true });
+      }
+      fetchReverseGeocode(latitude, longitude);
+      setGpsLocating(false);
+      triggerHaptic('notification');
+    };
+
+    const onError = (err) => {
+      setGpsLocating(false);
+      console.warn('GPS location error:', err);
+      // If error, inform user
+      alert(lang === 'uz' 
+        ? 'GPS orqali joylashuvni aniqlash uchun brauzeringizda joylashuvga ruxsat bering.' 
+        : 'Пожалуйста, разрешите доступ к геолокации в браузере для определения местоположения.');
+    };
+
+    if (window.Telegram?.WebApp?.LocationManager) {
+      window.Telegram.WebApp.LocationManager.getLocation((loc) => {
+        if (loc && loc.latitude && loc.longitude) {
+          if (mapRef.current) {
+            mapRef.current.setView([loc.latitude, loc.longitude], 18, { animate: true });
+          }
+          fetchReverseGeocode(loc.latitude, loc.longitude);
+          setGpsLocating(false);
+          triggerHaptic('notification');
+        } else if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        }
+      });
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    } else {
+      setGpsLocating(false);
+      alert(lang === 'uz' ? 'Qurilmangizda GPS qo\'llab-quvvatlanmaydi.' : 'GPS не поддерживается.');
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -128,44 +201,35 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
 
       window.L.control.zoom({ position: 'topright' }).addTo(map);
 
-      const updateAddressFromCenter = () => {
-        const center = map.getCenter();
-        setLoading(true);
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&accept-language=uz`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.address) {
-              const addr = data.address;
-              const houseNumber = addr.house_number || '';
-              const road = addr.road || '';
-              const neighbourhood = addr.neighbourhood || addr.quarter || '';
-              const suburb = addr.suburb || addr.district || '';
-              const city = addr.city || addr.town || addr.county || 'Toshkent';
-              
-              const formatted = [
-                houseNumber && road ? `${road} ${houseNumber}` : road,
-                neighbourhood,
-                suburb || (addr.county ? addr.county : ''),
-                city
-              ].filter(Boolean).join(', ');
-              
-              setAddress(formatted || data.display_name.split(',').slice(0, 4).join(', '));
-            } else {
-              setAddress(`Manzil koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
-            }
-            setLoading(false);
-          })
-          .catch(() => {
-            setAddress(`Manzil koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
-            setLoading(false);
-          });
-      };
-
-      updateAddressFromCenter();
-
+      // On pan/drag end: geocode center
       map.on('moveend', () => {
-        updateAddressFromCenter();
+        const center = map.getCenter();
+        fetchReverseGeocode(center.lat, center.lng);
       });
+
+      // On map click: pan to clicked spot
+      map.on('click', (e) => {
+        triggerHaptic('light');
+        map.panTo(e.latlng, { animate: true });
+      });
+
+      // Initial center geocode
+      const initialCenter = map.getCenter();
+      fetchReverseGeocode(initialCenter.lat, initialCenter.lng);
+
+      // Try automatic GPS geolocation on map open
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            if (mapRef.current) {
+              mapRef.current.setView([latitude, longitude], 17, { animate: true });
+            }
+            fetchReverseGeocode(latitude, longitude);
+          },
+          () => {} // Silent fail on initial open
+        );
+      }
     }, 150);
 
     return () => {
@@ -176,23 +240,6 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
       }
     };
   }, [isOpen]);
-
-  const handleLocateUser = () => {
-    triggerHaptic('light');
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          if (mapRef.current) {
-            mapRef.current.setView([latitude, longitude], 18);
-          }
-        },
-        () => {
-          alert(lang === 'uz' ? 'GPS aniqlashda xatolik yuz berdi.' : 'Ошибка геолокации.');
-        }
-      );
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -215,11 +262,17 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
           </h3>
         </div>
 
+        {/* GPS Locate Button */}
         <button 
-          onClick={handleLocateUser}
-          className="p-2 rounded-2xl bg-purple-50 text-[#7000ff] hover:bg-purple-100 border border-purple-100 flex items-center gap-1.5 text-xs font-bold shadow-2xs cursor-pointer active:scale-95 transition-all"
+          onClick={locateUser}
+          disabled={gpsLocating}
+          className="px-3 py-2 rounded-2xl bg-purple-50 text-[#7000ff] hover:bg-purple-100 border border-purple-100 flex items-center gap-1.5 text-xs font-black shadow-2xs cursor-pointer active:scale-95 transition-all disabled:opacity-50"
         >
-          <MapPinIcon className="w-4 h-4" />
+          {gpsLocating ? (
+            <div className="w-3.5 h-3.5 border-2 border-[#7000ff] border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <MapPinIcon className="w-4 h-4 stroke-[2.5]" />
+          )}
           <span>{lang === 'uz' ? 'Joylashuvim' : 'Мое место'}</span>
         </button>
       </div>
@@ -230,20 +283,27 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
         
         {/* Center Target Pin */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-20 flex flex-col items-center">
-          <div className="p-2 bg-[#7000ff] text-white rounded-full shadow-xl border-2 border-white animate-bounce">
-            <MapPinIcon className="w-6 h-6 stroke-[2.5]" />
+          <div className="p-2.5 bg-[#7000ff] text-white rounded-full shadow-2xl border-2 border-white animate-bounce">
+            <MapPinIcon className="w-6 h-6 stroke-[2.8]" />
           </div>
-          <div className="w-2 h-2 bg-black/40 rounded-full blur-[1px] -mt-0.5"></div>
+          <div className="w-2.5 h-2.5 bg-black/40 rounded-full blur-[1.5px] -mt-0.5"></div>
+        </div>
+
+        {/* Tip text floating over map */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-lg pointer-events-none z-10 whitespace-nowrap">
+          {lang === 'uz' ? '📍 Xaritani suring yoki bosing' : '📍 Перемещайте или нажимайте на карту'}
         </div>
       </div>
 
       {/* Bottom Selected Address Bar */}
       <div className="bg-white border-t border-gray-150 p-4 pb-8 shadow-2xl space-y-3 z-10">
         <div className="flex items-start gap-3 bg-gray-50 p-3.5 rounded-2xl border border-gray-200/80">
-          <MapPinIcon className="w-5 h-5 text-[#7000ff] shrink-0 mt-0.5" />
+          <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#7000ff] flex items-center justify-center shrink-0 mt-0.5">
+            <MapPinIcon className="w-5 h-5 stroke-[2.2]" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
-              {lang === 'uz' ? 'Tanlangan manzil' : 'Выбранный адрес'}
+              {lang === 'uz' ? 'Aniqlangan to\'liq manzil' : 'Определенный адрес'}
             </p>
             <p className="text-xs font-black text-gray-900 leading-snug mt-0.5">
               {loading ? (
@@ -252,19 +312,27 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
                 address || (lang === 'uz' ? 'Xaritani suring' : 'Переместите карту')
               )}
             </p>
+            {coords && (
+              <p className="text-[10px] text-gray-400 font-mono mt-0.5 font-bold">
+                {coords.lat}, {coords.lon}
+              </p>
+            )}
           </div>
         </div>
 
         <button
           onClick={() => {
             triggerHaptic('notification');
-            onSelect(address);
+            const finalAddr = coords 
+              ? `${address} (${coords.lat}, ${coords.lon})`
+              : address;
+            onSelect(finalAddr);
             onClose();
           }}
           disabled={loading || !address}
-          className="w-full py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+          className="w-full py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
-          {lang === 'uz' ? 'Ushbu manzilni tanlash' : 'Выбрать этот адрес'}
+          <span>{lang === 'uz' ? 'Ushbu manzilni tanlash' : 'Выбрать этот адрес'}</span>
         </button>
       </div>
     </div>
