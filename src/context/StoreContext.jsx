@@ -298,67 +298,67 @@ export const StoreProvider = ({ children }) => {
     }
   }, [activeTab]);
 
-  // Sync user profile across devices via backend API
+  // Sync user profile across devices via backend API & restore on page reload
   useEffect(() => {
+    // 1. Check if token or customer user exists in storage
+    const token = localStorage.getItem('qlay_customer_token') || sessionStorage.getItem('qlay_customer_token');
+    const savedCustomer = localStorage.getItem('qlay_customer_user') || sessionStorage.getItem('qlay_customer_user');
+    const savedWeb = localStorage.getItem('qlay_web_user');
+
+    if (token) {
+      // Validate and restore customer session from /api/user/me
+      fetch('/api/user/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.user) {
+            setCustomerToken(token);
+            setCustomerUser(data.user);
+            setProfileUser({
+              name: data.user.name || '',
+              phone: data.user.phone || '',
+              address: data.user.address || ''
+            });
+            localStorage.setItem('qlay_customer_user', JSON.stringify(data.user));
+            localStorage.setItem('qlay_web_user', JSON.stringify({
+              name: data.user.name || '',
+              phone: data.user.phone || '',
+              address: data.user.address || ''
+            }));
+            fetchUserOrders();
+          }
+        })
+        .catch(err => console.warn('Failed to restore customer session from token:', err));
+    } else if (savedCustomer) {
+      try {
+        const parsed = JSON.parse(savedCustomer);
+        setCustomerUser(parsed);
+        setProfileUser({
+          name: parsed.name || '',
+          phone: parsed.phone || '',
+          address: parsed.address || ''
+        });
+      } catch (e) {}
+    } else if (savedWeb) {
+      try {
+        const parsed = JSON.parse(savedWeb);
+        setProfileUser(parsed);
+      } catch (e) {}
+    }
+
+    // 2. If Telegram Mini App user
     if (telegramUser && telegramUser.id) {
       const cacheKey = `qlay_profile_user_${telegramUser.id}`;
-      const saved = localStorage.getItem(cacheKey);
-      if (saved) {
-        try {
-          setProfileUser(JSON.parse(saved));
-        } catch (e) {}
-      } else {
-        setProfileUser({
-          name: telegramUser.first_name || '',
-          phone: '',
-          address: ''
-        });
-      }
-
       fetch('/api/user/profile?userId=' + telegramUser.id)
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
-            if (data.profile && (data.profile.name || data.profile.phone)) {
-              setProfileUser(data.profile);
-              localStorage.setItem(cacheKey, JSON.stringify(data.profile));
-            } else {
-              // User has no saved profile on the backend, pre-fill with Telegram name
-              setProfileUser({
-                name: telegramUser.first_name || '',
-                phone: '',
-                address: ''
-              });
-            }
+          if (data.success && data.profile && (data.profile.name || data.profile.phone)) {
+            setProfileUser(data.profile);
+            localStorage.setItem(cacheKey, JSON.stringify(data.profile));
           }
         })
         .catch(err => console.warn('Failed to sync profile from API:', err));
-    } else {
-      // Load saved profile for Web users
-      const savedWeb = localStorage.getItem('qlay_web_user');
-      if (savedWeb) {
-        try {
-          const parsed = JSON.parse(savedWeb);
-          setProfileUser(parsed);
-          if (parsed.phone) {
-            fetch('/api/user/profile?phone=' + encodeURIComponent(parsed.phone))
-              .then(res => res.json())
-              .then(data => {
-                if (data.success && data.profile && data.profile.name) {
-                  setProfileUser(data.profile);
-                  localStorage.setItem('qlay_web_user', JSON.stringify(data.profile));
-                }
-              })
-              .catch(err => console.warn('Failed to sync web profile:', err));
-          }
-        } catch (e) {}
-      } else {
-        setProfileUser({
-          name: '',
-          phone: '',
-          address: ''
-        });
-      }
     }
   }, [telegramUser?.id]);
 
@@ -701,14 +701,25 @@ export const StoreProvider = ({ children }) => {
       localStorage.setItem(`qlay_profile_user_${telegramUser.id}`, JSON.stringify(newProfile));
     } else {
       localStorage.setItem('qlay_web_user', JSON.stringify(newProfile));
+      const currentCust = localStorage.getItem('qlay_customer_user');
+      if (currentCust) {
+        try {
+          const parsed = JSON.parse(currentCust);
+          localStorage.setItem('qlay_customer_user', JSON.stringify({ ...parsed, ...newProfile }));
+        } catch (e) {}
+      }
     }
 
     // Sync to server database
     try {
       const initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+      const headers = { 'Content-Type': 'application/json' };
+      if (customerToken) {
+        headers['Authorization'] = `Bearer ${customerToken}`;
+      }
       await fetch('/api/user/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           initData,
           phone: newProfile.phone,
@@ -732,17 +743,20 @@ export const StoreProvider = ({ children }) => {
       setCustomerToken(token);
     }
     if (user) {
-      if (remember) {
-        localStorage.setItem('qlay_customer_user', JSON.stringify(user));
-      } else {
-        sessionStorage.setItem('qlay_customer_user', JSON.stringify(user));
-      }
-      setCustomerUser(user);
-      setProfileUser({
+      const profileData = {
         name: user.name || '',
         phone: user.phone || '',
         address: user.address || ''
-      });
+      };
+      if (remember) {
+        localStorage.setItem('qlay_customer_user', JSON.stringify(user));
+        localStorage.setItem('qlay_web_user', JSON.stringify(profileData));
+      } else {
+        sessionStorage.setItem('qlay_customer_user', JSON.stringify(user));
+        sessionStorage.setItem('qlay_web_user', JSON.stringify(profileData));
+      }
+      setCustomerUser(user);
+      setProfileUser(profileData);
     }
     fetchUserOrders();
   };
