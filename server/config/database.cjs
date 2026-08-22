@@ -106,6 +106,11 @@ const dbInit = async () => {
     )
   `);
 
+  // Sequential order numbers (ORD-1, ORD-2, ...) — Order.getNextId() draws from
+  // this. A fresh/empty DB starts at 1; an existing DB keeps counting from
+  // wherever it already was (nextval is monotonic, IF NOT EXISTS is a no-op).
+  await dbRun(`CREATE SEQUENCE IF NOT EXISTS orders_id_seq`);
+
   await dbRun(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,

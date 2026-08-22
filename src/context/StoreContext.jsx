@@ -506,8 +506,7 @@ export const StoreProvider = ({ children }) => {
 
   const placeOrder = async (orderDetails) => {
     triggerHaptic('heavy');
-    const newOrder = {
-      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+    const orderDraft = {
       date: new Date().toISOString().split('T')[0],
       total: orderDetails.total,
       status: 'processing',
@@ -525,18 +524,19 @@ export const StoreProvider = ({ children }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          orderId: newOrder.id,
-          cart: newOrder.items,
-          address: newOrder.address,
+          cart: orderDraft.items,
+          address: orderDraft.address,
           addressCoords: orderDetails.addressCoords || null,
-          phone: newOrder.phone,
-          paymentMethod: newOrder.paymentMethod,
+          phone: orderDraft.phone,
+          paymentMethod: orderDraft.paymentMethod,
           user: telegramUser || { id: 1165441564, first_name: 'Yunusbek' }, // Fallback for testing
-          total: newOrder.total
+          total: orderDraft.total
         })
       });
       const data = await res.json();
       if (data.success) {
+        // Real order id is server-assigned (sequential) — comes back in the response.
+        const newOrder = { ...orderDraft, id: data.orderId };
         setOrders(prev => [newOrder, ...prev]);
         clearCart();
         setAppliedPromo(null);

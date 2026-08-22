@@ -125,7 +125,7 @@ const publicController = {
    * Inspired by online-menu's OrderController::store() with DB::beginTransaction()
    */
   checkout: async (req, res) => {
-    const { orderId, cart, address, phone, paymentMethod, user, total } = req.body;
+    const { cart, address, phone, paymentMethod, user, total } = req.body;
 
     if (!user || !user.id) {
       return res.status(400).json({ success: false, message: 'Foydalanuvchi ma\'lumotlari to\'liq emas.' });
@@ -212,10 +212,10 @@ const publicController = {
         calculatedTotal += deliveryPrice;
       }
 
-      // Generate order ID
+      // Generate order ID — sequential, server-authoritative (client-supplied
+      // orderId, if any, is ignored so numbering can't skip/collide/be spoofed).
       const chatId = user.id;
-      const numId = orderId ? orderId.replace('ORD-', '') : Math.floor(100 + Math.random() * 900);
-      const dbOrderId = orderId || `ORD-${numId}`;
+      const dbOrderId = await Order.getNextId();
 
       const orderRecord = {
         id: dbOrderId,
@@ -308,7 +308,7 @@ const publicController = {
       // 5. Clear products cache since stock decreased
       cacheService.clear('products');
 
-      res.json({ success: true, message: 'Buyurtma tasdiqlandi!' });
+      res.json({ success: true, message: 'Buyurtma tasdiqlandi!', orderId: dbOrderId });
 
     } catch (error) {
       console.error('[Checkout] Failed to process:', error.message);

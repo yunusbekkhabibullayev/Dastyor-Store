@@ -9,9 +9,19 @@
 const { dbRun, dbAll, dbGet } = require('../config/database.cjs');
 
 const Order = {
-  /** Get all orders (newest first) */
+  /**
+   * Next sequential order id (ORD-1, ORD-2, ...) — atomic via Postgres
+   * SEQUENCE, safe under concurrent checkouts. Continues from the highest
+   * pre-existing order number (backfilled once, 2026-08-22).
+   */
+  getNextId: async () => {
+    const row = await dbGet("SELECT nextval('orders_id_seq') AS n");
+    return `ORD-${row.n}`;
+  },
+
+  /** Get all orders (newest first — numeric id order, which is chronological) */
   getAll: () => {
-    return dbAll("SELECT * FROM orders ORDER BY created_at DESC");
+    return dbAll("SELECT * FROM orders ORDER BY (REPLACE(id, 'ORD-', ''))::int DESC");
   },
 
   /** Get single order by ID */
@@ -23,7 +33,7 @@ const Order = {
   getByUserId: (userId) => {
     const numId = parseInt(userId, 10);
     return dbAll(
-      "SELECT * FROM orders WHERE user_id = ? OR user_id = ? ORDER BY created_at DESC",
+      "SELECT * FROM orders WHERE user_id = ? OR user_id = ? ORDER BY (REPLACE(id, 'ORD-', ''))::int DESC",
       [userId, isNaN(numId) ? userId : numId]
     );
   },
