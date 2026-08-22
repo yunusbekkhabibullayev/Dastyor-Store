@@ -125,12 +125,9 @@ export const ProductDetailModal = () => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center animate-fadeIn"
-      onClick={() => setSelectedProduct(null)}
-    >
+    <div className="fixed inset-0 z-50 bg-[#f5f5f7] flex flex-col animate-fadeIn">
       <div
-        className="bg-[#f5f5f7] w-full max-w-lg rounded-t-[24px] max-h-[92vh] flex flex-col relative overflow-hidden shadow-2xl"
+        className="bg-[#f5f5f7] w-full h-full flex flex-col relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Floating Circular Header Buttons - Overlay on Image */}
@@ -147,8 +144,8 @@ export const ProductDetailModal = () => {
             <ChevronLeftIcon className="w-5 h-5" />
           </button>
 
-          {/* Drag handle */}
-          <div className="w-12 h-1.5 rounded-full bg-gray-300/80 backdrop-blur-xs shadow-2xs pointer-events-auto" />
+          {/* spacer */}
+          <div className="w-12 h-1.5 pointer-events-none" />
 
           {/* Action buttons: Share & Favorite Circular Buttons */}
           <div className="flex items-center gap-2 pointer-events-auto">
