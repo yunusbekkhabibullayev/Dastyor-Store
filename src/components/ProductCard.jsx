@@ -87,11 +87,11 @@ export const ProductCard = ({ product }) => {
               </span>
             ) : product.stock <= 3 ? (
               <span className="text-[12px] font-semibold text-[#ff9500]">
-                {lang === 'uz' ? `Faqat ${product.stock} ${product.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${product.stock} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `Only ${product.stock} ${product.unit || 'pcs'} left`}
+                {lang === 'uz' ? `Faqat ${formatQuantity(product.stock)} ${product.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${formatQuantity(product.stock)} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `Only ${formatQuantity(product.stock)} ${product.unit || 'pcs'} left`}
               </span>
             ) : (
               <span className="text-[12px] font-medium text-gray-400">
-                {lang === 'uz' ? `Sotuvda bor: ${product.stock} ${product.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${product.stock} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `In stock: ${product.stock} ${product.unit || 'pcs'}`}
+                {lang === 'uz' ? `Sotuvda bor: ${formatQuantity(product.stock)} ${product.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${formatQuantity(product.stock)} ${product.unit === 'dona' ? 'шт' : product.unit || 'шт'}` : `In stock: ${formatQuantity(product.stock)} ${product.unit || 'pcs'}`}
               </span>
             )}
           </div>

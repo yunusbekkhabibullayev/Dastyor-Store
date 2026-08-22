@@ -323,11 +323,11 @@ export const ProductDetailModal = () => {
                   </span>
                 ) : currentStock <= 3 ? (
                   <span className="text-[13px] font-semibold text-[#ff3b30]">
-                    {lang === 'uz' ? `Faqat ${currentStock} ${selectedProduct.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${currentStock} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `Only ${currentStock} ${selectedProduct.unit || 'pcs'} left`}
+                    {lang === 'uz' ? `Faqat ${formatQuantity(currentStock)} ${selectedProduct.unit || 'dona'} qoldi` : lang === 'ru' ? `Осталось ${formatQuantity(currentStock)} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `Only ${formatQuantity(currentStock)} ${selectedProduct.unit || 'pcs'} left`}
                   </span>
                 ) : (
                   <span className="text-[13px] font-medium text-gray-500">
-                    {lang === 'uz' ? `Sotuvda bor: ${currentStock} ${selectedProduct.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${currentStock} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `In stock: ${currentStock} ${selectedProduct.unit || 'pcs'}`}
+                    {lang === 'uz' ? `Sotuvda bor: ${formatQuantity(currentStock)} ${selectedProduct.unit || 'dona'}` : lang === 'ru' ? `В наличии: ${formatQuantity(currentStock)} ${selectedProduct.unit === 'dona' ? 'шт' : selectedProduct.unit || 'шт'}` : `In stock: ${formatQuantity(currentStock)} ${selectedProduct.unit || 'pcs'}`}
                   </span>
                 )}
                 {benefit > 0 && (

@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export const AdminCategoryDetail = () => {
-  const { lang, setAdminTab, triggerHaptic, selectedAdminCategory, products } = useStore();
+  const { lang, setAdminTab, triggerHaptic, selectedAdminCategory, products, formatQuantity } = useStore();
 
   const category = selectedAdminCategory;
 
@@ -76,7 +76,7 @@ export const AdminCategoryDetail = () => {
                         <span className="font-extrabold text-gray-700">{price} {t.currency}</span>
                         <span>•</span>
                         <span className={p.stock > 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                          Qoldiq: {p.stock} ta
+                          Qoldiq: {formatQuantity(p.stock)} ta
                         </span>
                       </div>
                     </div>
