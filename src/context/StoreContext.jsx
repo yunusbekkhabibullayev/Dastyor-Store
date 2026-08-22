@@ -63,11 +63,33 @@ export const StoreProvider = ({ children }) => {
     cancelText: 'Bekor qilish'
   });
   
+  const [customerToken, setCustomerToken] = useState(() => {
+    return localStorage.getItem('qlay_customer_token') || sessionStorage.getItem('qlay_customer_token') || null;
+  });
+
+  const [customerUser, setCustomerUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('qlay_customer_user') || sessionStorage.getItem('qlay_customer_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [profileUser, setProfileUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('qlay_profile_user');
+      const savedUser = localStorage.getItem('qlay_customer_user') || sessionStorage.getItem('qlay_customer_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        return {
+          name: parsed.name || '',
+          phone: parsed.phone || '',
+          address: parsed.address || ''
+        };
+      }
+      const saved = localStorage.getItem('qlay_web_user');
       if (saved) {
-        localStorage.removeItem('qlay_profile_user'); // Clean up old generic cache
+        return JSON.parse(saved);
       }
     } catch (e) {}
 
@@ -140,8 +162,18 @@ export const StoreProvider = ({ children }) => {
   };
 
   const fetchUserOrders = () => {
-    const userId = telegramUser ? telegramUser.id : 1165441564;
-    fetch(`/api/user/${userId}/orders`)
+    const userId = telegramUser?.id 
+      || customerUser?.telegram_id 
+      || customerUser?.phone 
+      || (profileUser?.phone ? profileUser.phone.replace(/\D/g, '') : null) 
+      || 1165441564;
+
+    const headers = {};
+    if (customerToken) {
+      headers['Authorization'] = `Bearer ${customerToken}`;
+    }
+
+    fetch(`/api/user/${userId}/orders`, { headers })
       .then(res => res.json())
       .then(data => {
         if (data && data.success && Array.isArray(data.orders)) {
@@ -680,12 +712,44 @@ export const StoreProvider = ({ children }) => {
     }
   };
 
+  const loginCustomer = (token, user, remember = true) => {
+    if (token) {
+      if (remember) {
+        localStorage.setItem('qlay_customer_token', token);
+      } else {
+        sessionStorage.setItem('qlay_customer_token', token);
+      }
+      setCustomerToken(token);
+    }
+    if (user) {
+      if (remember) {
+        localStorage.setItem('qlay_customer_user', JSON.stringify(user));
+      } else {
+        sessionStorage.setItem('qlay_customer_user', JSON.stringify(user));
+      }
+      setCustomerUser(user);
+      setProfileUser({
+        name: user.name || '',
+        phone: user.phone || '',
+        address: user.address || ''
+      });
+    }
+    fetchUserOrders();
+  };
+
   const logoutUser = () => {
     triggerHaptic('heavy');
     localStorage.removeItem('qlay_cart');
     localStorage.removeItem('qlay_favorites');
     localStorage.removeItem('qlay_orders');
+    localStorage.removeItem('qlay_customer_token');
+    sessionStorage.removeItem('qlay_customer_token');
+    localStorage.removeItem('qlay_customer_user');
+    sessionStorage.removeItem('qlay_customer_user');
+    localStorage.removeItem('qlay_web_user');
 
+    setCustomerToken(null);
+    setCustomerUser(null);
     setCart([]);
     setFavorites([]);
     setOrders([]);
@@ -694,7 +758,6 @@ export const StoreProvider = ({ children }) => {
       phone: '',
       address: ''
     });
-    setActiveTab('catalog');
   };
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.uz;
@@ -783,6 +846,10 @@ export const StoreProvider = ({ children }) => {
       profileUser,
       setProfileUser,
       updateProfileUser,
+      customerToken,
+      customerUser,
+      loginCustomer,
+      isCustomerLoggedIn: !!(telegramUser?.id || customerToken || customerUser?.phone || (profileUser?.phone && profileUser?.name)),
       logoutUser,
       isOrderSuccess,
       setIsOrderSuccess,

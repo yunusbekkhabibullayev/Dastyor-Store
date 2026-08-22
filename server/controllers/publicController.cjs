@@ -483,6 +483,158 @@ const publicController = {
   },
 
   /**
+   * POST /api/user/auth/check-phone — Check if phone exists and has password
+   */
+  checkUserPhone: async (req, res) => {
+    try {
+      const { phone } = req.body;
+      const User = require('../models/User.cjs');
+      const result = await User.checkPhone(phone);
+      res.json({ success: true, exists: result.exists, user: result.user });
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message || 'Xatolik yuz berdi' });
+    }
+  },
+
+  /**
+   * POST /api/user/auth/login — Customer login with phone & password
+   */
+  loginUser: async (req, res) => {
+    try {
+      const { phone, password } = req.body;
+      const User = require('../models/User.cjs');
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+
+      const user = await User.loginWithPassword(phone, password);
+      const token = jwt.sign(
+        { id: user.telegram_id, phone: user.phone, name: user.name, role: 'customer' },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      const userOrders = await Order.getByUserId(user.telegram_id);
+
+      res.json({
+        success: true,
+        message: 'Tizimga muvaffaqiyatli kirildi!',
+        token,
+        user,
+        orders: userOrders
+      });
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message || 'Kirishda xatolik yuz berdi' });
+    }
+  },
+
+  /**
+   * POST /api/user/auth/register — Customer registration
+   */
+  registerUser: async (req, res) => {
+    try {
+      const { phone, name, password, address } = req.body;
+      const User = require('../models/User.cjs');
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+
+      const user = await User.register({ phone, name, password, address });
+      const token = jwt.sign(
+        { id: user.telegram_id, phone: user.phone, name: user.name, role: 'customer' },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.json({
+        success: true,
+        message: 'Ro\'yxatdan o\'tish muvaffaqiyatli yakunlandi!',
+        token,
+        user
+      });
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message || 'Ro\'yxatdan o\'tishda xatolik yuz berdi' });
+    }
+  },
+
+  /**
+   * GET /api/user/me — Get authenticated customer profile & orders
+   */
+  getMe: async (req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      let userId = null;
+      let phone = req.query.phone;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+        try {
+          const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+          userId = decoded.id;
+          phone = decoded.phone || phone;
+        } catch (e) {}
+      }
+
+      const User = require('../models/User.cjs');
+      let user = null;
+      if (userId) {
+        user = await User.getByTelegramId(userId);
+      }
+      if (!user && phone) {
+        user = await User.getByPhone(phone);
+      }
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+      }
+
+      const { password_hash, ...safeUser } = user;
+      const userOrders = await Order.getByUserId(user.telegram_id);
+
+      res.json({
+        success: true,
+        user: safeUser,
+        orders: userOrders
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  },
+
+  /**
+   * PUT /api/user/me — Update customer profile
+   */
+  updateMe: async (req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      let identifier = req.body.userId || req.body.phone;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+        try {
+          const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+          identifier = decoded.id || decoded.phone || identifier;
+        } catch (e) {}
+      }
+
+      if (!identifier) {
+        return res.status(400).json({ success: false, message: 'Foydalanuvchi aniqlanmadi' });
+      }
+
+      const User = require('../models/User.cjs');
+      const updatedUser = await User.updateProfile(identifier, req.body);
+
+      res.json({
+        success: true,
+        message: 'Profil ma\'lumotlari yangilandi!',
+        user: updatedUser
+      });
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message });
+    }
+  },
+
+  /**
    * GET /api/bot-info — Bot username for frontend
    */
   getBotInfo: (req, res) => {

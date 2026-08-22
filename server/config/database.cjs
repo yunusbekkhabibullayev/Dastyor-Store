@@ -256,6 +256,9 @@ const dbInit = async () => {
   if (!(await checkColumn('users', 'saved_addresses'))) {
     try { await dbRun("ALTER TABLE users ADD COLUMN saved_addresses TEXT DEFAULT '[]'"); } catch (e) {}
   }
+  if (!(await checkColumn('users', 'password_hash'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN password_hash TEXT"); } catch (e) {}
+  }
 
   // Site settings delivery active flags
   if (!(await checkColumn('site_settings', 'is_delivery_active'))) {

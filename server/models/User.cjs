@@ -6,6 +6,12 @@
  */
 
 const { dbRun, dbAll, dbGet } = require('../config/database.cjs');
+const crypto = require('crypto');
+
+const hashPassword = (plainPassword) => {
+  if (!plainPassword) return '';
+  return crypto.createHash('sha256').update(plainPassword.trim()).digest('hex');
+};
 
 const normalizePhone = (phone) => {
   if (!phone) return null;
@@ -19,6 +25,120 @@ const normalizePhone = (phone) => {
 };
 
 const User = {
+  /**
+   * Check if phone exists and has password set
+   */
+  checkPhone: async (phone) => {
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone) return { exists: false, user: null };
+    const user = await dbGet('SELECT telegram_id, name, phone, password_hash, address FROM users WHERE phone = ?', [cleanPhone]);
+    if (!user) return { exists: false, user: null };
+    return {
+      exists: true,
+      user: {
+        telegram_id: user.telegram_id,
+        name: user.name,
+        phone: user.phone,
+        hasPassword: !!user.password_hash,
+        address: user.address
+      }
+    };
+  },
+
+  /**
+   * Login customer with phone & password
+   */
+  loginWithPassword: async (phone, password) => {
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone) throw new Error('Telefon raqami noto\'g\'ri');
+    if (!password) throw new Error('Parol kiritilmadi');
+
+    const user = await dbGet('SELECT * FROM users WHERE phone = ?', [cleanPhone]);
+    if (!user) throw new Error('Ushbu telefon raqamiga ega foydalanuvchi topilmadi');
+    if (user.is_blocked) throw new Error('Akkauntingiz bloklangan. Iltimos, do\'kon ma\'muriyatiga murojaat qiling');
+
+    const pwdHash = hashPassword(password);
+    if (!user.password_hash || user.password_hash !== pwdHash) {
+      throw new Error('Kiritilgan maxfiy parol noto\'g\'ri!');
+    }
+
+    await dbRun('UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE telegram_id = ?', [user.telegram_id]);
+    const { password_hash, ...safeUser } = user;
+    return safeUser;
+  },
+
+  /**
+   * Register new customer or set password
+   */
+  register: async ({ phone, name, password, address }) => {
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone) throw new Error('Telefon raqami kiritilishi shart');
+    if (!name || !name.trim()) throw new Error('Ism kiritilishi shart');
+    if (!password || password.length < 4) throw new Error('Parol kamida 4 ta belgidan iborat bo\'lishi shart');
+
+    const pwdHash = hashPassword(password);
+    const cleanName = name.trim();
+    const cleanAddress = address ? address.trim() : '';
+
+    let existing = await dbGet('SELECT * FROM users WHERE phone = ?', [cleanPhone]);
+
+    if (existing) {
+      await dbRun(
+        `UPDATE users SET 
+          name = ?, 
+          password_hash = ?, 
+          address = COALESCE(NULLIF(?, ''), address), 
+          last_active_at = CURRENT_TIMESTAMP 
+         WHERE telegram_id = ?`,
+        [cleanName, pwdHash, cleanAddress, existing.telegram_id]
+      );
+      const updated = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [existing.telegram_id]);
+      const { password_hash, ...safeUser } = updated;
+      return safeUser;
+    } else {
+      const generatedId = 'web_' + cleanPhone.replace(/\D/g, '');
+      await dbRun(
+        `INSERT INTO users (telegram_id, name, phone, password_hash, address, source, created_at, last_active_at)
+         VALUES (?, ?, ?, ?, ?, 'web', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [generatedId, cleanName, cleanPhone, pwdHash, cleanAddress]
+      );
+      const newUser = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [generatedId]);
+      const { password_hash, ...safeUser } = newUser;
+      return safeUser;
+    }
+  },
+
+  /**
+   * Update customer profile & password
+   */
+  updateProfile: async (identifier, { name, phone, password, address }) => {
+    const user = await User.getById(identifier);
+    if (!user) throw new Error('Foydalanuvchi topilmadi');
+
+    const cleanName = name !== undefined ? name.trim() : user.name;
+    const cleanPhone = phone !== undefined ? normalizePhone(phone) : user.phone;
+    const cleanAddress = address !== undefined ? address.trim() : user.address;
+    let pwdHash = user.password_hash;
+    if (password && password.trim()) {
+      pwdHash = hashPassword(password);
+    }
+
+    await dbRun(
+      `UPDATE users SET 
+        name = ?, 
+        phone = ?, 
+        password_hash = ?, 
+        address = ?, 
+        last_active_at = CURRENT_TIMESTAMP 
+       WHERE telegram_id = ?`,
+      [cleanName, cleanPhone, pwdHash, cleanAddress, user.telegram_id]
+    );
+
+    const updated = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [user.telegram_id]);
+    const { password_hash, ...safeUser } = updated;
+    return safeUser;
+  },
+
   /**
    * Find user by Telegram ID
    */

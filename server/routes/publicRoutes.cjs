@@ -30,7 +30,12 @@ router.get('/products', publicLimiter, publicController.getProducts);
 router.get('/categories', publicLimiter, publicController.getCategories);
 router.get('/banners', publicLimiter, publicController.getBanners);
 
-// User profile (sync across devices)
+// User profile & Phone Auth (sync across devices)
+router.post('/user/auth/check-phone', publicLimiter, publicController.checkUserPhone);
+router.post('/user/auth/login', publicLimiter, publicController.loginUser);
+router.post('/user/auth/register', publicLimiter, publicController.registerUser);
+router.get('/user/me', publicLimiter, publicController.getMe);
+router.put('/user/me', publicLimiter, publicController.updateMe);
 router.get('/user/profile', publicLimiter, publicController.getUserProfile);
 router.post('/user/profile', publicLimiter, publicController.saveUserProfile);
 router.post('/user/sync', publicLimiter, publicController.syncUser);
