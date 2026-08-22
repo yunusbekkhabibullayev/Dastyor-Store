@@ -123,6 +123,8 @@ export const AdminLayout = () => {
     }
   };
 
+  const t = translations[lang] || translations.uz;
+
   const menuGroups = [
     {
       id: 'main',
