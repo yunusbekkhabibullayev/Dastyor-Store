@@ -123,19 +123,42 @@ export const AdminLayout = () => {
     }
   };
 
-  const t = translations[lang] || translations.uz;
-
-  const allMenuItems = [
-    { id: 'dashboard', name: t.dashboard, icon: LayoutDashboardIcon },
-    { id: 'orders', name: t.orders, icon: ShoppingCartIcon },
-    { id: 'products', name: t.products, icon: PackageIcon },
-    { id: 'categories', name: t.categories, icon: LayersIcon },
-    { id: 'users', name: t.users, icon: UsersIcon },
-    { id: 'employees', name: t.employees, icon: UserGroupIcon },
-    { id: 'settings', name: t.settings, icon: PhotoIcon },
-    { id: 'site-settings', name: t.siteSettings, icon: SettingsIcon }
+  const menuGroups = [
+    {
+      id: 'main',
+      title: { uz: 'Asosiy', ru: 'Основное', en: 'Main' },
+      items: [
+        { id: 'dashboard', name: t.dashboard, icon: LayoutDashboardIcon },
+        { id: 'orders', name: t.orders, icon: ShoppingCartIcon }
+      ]
+    },
+    {
+      id: 'catalog',
+      title: { uz: 'Katalog & Marketing', ru: 'Каталог & Маркетинг', en: 'Catalog & Marketing' },
+      items: [
+        { id: 'products', name: t.products, icon: PackageIcon },
+        { id: 'categories', name: t.categories, icon: LayersIcon },
+        { id: 'settings', name: t.settings, icon: PhotoIcon }
+      ]
+    },
+    {
+      id: 'people',
+      title: { uz: 'Mijozlar & Jamoa', ru: 'Клиенты & Команда', en: 'Users & Team' },
+      items: [
+        { id: 'users', name: t.users, icon: UsersIcon },
+        { id: 'employees', name: t.employees, icon: UserGroupIcon }
+      ]
+    },
+    {
+      id: 'system',
+      title: { uz: 'Sozlamalar', ru: 'Настройки', en: 'Settings' },
+      items: [
+        { id: 'site-settings', name: t.siteSettings, icon: SettingsIcon }
+      ]
+    }
   ];
 
+  const allMenuItems = menuGroups.flatMap(group => group.items);
   const allowedMenuItems = allMenuItems.filter(item => permissions.includes(item.id));
 
   // Fallback to first available tab if current is forbidden
@@ -247,26 +270,38 @@ export const AdminLayout = () => {
           </button>
         </div>
 
-        {/* Menu Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {allowedMenuItems.map((item) => {
-            const Icon = item.icon;
-            const active = adminTab === item.id;
-            
+        {/* Menu Links grouped by functional sections */}
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+          {menuGroups.map((group) => {
+            const groupAllowedItems = group.items.filter(item => permissions.includes(item.id));
+            if (groupAllowedItems.length === 0) return null;
+
             return (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200
-                  ${active 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'}
-                `}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {item.name}
-              </button>
+              <div key={group.id} className="space-y-1">
+                <span className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block select-none">
+                  {group.title[lang] || group.title.uz}
+                </span>
+                {groupAllowedItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = adminTab === item.id;
+                  
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleTabChange(item.id)}
+                      className={`
+                        w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200
+                        ${active 
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold' 
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'}
+                      `}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{item.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
