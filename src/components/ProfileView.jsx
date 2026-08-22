@@ -454,13 +454,13 @@ export const ProfileView = () => {
           
           {/* Avatar Upload Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-2xs text-center flex flex-col items-center justify-center">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="w-24 h-24 rounded-3xl overflow-hidden shadow-md ring-4 ring-purple-100 bg-[#f2f4f7] flex items-center justify-center transition-transform active:scale-95">
+            <div className="relative group cursor-pointer shrink-0" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-24 h-24 min-w-[96px] min-h-[96px] max-w-[96px] max-h-[96px] aspect-square rounded-3xl overflow-hidden shadow-md ring-4 ring-purple-100 bg-[#f2f4f7] flex items-center justify-center transition-transform active:scale-95 shrink-0">
                 {editAvatarUrl ? (
                   <img 
                     src={editAvatarUrl} 
                     alt="Profile Avatar" 
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover rounded-3xl block" 
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-tr from-[#7000ff] to-blue-600 flex items-center justify-center text-white">
@@ -988,12 +988,12 @@ export const ProfileView = () => {
             }}
             className="flex items-center gap-3.5 min-w-0 cursor-pointer group"
           >
-            <div className="w-13 h-13 rounded-2xl overflow-hidden shadow-md shadow-purple-500/20 shrink-0 bg-[#f2f4f7] flex items-center justify-center">
+            <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] aspect-square rounded-2xl overflow-hidden shadow-sm border border-gray-100 shrink-0 bg-[#f2f4f7] flex items-center justify-center">
               {profileUser?.avatar_url ? (
                 <img 
                   src={profileUser.avatar_url} 
                   alt={profileUser.name} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover rounded-2xl block" 
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center">
