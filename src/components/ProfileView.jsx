@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import { 
   UserIcon, 
@@ -26,7 +26,9 @@ import {
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  CameraIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import { ProductImage } from './ProductImage';
 
@@ -95,13 +97,17 @@ export const ProfileView = () => {
     isCustomerLoggedIn, openAuthModal, setActiveTab, favorites
   } = useStore();
 
-  // Logged-in Edit states
-  const [isEditing, setIsEditing] = useState(false);
+  // Edit Page States
   const [editName, setEditName] = useState(profileUser?.name || '');
   const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ');
   const [editPassword, setEditPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [editAvatarUrl, setEditAvatarUrl] = useState(profileUser?.avatar_url || '');
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   // Contact / About modal states
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -129,8 +135,64 @@ export const ProfileView = () => {
     if (profileUser) {
       setEditName(profileUser.name || '');
       setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '+998 ');
+      setEditAvatarUrl(profileUser.avatar_url || '');
     }
   }, [profileUser]);
+
+  // Handle Avatar Image File Upload
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      triggerHaptic('warning');
+      setEditError(lang === 'uz' ? 'Faqat rasm fayllarini yuklash mumkin' : 'Можно загружать только изображения');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      triggerHaptic('warning');
+      setEditError(lang === 'uz' ? 'Rasm hajmi 5MB dan oshmasligi kerak' : 'Размер фото не должен превышать 5МБ');
+      return;
+    }
+
+    setAvatarUploading(true);
+    setEditError('');
+    triggerHaptic('light');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const headers = {};
+      if (customerToken) {
+        headers['Authorization'] = `Bearer ${customerToken}`;
+      }
+
+      const res = await fetch('/api/user/upload-avatar', {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success && data.fileUrl) {
+        setEditAvatarUrl(data.fileUrl);
+        triggerHaptic('notification');
+      } else {
+        triggerHaptic('warning');
+        setEditError(data.message || 'Rasm yuklashda xatolik yuz berdi');
+      }
+    } catch (err) {
+      triggerHaptic('warning');
+      setEditError(err.message || 'Server xatosi');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Fetch saved addresses from server
   const fetchAddresses = async () => {
@@ -177,7 +239,6 @@ export const ProfileView = () => {
       const now = new Date().toISOString();
 
       if (editingAddressId) {
-        // Update existing
         updatedList = updatedList.map(a => {
           if (a.id === editingAddressId) {
             return {
@@ -190,7 +251,6 @@ export const ProfileView = () => {
           return addrIsDefault ? { ...a, is_default: false } : a;
         });
       } else {
-        // Create new
         const newAddr = {
           id: 'addr_' + Date.now(),
           title: addrTitle,
@@ -224,7 +284,6 @@ export const ProfileView = () => {
         triggerHaptic('notification');
         setSavedAddresses(data.addresses || updatedList);
         
-        // Also sync active address to profileUser
         const defaultOne = (data.addresses || updatedList).find(a => a.is_default);
         if (defaultOne) {
           setProfileUser(prev => ({ ...prev, address: defaultOne.address }));
@@ -305,8 +364,8 @@ export const ProfileView = () => {
     });
   };
 
-  // Handle Logged-in Profile Edit Save
-  const handleSaveEdit = async (e) => {
+  // Handle Save Full Profile Edit
+  const handleSaveProfileEdit = async (e) => {
     e.preventDefault();
     setEditError('');
 
@@ -325,26 +384,36 @@ export const ProfileView = () => {
 
     setEditSaving(true);
     try {
-      await updateProfileUser({
+      const payload = {
         name: editName.trim(),
-        phone: editPhone.trim()
-      });
+        phone: editPhone.trim(),
+        avatar_url: editAvatarUrl || ''
+      };
 
+      await updateProfileUser(payload);
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (customerToken) headers['Authorization'] = `Bearer ${customerToken}`;
+
+      const updateBody = {
+        phone: editPhone.trim(),
+        name: editName.trim(),
+        avatar_url: editAvatarUrl || ''
+      };
       if (editPassword && editPassword.trim()) {
-        await fetch('/api/user/me', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: editPhone.trim(),
-            name: editName.trim(),
-            password: editPassword.trim()
-          })
-        });
+        updateBody.password = editPassword.trim();
       }
 
+      await fetch('/api/user/me', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updateBody)
+      });
+
       triggerHaptic('notification');
-      setIsEditing(false);
       setEditPassword('');
+      setProfileSubView(null);
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (err) {
       triggerHaptic('warning');
       setEditError(err.message || 'Saqlashda xatolik');
@@ -352,6 +421,211 @@ export const ProfileView = () => {
       setEditSaving(false);
     }
   };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUB-VIEW: DEDICATED EDIT PROFILE PAGE
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (profileSubView === 'edit') {
+    return (
+      <div className="p-4 space-y-5 max-w-lg mx-auto text-left animate-fadeIn pb-28">
+        {/* Top Header */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setProfileSubView(null);
+            }}
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+              {lang === 'uz' ? 'Profil ma\'lumotlari' : 'Данные профиля'}
+            </h2>
+            <p className="text-xs text-gray-500 font-medium">
+              {lang === 'uz' ? 'Shaxsiy ma\'lumotlarni tahrirlash' : 'Редактирование профиля'}
+            </p>
+          </div>
+        </div>
+
+        {/* Edit Form */}
+        <form onSubmit={handleSaveProfileEdit} className="space-y-4">
+          
+          {/* Avatar Upload Card */}
+          <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-2xs text-center flex flex-col items-center justify-center">
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-24 h-24 rounded-3xl overflow-hidden shadow-md ring-4 ring-purple-100 bg-[#f2f4f7] flex items-center justify-center transition-transform active:scale-95">
+                {editAvatarUrl ? (
+                  <img 
+                    src={editAvatarUrl} 
+                    alt="Profile Avatar" 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-tr from-[#7000ff] to-blue-600 flex items-center justify-center text-white">
+                    <UserIcon className="w-12 h-12 stroke-[1.8]" />
+                  </div>
+                )}
+
+                {/* Upload Spinner Overlay */}
+                {avatarUploading && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] rounded-3xl flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Camera Badge Icon */}
+              <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-2xl bg-[#7000ff] text-white flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 transition-transform">
+                <CameraIcon className="w-4 h-4 stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAvatarFileChange}
+              accept="image/*"
+              className="hidden"
+            />
+
+            <div className="mt-3.5 space-y-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs font-black text-[#7000ff] hover:underline cursor-pointer"
+              >
+                {lang === 'uz' ? 'Rasmni o\'zgartirish' : 'Изменить фото'}
+              </button>
+              {editAvatarUrl && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setEditAvatarUrl('');
+                    }}
+                    className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
+                  >
+                    {lang === 'uz' ? 'Rasmni o\'chirish' : 'Удалить фото'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Fields Card */}
+          <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4">
+            {editError && (
+              <div className="p-3 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-bold text-rose-600 text-center animate-shake">
+                ⚠️ {editError}
+              </div>
+            )}
+
+            {/* Name */}
+            <div>
+              <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
+                {lang === 'uz' ? 'Ism va Familiya *' : 'Имя и Фамилия *'}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder={lang === 'uz' ? 'Ismingiz' : 'Ваше имя'}
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
+                {lang === 'uz' ? 'Telefon Raqami *' : 'Номер телефона *'}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <PhoneIcon className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={editPhone}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.length < 5) {
+                      setEditPhone('+998 ');
+                      return;
+                    }
+                    setEditPhone(formatUzPhone(val));
+                  }}
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-xs font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
+                {lang === 'uz' ? 'Yangi Parol (Ixtiyoriy)' : 'Новый Пароль (Необязательно)'}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <LockClosedIcon className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder={lang === 'uz' ? 'O\'zgartirmaslik uchun bo\'sh qoldiring' : 'Оставьте пустым, чтобы не менять'}
+                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-2xl pl-10 pr-10 py-3 text-xs font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-2 flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setProfileSubView(null);
+              }}
+              className="w-1/3 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs active:scale-95 transition-all cursor-pointer"
+            >
+              {lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
+            </button>
+
+            <button
+              type="submit"
+              disabled={editSaving || avatarUploading}
+              className="flex-1 py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {editSaving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span>{lang === 'uz' ? 'Saqlash' : 'Сохранить'}</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SUB-VIEW: SAVED ADDRESSES (MANZILLARIM)
@@ -704,118 +978,52 @@ export const ProfileView = () => {
       
       {/* 1. Profile / Auth Header Card */}
       {isUserAuthenticated ? (
-        !isEditing ? (
-          <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs flex items-center justify-between">
-            {/* Avatar & User Details Side-by-Side */}
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0">
-                <UserIcon className="w-7 h-7 stroke-[2.2]" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-black text-gray-900 truncate leading-snug">
-                  {profileUser?.name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}
-                </h3>
-                <p className="text-xs text-gray-500 font-mono font-bold mt-0.5">
-                  {profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ( ) xxx xx xx'}
-                </p>
-              </div>
+        <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs flex items-center justify-between">
+          {/* Avatar & User Details Side-by-Side */}
+          <div 
+            onClick={() => {
+              triggerHaptic('light');
+              setProfileSubView('edit');
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
+            className="flex items-center gap-3.5 min-w-0 cursor-pointer group"
+          >
+            <div className="w-13 h-13 rounded-2xl overflow-hidden shadow-md shadow-purple-500/20 shrink-0 bg-[#f2f4f7] flex items-center justify-center">
+              {profileUser?.avatar_url ? (
+                <img 
+                  src={profileUser.avatar_url} 
+                  alt={profileUser.name} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-[#7000ff] to-blue-600 text-white flex items-center justify-center">
+                  <UserIcon className="w-7 h-7 stroke-[2.2]" />
+                </div>
+              )}
             </div>
-
-            {/* Edit Button */}
-            <button
-              onClick={() => {
-                triggerHaptic('light');
-                setIsEditing(true);
-              }}
-              className="p-2.5 bg-gray-50 hover:bg-purple-50 hover:text-[#7000ff] text-gray-600 rounded-2xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0"
-              title="Profilni tahrirlash"
-            >
-              <PencilSquareIcon className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          /* Inline Edit Profile Form */
-          <form onSubmit={handleSaveEdit} className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="font-extrabold text-sm text-gray-900">
-                {lang === 'uz' ? 'Profilni Tahrirlash' : 'Редактировать профиль'}
+            <div className="min-w-0">
+              <h3 className="text-base font-black text-gray-900 truncate leading-snug group-hover:text-[#7000ff] transition-colors">
+                {profileUser?.name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}
               </h3>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg cursor-pointer"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
+              <p className="text-xs text-gray-500 font-mono font-bold mt-0.5">
+                {profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ( ) xxx xx xx'}
+              </p>
             </div>
+          </div>
 
-            {editError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
-                ⚠️ {editError}
-              </div>
-            )}
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-extrabold text-gray-700 block mb-1">Ism va Familiya *</label>
-                <input
-                  type="text"
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-gray-700 block mb-1">Telefon Raqami *</label>
-                <input
-                  type="text"
-                  required
-                  value={editPhone}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.length < 5) {
-                      setEditPhone('+998 ');
-                      return;
-                    }
-                    setEditPhone(formatUzPhone(val));
-                  }}
-                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-gray-700 block mb-1">Yangi Parol (Ixtiyoriy)</label>
-                <input
-                  type="password"
-                  value={editPassword}
-                  onChange={(e) => setEditPassword(e.target.value)}
-                  placeholder="O'zgartirmaslik uchun bo'sh qoldiring"
-                  className="w-full bg-[#f2f4f7] border border-gray-200 rounded-xl p-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs active:scale-95 transition-all cursor-pointer"
-              >
-                Bekor qilish
-              </button>
-
-              <button
-                type="submit"
-                disabled={editSaving}
-                className="px-5 py-2.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-extrabold rounded-xl text-xs shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {editSaving ? 'Saqlanmoqda...' : 'Saqlash'}
-              </button>
-            </div>
-          </form>
-        )
+          {/* Edit Button */}
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setProfileSubView('edit');
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
+            className="p-2.5 bg-gray-50 hover:bg-purple-50 hover:text-[#7000ff] text-gray-600 rounded-2xl border border-gray-200 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0"
+            title="Profilni tahrirlash"
+          >
+            <PencilSquareIcon className="w-4 h-4" />
+          </button>
+        </div>
       ) : (
         /* Guest Header Card */
         <div 

@@ -318,13 +318,15 @@ export const StoreProvider = ({ children }) => {
             setProfileUser({
               name: data.user.name || '',
               phone: data.user.phone || '',
-              address: data.user.address || ''
+              address: data.user.address || '',
+              avatar_url: data.user.avatar_url || ''
             });
             localStorage.setItem('qlay_customer_user', JSON.stringify(data.user));
             localStorage.setItem('qlay_web_user', JSON.stringify({
               name: data.user.name || '',
               phone: data.user.phone || '',
-              address: data.user.address || ''
+              address: data.user.address || '',
+              avatar_url: data.user.avatar_url || ''
             }));
             fetchUserOrders();
           }
@@ -337,7 +339,8 @@ export const StoreProvider = ({ children }) => {
         setProfileUser({
           name: parsed.name || '',
           phone: parsed.phone || '',
-          address: parsed.address || ''
+          address: parsed.address || '',
+          avatar_url: parsed.avatar_url || ''
         });
       } catch (e) {}
     } else if (savedWeb) {
@@ -746,7 +749,8 @@ export const StoreProvider = ({ children }) => {
       const profileData = {
         name: user.name || '',
         phone: user.phone || '',
-        address: user.address || ''
+        address: user.address || '',
+        avatar_url: user.avatar_url || ''
       };
       if (remember) {
         localStorage.setItem('qlay_customer_user', JSON.stringify(user));

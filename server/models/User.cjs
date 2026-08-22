@@ -111,13 +111,17 @@ const User = {
   /**
    * Update customer profile & password
    */
-  updateProfile: async (identifier, { name, phone, password, address }) => {
+  updateProfile: async (identifier, { name, phone, password, address, avatarUrl, avatar_url }) => {
     const user = await User.getById(identifier);
     if (!user) throw new Error('Foydalanuvchi topilmadi');
 
     const cleanName = name !== undefined ? name.trim() : user.name;
     const cleanPhone = phone !== undefined ? normalizePhone(phone) : user.phone;
     const cleanAddress = address !== undefined ? address.trim() : user.address;
+    const cleanAvatar = (avatarUrl !== undefined || avatar_url !== undefined) 
+      ? (avatarUrl || avatar_url) 
+      : user.avatar_url;
+
     let pwdHash = user.password_hash;
     if (password && password.trim()) {
       pwdHash = hashPassword(password);
@@ -129,9 +133,10 @@ const User = {
         phone = ?, 
         password_hash = ?, 
         address = ?, 
+        avatar_url = ?, 
         last_active_at = CURRENT_TIMESTAMP 
        WHERE telegram_id = ?`,
-      [cleanName, cleanPhone, pwdHash, cleanAddress, user.telegram_id]
+      [cleanName, cleanPhone, pwdHash, cleanAddress, cleanAvatar, user.telegram_id]
     );
 
     const updated = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [user.telegram_id]);

@@ -1,10 +1,10 @@
 {
-  "version": "v2.0.94",
+  "version": "v2.0.95",
   "major": 2,
   "minor": 0,
-  "patch": 94,
-  "patchFormatted": "94",
-  "commitCount": 94,
-  "commitHash": "f858153",
+  "patch": 95,
+  "patchFormatted": "95",
+  "commitCount": 95,
+  "commitHash": "3f14215",
   "appName": "Dastyor Store"
 }

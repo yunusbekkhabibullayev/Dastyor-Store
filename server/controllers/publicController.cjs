@@ -635,6 +635,32 @@ const publicController = {
   },
 
   /**
+   * POST /api/user/upload-avatar — Upload customer profile avatar
+   */
+  uploadAvatar: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Rasm fayli yuklanmadi' });
+      }
+      const path = require('path');
+      const fs = require('fs');
+      const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const ext = path.extname(req.file.originalname) || '.jpg';
+      const filename = 'avatar-' + uniqueSuffix + ext;
+
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+
+      const fileUrl = '/uploads/' + filename;
+      res.json({ success: true, fileUrl });
+    } catch (err) {
+      console.error('[API] Avatar upload error:', err);
+      res.status(500).json({ success: false, message: err.message || 'Rasm yuklashda xatolik' });
+    }
+  },
+
+  /**
    * GET /api/user/addresses — Get customer saved addresses
    */
   getUserAddresses: async (req, res) => {

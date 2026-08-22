@@ -11,6 +11,7 @@ const router = express.Router();
 const publicController = require('../controllers/publicController.cjs');
 const { publicLimiter, checkoutLimiter } = require('../middleware/rateLimiter.cjs');
 const { validate, schemas } = require('../middleware/validate.cjs');
+const upload = require('../middleware/upload.cjs');
 
 // Health check & version
 router.get('/health', publicController.healthCheck);
@@ -36,6 +37,7 @@ router.post('/user/auth/login', publicLimiter, publicController.loginUser);
 router.post('/user/auth/register', publicLimiter, publicController.registerUser);
 router.get('/user/me', publicLimiter, publicController.getMe);
 router.put('/user/me', publicLimiter, publicController.updateMe);
+router.post('/user/upload-avatar', publicLimiter, upload.single('image'), publicController.uploadAvatar);
 router.get('/user/addresses', publicLimiter, publicController.getUserAddresses);
 router.post('/user/addresses', publicLimiter, publicController.saveUserAddresses);
 router.get('/user/profile', publicLimiter, publicController.getUserProfile);
