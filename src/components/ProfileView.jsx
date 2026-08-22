@@ -28,7 +28,11 @@ import {
   TrashIcon,
   EnvelopeIcon,
   CameraIcon,
-  PhotoIcon
+  PhotoIcon,
+  HomeIcon,
+  BriefcaseIcon,
+  BuildingOfficeIcon,
+  MapIcon
 } from '@heroicons/react/24/outline';
 import { ProductImage } from './ProductImage';
 
@@ -89,6 +93,184 @@ const cleanSocialHandle = (urlOrHandle) => {
   return str;
 };
 
+// Leaflet Full-Screen Map Picker Modal
+const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
+  const { lang, triggerHaptic } = useStore();
+  const [address, setAddress] = useState('');
+  const [loading, setLoading] = useState(false);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setTimeout(() => {
+      if (!window.L) {
+        console.error('Leaflet library not loaded.');
+        return;
+      }
+
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      const defaultLoc = [41.311081, 69.240562]; // Toshkent
+      
+      const map = window.L.map('profile-map-container', {
+        zoomControl: false
+      }).setView(defaultLoc, 15);
+      mapRef.current = map;
+
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      window.L.control.zoom({ position: 'topright' }).addTo(map);
+
+      const updateAddressFromCenter = () => {
+        const center = map.getCenter();
+        setLoading(true);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&accept-language=uz`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.address) {
+              const addr = data.address;
+              const houseNumber = addr.house_number || '';
+              const road = addr.road || '';
+              const neighbourhood = addr.neighbourhood || addr.quarter || '';
+              const suburb = addr.suburb || addr.district || '';
+              const city = addr.city || addr.town || addr.county || 'Toshkent';
+              
+              const formatted = [
+                houseNumber && road ? `${road} ${houseNumber}` : road,
+                neighbourhood,
+                suburb || (addr.county ? addr.county : ''),
+                city
+              ].filter(Boolean).join(', ');
+              
+              setAddress(formatted || data.display_name.split(',').slice(0, 4).join(', '));
+            } else {
+              setAddress(`Manzil koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
+            }
+            setLoading(false);
+          })
+          .catch(() => {
+            setAddress(`Manzil koord: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`);
+            setLoading(false);
+          });
+      };
+
+      updateAddressFromCenter();
+
+      map.on('moveend', () => {
+        updateAddressFromCenter();
+      });
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isOpen]);
+
+  const handleLocateUser = () => {
+    triggerHaptic('light');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (mapRef.current) {
+            mapRef.current.setView([latitude, longitude], 18);
+          }
+        },
+        () => {
+          alert(lang === 'uz' ? 'GPS aniqlashda xatolik yuz berdi.' : 'Ошибка геолокации.');
+        }
+      );
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-fadeIn">
+      {/* Top Header */}
+      <div className="bg-white/95 backdrop-blur-md px-4 py-3.5 border-b border-gray-100 flex items-center justify-between z-10">
+        <div className="flex items-center gap-2.5">
+          <button 
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-700 cursor-pointer"
+          >
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
+          </button>
+          <h3 className="font-black text-sm text-gray-900">
+            {lang === 'uz' ? 'Xaritadan manzilni belgilash' : 'Указать адрес на карте'}
+          </h3>
+        </div>
+
+        <button 
+          onClick={handleLocateUser}
+          className="p-2 rounded-2xl bg-purple-50 text-[#7000ff] hover:bg-purple-100 border border-purple-100 flex items-center gap-1.5 text-xs font-bold shadow-2xs cursor-pointer active:scale-95 transition-all"
+        >
+          <MapPinIcon className="w-4 h-4" />
+          <span>{lang === 'uz' ? 'Joylashuvim' : 'Мое место'}</span>
+        </button>
+      </div>
+
+      {/* Map Element Container */}
+      <div className="relative flex-1 w-full bg-gray-100">
+        <div id="profile-map-container" className="w-full h-full" />
+        
+        {/* Center Target Pin */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-20 flex flex-col items-center">
+          <div className="p-2 bg-[#7000ff] text-white rounded-full shadow-xl border-2 border-white animate-bounce">
+            <MapPinIcon className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div className="w-2 h-2 bg-black/40 rounded-full blur-[1px] -mt-0.5"></div>
+        </div>
+      </div>
+
+      {/* Bottom Selected Address Bar */}
+      <div className="bg-white border-t border-gray-150 p-4 pb-8 shadow-2xl space-y-3 z-10">
+        <div className="flex items-start gap-3 bg-gray-50 p-3.5 rounded-2xl border border-gray-200/80">
+          <MapPinIcon className="w-5 h-5 text-[#7000ff] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
+              {lang === 'uz' ? 'Tanlangan manzil' : 'Выбранный адрес'}
+            </p>
+            <p className="text-xs font-black text-gray-900 leading-snug mt-0.5">
+              {loading ? (
+                <span className="text-gray-400 animate-pulse">{lang === 'uz' ? 'Manzil aniqlanmoqda...' : 'Определение адреса...'}</span>
+              ) : (
+                address || (lang === 'uz' ? 'Xaritani suring' : 'Переместите карту')
+              )}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            triggerHaptic('notification');
+            onSelect(address);
+            onClose();
+          }}
+          disabled={loading || !address}
+          className="w-full py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+        >
+          {lang === 'uz' ? 'Ushbu manzilni tanlash' : 'Выбрать этот адрес'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const ProfileView = () => {
   const {
     lang, toggleLanguage, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
@@ -117,8 +299,10 @@ export const ProfileView = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
-  const [addrTitle, setAddrTitle] = useState('🏠 Uy');
+  const [addrCategory, setAddrCategory] = useState('home'); // home, work, office, other
+  const [addrTitle, setAddrTitle] = useState('Uy');
   const [addrText, setAddrText] = useState('');
   const [addrIsDefault, setAddrIsDefault] = useState(false);
   const [addrSaving, setAddrSaving] = useState(false);
@@ -222,6 +406,14 @@ export const ProfileView = () => {
     }
   }, [isUserAuthenticated, customerToken]);
 
+  // Address Category Definitions with Pure SVG Icons
+  const addressPresets = [
+    { id: 'home', title: lang === 'uz' ? 'Uy' : 'Дом', icon: HomeIcon },
+    { id: 'work', title: lang === 'uz' ? 'Ishxona' : 'Работа', icon: BriefcaseIcon },
+    { id: 'office', title: lang === 'uz' ? 'Ofis' : 'Офис', icon: BuildingOfficeIcon },
+    { id: 'other', title: lang === 'uz' ? 'Boshqa' : 'Другое', icon: MapPinIcon }
+  ];
+
   // Handle Save Address (Create / Update)
   const handleSaveAddress = async (e) => {
     e.preventDefault();
@@ -243,6 +435,7 @@ export const ProfileView = () => {
           if (a.id === editingAddressId) {
             return {
               ...a,
+              category: addrCategory,
               title: addrTitle,
               address: addrText.trim(),
               is_default: addrIsDefault
@@ -253,6 +446,7 @@ export const ProfileView = () => {
       } else {
         const newAddr = {
           id: 'addr_' + Date.now(),
+          category: addrCategory,
           title: addrTitle,
           address: addrText.trim(),
           is_default: addrIsDefault || updatedList.length === 0,
@@ -451,7 +645,6 @@ export const ProfileView = () => {
 
         {/* Edit Form */}
         <form onSubmit={handleSaveProfileEdit} className="space-y-4">
-          
           {/* Avatar Upload Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-2xs text-center flex flex-col items-center justify-center">
             <div className="relative group cursor-pointer shrink-0" onClick={() => fileInputRef.current?.click()}>
@@ -468,7 +661,6 @@ export const ProfileView = () => {
                   </div>
                 )}
 
-                {/* Upload Spinner Overlay */}
                 {avatarUploading && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] rounded-3xl flex items-center justify-center">
                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -476,13 +668,11 @@ export const ProfileView = () => {
                 )}
               </div>
 
-              {/* Camera Badge Icon */}
               <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-2xl bg-[#7000ff] text-white flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 transition-transform">
                 <CameraIcon className="w-4 h-4 stroke-[2.5]" />
               </div>
             </div>
 
-            {/* Hidden File Input */}
             <input
               type="file"
               ref={fileInputRef}
@@ -524,7 +714,6 @@ export const ProfileView = () => {
               </div>
             )}
 
-            {/* Name */}
             <div>
               <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                 {lang === 'uz' ? 'Ism va Familiya *' : 'Имя и Фамилия *'}
@@ -544,7 +733,6 @@ export const ProfileView = () => {
               </div>
             </div>
 
-            {/* Phone */}
             <div>
               <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                 {lang === 'uz' ? 'Telefon Raqami *' : 'Номер телефона *'}
@@ -570,7 +758,6 @@ export const ProfileView = () => {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                 {lang === 'uz' ? 'Yangi Parol (Ixtiyoriy)' : 'Новый Пароль (Необязательно)'}
@@ -597,7 +784,6 @@ export const ProfileView = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="pt-2 flex items-center gap-2.5">
             <button
               type="button"
@@ -633,23 +819,24 @@ export const ProfileView = () => {
   if (profileSubView === 'addresses') {
     return (
       <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-28">
-        <div className="flex items-center justify-between">
+        {/* Top Header Card */}
+        <div className="bg-white rounded-3xl p-4 border border-gray-150 shadow-2xs flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 triggerHaptic('light');
                 setProfileSubView(null);
               }}
-              className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
+              className="w-9 h-9 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 active:scale-95 transition-all cursor-pointer"
             >
-              <ArrowLeftIcon className="w-5 h-5" />
+              <ArrowLeftIcon className="w-4 h-4 stroke-[2.2]" />
             </button>
             <div>
-              <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+              <h2 className="text-sm font-black text-gray-900 leading-tight">
                 {lang === 'uz' ? 'Yetkazib berish manzillarim' : 'Мои адреса доставки'}
               </h2>
-              <p className="text-xs text-gray-500 font-medium">
-                {savedAddresses.length} {lang === 'uz' ? 'ta manzil' : 'адресов'}
+              <p className="text-[11px] text-gray-500 font-medium">
+                {savedAddresses.length} {lang === 'uz' ? 'ta saqlangan manzil' : 'сохраненных адресов'}
               </p>
             </div>
           </div>
@@ -658,104 +845,123 @@ export const ProfileView = () => {
             onClick={() => {
               triggerHaptic('light');
               setEditingAddressId(null);
-              setAddrTitle('🏠 Uy');
+              setAddrCategory('home');
+              setAddrTitle(lang === 'uz' ? 'Uy' : 'Дом');
               setAddrText('');
               setAddrIsDefault(savedAddresses.length === 0);
               setAddrError('');
               setIsAddressModalOpen(true);
             }}
-            className="px-3.5 py-2 bg-[#7000ff] hover:bg-[#5e00db] text-white text-xs font-extrabold rounded-2xl flex items-center gap-1.5 shadow-md shadow-purple-500/20 active:scale-95 transition-all cursor-pointer"
+            className="px-3.5 py-2 bg-[#7000ff] hover:bg-[#5e00db] text-white text-xs font-black rounded-2xl flex items-center gap-1.5 shadow-md shadow-purple-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+            <PlusIcon className="w-3.5 h-3.5 stroke-[2.8]" />
             <span>{lang === 'uz' ? 'Qo\'shish' : 'Добавить'}</span>
           </button>
         </div>
 
+        {/* Addresses List */}
         {savedAddresses.length === 0 ? (
-          <div className="bg-white rounded-3xl p-10 border border-gray-150 text-center space-y-3 shadow-2xs">
-            <div className="w-14 h-14 bg-purple-50 text-[#7000ff] rounded-2xl flex items-center justify-center mx-auto">
-              <MapPinIcon className="w-7 h-7" />
+          <div className="bg-white rounded-3xl p-8 border border-gray-150 text-center space-y-3.5 shadow-2xs">
+            <div className="w-14 h-14 bg-purple-50 text-[#7000ff] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+              <MapPinIcon className="w-7 h-7 stroke-[1.8]" />
             </div>
-            <h3 className="text-sm font-bold text-gray-900">
-              {lang === 'uz' ? 'Hozircha saqlangan manzillar yo\'q' : 'Нет сохраненных адресов'}
-            </h3>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto">
-              {lang === 'uz' 
-                ? 'Buyurtmalarni tezkor qabul qilish uchun manzilingizni qo\'shing.' 
-                : 'Добавьте свой адрес для быстрого оформления заказов.'}
-            </p>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-gray-900">
+                {lang === 'uz' ? 'Hozircha saqlangan manzillar yo\'q' : 'Нет сохраненных адресов'}
+              </h3>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed font-medium">
+                {lang === 'uz' 
+                  ? 'Buyurtmalarni tezkor qabul qilish uchun manzilingizni qo\'shing.' 
+                  : 'Добавьте свой адрес для быстрого оформления заказов.'}
+              </p>
+            </div>
             <button
               onClick={() => {
                 triggerHaptic('light');
+                setEditingAddressId(null);
+                setAddrCategory('home');
+                setAddrTitle(lang === 'uz' ? 'Uy' : 'Дом');
+                setAddrText('');
+                setAddrIsDefault(true);
+                setAddrError('');
                 setIsAddressModalOpen(true);
               }}
-              className="mt-2 px-5 py-2.5 bg-[#7000ff] text-white text-xs font-bold rounded-xl shadow-xs"
+              className="mt-1 px-6 py-3 bg-[#7000ff] hover:bg-[#5e00db] text-white text-xs font-black rounded-2xl shadow-md shadow-purple-500/20 active:scale-95 transition-all cursor-pointer"
             >
               {lang === 'uz' ? 'Manzil qo\'shish' : 'Добавить адрес'}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            {savedAddresses.map((item) => (
-              <div 
-                key={item.id} 
-                className={`bg-white rounded-3xl p-4 border transition-all shadow-2xs space-y-3 ${
-                  item.is_default ? 'border-[#7000ff]/60 bg-purple-50/20 ring-1 ring-[#7000ff]/30' : 'border-gray-150'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
-                      {item.title || '📍 Manzil'}
-                    </span>
-                    {item.is_default && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-[#7000ff]">
-                        {lang === 'uz' ? 'Asosiy' : 'Основной'}
+            {savedAddresses.map((item) => {
+              const matchedPreset = addressPresets.find(p => p.id === item.category) || addressPresets[3];
+              const IconComponent = matchedPreset.icon;
+
+              return (
+                <div 
+                  key={item.id} 
+                  className={`bg-white rounded-3xl p-4 border transition-all shadow-2xs space-y-3 ${
+                    item.is_default ? 'border-[#7000ff]/60 bg-purple-50/15 ring-1 ring-[#7000ff]/25' : 'border-gray-150'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-[#7000ff] flex items-center justify-center shrink-0">
+                        <IconComponent className="w-4 h-4 stroke-[2.2]" />
+                      </div>
+                      <span className="font-extrabold text-sm text-gray-900">
+                        {item.title || matchedPreset.title}
                       </span>
-                    )}
+                      {item.is_default && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-[#7000ff]">
+                          {lang === 'uz' ? 'Asosiy' : 'Основной'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setEditingAddressId(item.id);
+                          setAddrCategory(item.category || 'home');
+                          setAddrTitle(item.title || 'Uy');
+                          setAddrText(item.address || '');
+                          setAddrIsDefault(item.is_default || false);
+                          setAddrError('');
+                          setIsAddressModalOpen(true);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+                        title="Tahrirlash"
+                      >
+                        <PencilSquareIcon className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteAddress(item.id)}
+                        className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="O'chirish"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => {
-                        triggerHaptic('light');
-                        setEditingAddressId(item.id);
-                        setAddrTitle(item.title || '🏠 Uy');
-                        setAddrText(item.address || '');
-                        setAddrIsDefault(item.is_default || false);
-                        setAddrError('');
-                        setIsAddressModalOpen(true);
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
-                      title="Tahrirlash"
-                    >
-                      <PencilSquareIcon className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteAddress(item.id)}
-                      className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="O'chirish"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                  <div className="text-xs text-gray-700 font-medium leading-relaxed bg-gray-50/80 rounded-2xl p-3 border border-gray-100">
+                    {item.address}
                   </div>
-                </div>
 
-                <div className="text-xs text-gray-700 font-medium leading-relaxed bg-gray-50/70 rounded-2xl p-3 border border-gray-100">
-                  {item.address}
+                  {!item.is_default && (
+                    <button
+                      onClick={() => handleSetDefaultAddress(item.id)}
+                      className="text-xs text-[#7000ff] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <span>{lang === 'uz' ? 'Asosiy manzil qilib belgilash' : 'Сделать основным'}</span>
+                    </button>
+                  )}
                 </div>
-
-                {!item.is_default && (
-                  <button
-                    onClick={() => handleSetDefaultAddress(item.id)}
-                    className="text-xs text-[#7000ff] font-bold hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    <span>{lang === 'uz' ? 'Asosiy manzil qilib belgilash' : 'Сделать основным'}</span>
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -791,26 +997,43 @@ export const ProfileView = () => {
               )}
 
               <form onSubmit={handleSaveAddress} className="space-y-4">
+                {/* SVG Icon Category Selector */}
+                <div>
+                  <label className="text-[11px] font-extrabold text-gray-700 block mb-2">
+                    {lang === 'uz' ? 'Manzil turi' : 'Тип адреса'}
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {addressPresets.map(preset => {
+                      const Icon = preset.icon;
+                      const isSelected = addrCategory === preset.id;
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setAddrCategory(preset.id);
+                            setAddrTitle(preset.title);
+                          }}
+                          className={`py-2.5 px-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1.5 transition-all cursor-pointer border ${
+                            isSelected 
+                              ? 'bg-[#7000ff] text-white border-[#7000ff] shadow-md shadow-purple-500/25' 
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 stroke-[2.2] ${isSelected ? 'text-white' : 'text-gray-600'}`} />
+                          <span className="truncate w-full text-center text-[11px]">{preset.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Name / Label */}
                 <div>
                   <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
                     {lang === 'uz' ? 'Manzil nomi' : 'Название адреса'}
                   </label>
-                  <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-1">
-                    {['🏠 Uy', '💼 Ishxona', '🏢 Ofis', '📍 Boshqa'].map(chip => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onClick={() => setAddrTitle(chip)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
-                          addrTitle === chip 
-                            ? 'bg-[#7000ff] text-white shadow-xs' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
                   <input
                     type="text"
                     required
@@ -821,14 +1044,25 @@ export const ProfileView = () => {
                   />
                 </div>
 
+                {/* Interactive Map Picker Button */}
                 <div>
-                  <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
-                    {lang === 'uz' ? 'To\'liq manzil va mo\'ljal *' : 'Полный адрес и ориентир *'}
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-700">
+                      {lang === 'uz' ? 'To\'liq manzil va mo\'ljal *' : 'Полный адрес и ориентир *'}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsMapPickerOpen(true)}
+                      className="text-[11px] font-black text-[#7000ff] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <MapIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>{lang === 'uz' ? 'Xaritadan belgilash' : 'Указать на карте'}</span>
+                    </button>
+                  </div>
+
                   <textarea
                     required
                     rows={3}
-                    autoFocus
                     value={addrText}
                     onChange={(e) => setAddrText(e.target.value)}
                     placeholder="Masalan: Toshkent sh., Chilonzor 5-mavze, 12-uy, 45-xonadon (Mo'ljal: Maktab yonida)"
@@ -836,6 +1070,7 @@ export const ProfileView = () => {
                   />
                 </div>
 
+                {/* Set as Default Checkbox */}
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -860,7 +1095,7 @@ export const ProfileView = () => {
                   <button
                     type="submit"
                     disabled={addrSaving}
-                    className="flex-1 py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-extrabold rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                    className="flex-1 py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {addrSaving ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -873,6 +1108,15 @@ export const ProfileView = () => {
             </div>
           </div>
         )}
+
+        {/* Full-Screen Map Picker Modal */}
+        <MapPickerModal
+          isOpen={isMapPickerOpen}
+          onClose={() => setIsMapPickerOpen(false)}
+          onSelect={(selectedAddress) => {
+            setAddrText(selectedAddress);
+          }}
+        />
       </div>
     );
   }
