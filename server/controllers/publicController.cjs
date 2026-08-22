@@ -27,12 +27,15 @@ const publicController = {
         const {
           id, name, description, logo, phone, address, working_hours,
           telegram_channel, instagram, bot_username, delivery_price,
-          bts_delivery_price, is_active
+          bts_delivery_price, is_delivery_active, is_bts_active, is_active
         } = full;
         settings = {
           id, name, description, logo, phone, address, working_hours,
           telegram_channel, instagram, bot_username, delivery_price,
-          bts_delivery_price, is_active
+          bts_delivery_price,
+          is_delivery_active: is_delivery_active !== undefined ? is_delivery_active : 1,
+          is_bts_active: is_bts_active !== undefined ? is_bts_active : 1,
+          is_active
         };
         cacheService.set('siteSettings', settings);
       }

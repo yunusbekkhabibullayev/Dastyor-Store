@@ -171,6 +171,8 @@ const dbInit = async () => {
       bot_username TEXT DEFAULT 'ravshan_rivoj_bot',
       delivery_price INTEGER DEFAULT 0,
       bts_delivery_price INTEGER DEFAULT 50000,
+      is_delivery_active INTEGER DEFAULT 1,
+      is_bts_active INTEGER DEFAULT 1,
       admin_ids TEXT DEFAULT '',
       is_active INTEGER DEFAULT 1
     )
@@ -253,6 +255,14 @@ const dbInit = async () => {
   }
   if (!(await checkColumn('users', 'saved_addresses'))) {
     try { await dbRun("ALTER TABLE users ADD COLUMN saved_addresses TEXT DEFAULT '[]'"); } catch (e) {}
+  }
+
+  // Site settings delivery active flags
+  if (!(await checkColumn('site_settings', 'is_delivery_active'))) {
+    try { await dbRun("ALTER TABLE site_settings ADD COLUMN is_delivery_active INTEGER DEFAULT 1"); } catch (e) {}
+  }
+  if (!(await checkColumn('site_settings', 'is_bts_active'))) {
+    try { await dbRun("ALTER TABLE site_settings ADD COLUMN is_bts_active INTEGER DEFAULT 1"); } catch (e) {}
   }
 
   try {

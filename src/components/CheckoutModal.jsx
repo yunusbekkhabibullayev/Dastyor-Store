@@ -267,6 +267,16 @@ const formatUzPhone = (inputValue) => {
 export const CheckoutModal = ({ onClose }) => {
   const { lang, t, cart, cartTotal, placeOrder, telegramUser, triggerHaptic, setActiveTab, profileUser, setIsOrderSuccess, siteSettings, botUsername, formatQuantity } = useStore();
 
+  const isCityActive = siteSettings?.is_delivery_active !== false && siteSettings?.is_delivery_active !== 0;
+  const isBtsActive = siteSettings?.is_bts_active !== false && siteSettings?.is_bts_active !== 0;
+  const hasAnyDelivery = isCityActive || isBtsActive;
+
+  const [deliveryType, setDeliveryType] = useState(() => {
+    if (isCityActive) return 'city';
+    if (isBtsActive) return 'bts';
+    return 'city';
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState(profileUser?.name || telegramUser?.first_name || '');
   const [address, setAddress] = useState(profileUser?.address || '');
@@ -279,8 +289,11 @@ export const CheckoutModal = ({ onClose }) => {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapTarget, setMapTarget] = useState('address');
 
-  const deliveryPrice = siteSettings?.delivery_price !== undefined ? siteSettings.delivery_price : 30000;
-  const deliveryCost = isDeliveryEnabled ? deliveryPrice : 0;
+  const cityPrice = siteSettings?.delivery_price !== undefined ? siteSettings.delivery_price : 0;
+  const btsPrice = siteSettings?.bts_delivery_price !== undefined ? siteSettings.bts_delivery_price : 50000;
+
+  const currentDeliveryPrice = deliveryType === 'bts' ? btsPrice : cityPrice;
+  const deliveryCost = (hasAnyDelivery && isDeliveryEnabled) ? currentDeliveryPrice : 0;
   const finalTotal = cartTotal + deliveryCost;
 
   const handleSubmit = async (e) => {
@@ -308,23 +321,25 @@ export const CheckoutModal = ({ onClose }) => {
       triggerHaptic('warning');
       return;
     }
-    if (isDeliveryEnabled && !address.trim()) {
+    if (hasAnyDelivery && isDeliveryEnabled && !address.trim()) {
       setError(lang === 'uz' ? 'Iltimos, yetkazib berish manzilini kiriting' : lang === 'ru' ? 'Пожалуйста, введите адрес доставки' : 'Please enter a delivery address');
       triggerHaptic('warning');
       return;
     }
 
     setSubmitting(true);
+    const deliveryTitle = (hasAnyDelivery && isDeliveryEnabled)
+      ? (deliveryType === 'bts' ? 'BTS yetkazib berish' : 'Shahar ichida yetkazib berish')
+      : 'Olib ketish';
+
     const result = await placeOrder({
       name,
-      address: isDeliveryEnabled 
-        ? address
+      address: (hasAnyDelivery && isDeliveryEnabled)
+        ? `${address} [${deliveryTitle}]`
         : (address || (lang === 'uz' ? 'Olib ketish' : lang === 'ru' ? 'Самовывоз' : 'Self-pickup')),
       addressCoords,
       phone,
-      paymentMethod: isDeliveryEnabled 
-        ? (lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery')
-        : (lang === 'uz' ? 'Olib ketish' : lang === 'ru' ? 'Самовывоз' : 'Self-pickup'),
+      paymentMethod: deliveryTitle,
       total: finalTotal
     });
 
@@ -464,40 +479,103 @@ export const CheckoutModal = ({ onClose }) => {
           {/* Yetkazib berish */}
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[14px] font-bold text-gray-900">
-                {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'} {isDeliveryEnabled && <span className="text-gray-400 font-normal text-xs ml-1">+{formatPrice(deliveryPrice)}</span>}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  setIsDeliveryEnabled(!isDeliveryEnabled);
-                }}
-                className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
-                  isDeliveryEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
-                    isDeliveryEnabled ? 'translate-x-6' : 'translate-x-0'
+              <div>
+                <span className="text-[14px] font-bold text-gray-900">
+                  {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'} 
+                  {hasAnyDelivery && isDeliveryEnabled && (
+                    <span className="text-gray-400 font-normal text-xs ml-1">
+                      +{formatPrice(currentDeliveryPrice)}
+                    </span>
+                  )}
+                </span>
+                {!hasAnyDelivery && (
+                  <p className="text-[11px] text-gray-400 font-medium">
+                    {lang === 'uz' ? 'Hozircha faqat do\'kondan olib ketish mavjud' : 'Доступен только самовывоз'}
+                  </p>
+                )}
+              </div>
+
+              {hasAnyDelivery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setIsDeliveryEnabled(!isDeliveryEnabled);
+                  }}
+                  className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                    isDeliveryEnabled ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
-                />
-              </button>
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                      isDeliveryEnabled ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              ) : (
+                <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                  {lang === 'uz' ? 'Olib ketish' : 'Самовывоз'}
+                </span>
+              )}
             </div>
 
-            {/* Delivery info */}
-            {isDeliveryEnabled && (
-              <div className="mt-3 animate-scaleUp">
-                <div className="p-3 border border-blue-500 bg-[#f0f6ff] rounded-2xl flex items-center justify-between">
-                  <div>
-                    <h5 className="text-xs font-bold text-blue-600">
-                      {lang === 'uz' ? 'Yetkazib berish' : lang === 'ru' ? 'Доставка' : 'Delivery'}
-                    </h5>
-                    <p className="text-[10px] text-gray-400 font-medium">
-                      {lang === 'uz' ? 'Mirzacho\'l tumani ichida' : lang === 'ru' ? 'В пределах Мирзачуля' : 'Within Mirzachul area'}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-blue-600">{formatPrice(deliveryPrice)}</span>
+            {/* Delivery Type Options (if delivery is enabled) */}
+            {hasAnyDelivery && isDeliveryEnabled && (
+              <div className="mt-3.5 space-y-2 animate-scaleUp">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {isCityActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setDeliveryType('city');
+                      }}
+                      className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        deliveryType === 'city'
+                          ? 'border-blue-500 bg-blue-50/70 shadow-xs'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div>
+                        <h5 className={`text-xs font-bold ${deliveryType === 'city' ? 'text-blue-600' : 'text-gray-800'}`}>
+                          🛵 {lang === 'uz' ? 'Shahar ichida' : 'По городу'}
+                        </h5>
+                        <p className="text-[10px] text-gray-400 font-medium">
+                          {lang === 'uz' ? 'Kuryer orqali' : 'Курьером'}
+                        </p>
+                      </div>
+                      <span className="text-xs font-extrabold text-blue-600">
+                        {cityPrice === 0 ? (lang === 'uz' ? 'Bepul' : 'Бесплатно') : formatPrice(cityPrice)}
+                      </span>
+                    </button>
+                  )}
+
+                  {isBtsActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setDeliveryType('bts');
+                      }}
+                      className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        deliveryType === 'bts'
+                          ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div>
+                        <h5 className={`text-xs font-bold ${deliveryType === 'bts' ? 'text-amber-700' : 'text-gray-800'}`}>
+                          🚚 {lang === 'uz' ? 'BTS / Viloyatlarga' : 'BTS / Регионы'}
+                        </h5>
+                        <p className="text-[10px] text-gray-400 font-medium">
+                          {lang === 'uz' ? 'Pochta orqali' : 'Почтой BTS'}
+                        </p>
+                      </div>
+                      <span className="text-xs font-extrabold text-amber-700">
+                        {formatPrice(btsPrice)}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

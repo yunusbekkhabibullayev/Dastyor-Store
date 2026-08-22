@@ -58,7 +58,9 @@ export const AdminSiteSettings = () => {
     bot_token: '',
     bot_username: 'ravshan_rivoj_bot',
     delivery_price: 0,
-    bts_delivery_price: 50000
+    bts_delivery_price: 50000,
+    is_delivery_active: true,
+    is_bts_active: true
   });
 
   const fetchWebhookStatus = async () => {
@@ -110,7 +112,9 @@ export const AdminSiteSettings = () => {
             bot_token: s.bot_token || '',
             bot_username: s.bot_username || '',
             delivery_price: s.delivery_price || 0,
-            bts_delivery_price: s.bts_delivery_price || 50000
+            bts_delivery_price: s.bts_delivery_price || 50000,
+            is_delivery_active: s.is_delivery_active !== undefined ? Boolean(s.is_delivery_active) : true,
+            is_bts_active: s.is_bts_active !== undefined ? Boolean(s.is_bts_active) : true
           });
           setLogoPreview(s.logo || '');
           if (s.phone) {
@@ -196,6 +200,8 @@ export const AdminSiteSettings = () => {
       bot_username: form.bot_username || '',
       delivery_price: parseInt(form.delivery_price, 10) || 0,
       bts_delivery_price: parseInt(form.bts_delivery_price, 10) || 0,
+      is_delivery_active: form.is_delivery_active ? 1 : 0,
+      is_bts_active: form.is_bts_active ? 1 : 0,
       admin_ids: adminIdsList.join(','),
       is_active: 1
     };
@@ -567,29 +573,65 @@ export const AdminSiteSettings = () => {
           <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-2xs space-y-6 animate-fadeIn">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
               <TruckIcon className="w-5 h-5 text-blue-600" />
-              <h3 className="font-extrabold text-gray-900 text-sm">
-                {lang === 'uz' ? 'Yetkazib Berish Ta\'riflari va Narxlari' : 'Тарифы доставки'}
-              </h3>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-sm">
+                  {lang === 'uz' ? 'Yetkazib Berish Xizmatlari va Narxlari' : 'Службы доставки и тарифы'}
+                </h3>
+                <p className="text-[11px] text-gray-400 font-medium">
+                  {lang === 'uz' ? 'Xizmatlarni yoqish, o\'chirish va narxlarini belgilash' : 'Включение, отключение и настройка тарифов'}
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* City Delivery */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border border-blue-100/80 space-y-3">
+              <div className={`p-5 rounded-3xl border transition-all space-y-3.5 ${
+                form.is_delivery_active 
+                  ? 'bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-blue-200 shadow-2xs' 
+                  : 'bg-gray-50/80 border-gray-200 opacity-65'
+              }`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-gray-900 flex items-center gap-1.5">
-                    <span>🛵 Shahar Ichida Yetkazib Berish</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                    Standart
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gray-900">
+                      🛵 Shahar Ichida Yetkazib Berish
+                    </span>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${form.is_delivery_active ? 'text-blue-600' : 'text-gray-400'}`}>
+                      {form.is_delivery_active ? 'Faol' : 'Nofaol'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setForm(prev => ({ ...prev, is_delivery_active: !prev.is_delivery_active }));
+                      }}
+                      className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                        form.is_delivery_active ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${
+                          form.is_delivery_active ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-gray-500 font-medium">
-                  Mijoz savatchani rasmiylashtirayotganda standart yetkazish uchun hisoblanadi (0 kiritilsa bepul bo'ladi).
+
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  {lang === 'uz' 
+                    ? 'Mijoz buyurtma berayotganda standart yetkazish xizmatini tanlashi mumkin (0 kiritilsa bepul bo\'ladi).' 
+                    : 'Клиент может выбрать стандартную доставку при оформлении (0 — бесплатно).'}
                 </p>
+
                 <div className="relative">
                   <input
                     type="number"
                     placeholder="0"
+                    disabled={!form.is_delivery_active}
                     value={form.delivery_price === 0 || form.delivery_price === '0' || form.delivery_price === '' ? '' : form.delivery_price}
                     onChange={(e) => {
                       const raw = e.target.value;
@@ -598,29 +640,64 @@ export const AdminSiteSettings = () => {
                         delivery_price: raw === '' ? 0 : (parseInt(raw, 10) || 0)
                       }));
                     }}
-                    className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl text-sm font-mono font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-mono font-black transition-all ${
+                      form.is_delivery_active 
+                        ? 'bg-white border-blue-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20' 
+                        : 'bg-gray-100/70 border-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">so'm</span>
                 </div>
               </div>
 
               {/* Regional BTS Delivery */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100/80 space-y-3">
+              <div className={`p-5 rounded-3xl border transition-all space-y-3.5 ${
+                form.is_bts_active 
+                  ? 'bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-amber-200 shadow-2xs' 
+                  : 'bg-gray-50/80 border-gray-200 opacity-65'
+              }`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-gray-900 flex items-center gap-1.5">
-                    <span>🚚 BTS / Viloyatlarga Yetkazib Berish</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                    Viloyatlar
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gray-900">
+                      🚚 BTS / Viloyatlarga Yetkazib Berish
+                    </span>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${form.is_bts_active ? 'text-amber-700' : 'text-gray-400'}`}>
+                      {form.is_bts_active ? 'Faol' : 'Nofaol'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setForm(prev => ({ ...prev, is_bts_active: !prev.is_bts_active }));
+                      }}
+                      className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                        form.is_bts_active ? 'bg-amber-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${
+                          form.is_bts_active ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-gray-500 font-medium">
-                  Boshqa viloyat va tumanlarga BTS pochtasi orqali yetkazib berish narxi.
+
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  {lang === 'uz' 
+                    ? 'Boshqa viloyat va tumanlarga BTS pochtasi orqali yetkazib berish xizmati va tarifi.' 
+                    : 'Служба доставки почтой BTS в другие регионы и районы.'}
                 </p>
+
                 <div className="relative">
                   <input
                     type="number"
                     placeholder="50000"
+                    disabled={!form.is_bts_active}
                     value={form.bts_delivery_price === 0 || form.bts_delivery_price === '0' || form.bts_delivery_price === '' ? '' : form.bts_delivery_price}
                     onChange={(e) => {
                       const raw = e.target.value;
@@ -629,7 +706,11 @@ export const AdminSiteSettings = () => {
                         bts_delivery_price: raw === '' ? 0 : (parseInt(raw, 10) || 0)
                       }));
                     }}
-                    className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl text-sm font-mono font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-mono font-black transition-all ${
+                      form.is_bts_active 
+                        ? 'bg-white border-amber-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20' 
+                        : 'bg-gray-100/70 border-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">so'm</span>
                 </div>
