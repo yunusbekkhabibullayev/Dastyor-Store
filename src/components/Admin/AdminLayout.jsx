@@ -63,11 +63,11 @@ export const AdminLayout = () => {
   const userRole = adminAuth?.role || 'super_admin';
 
   const roleBadges = {
-    developer: { uz: '💻 Dasturchi', ru: '💻 Разработчик' },
-    super_admin: { uz: '👑 Super Admin', ru: '👑 Главный Админ' },
-    manager: { uz: '🧑‍💼 Menejer', ru: '🧑‍💼 Менеджер' },
-    courier: { uz: '🚚 Kuryer', ru: '🚚 Курьер' },
-    content_manager: { uz: '🎨 Kontent Menejer', ru: '🎨 Контент-менеджер' }
+    developer: { uz: '💻 Dasturchi', ru: '💻 Разработчик', en: '💻 Developer' },
+    super_admin: { uz: '👑 Super Admin', ru: '👑 Главный Админ', en: '👑 Super Admin' },
+    manager: { uz: '🧑‍💼 Menejer', ru: '🧑‍💼 Менеджер', en: '🧑‍💼 Manager' },
+    courier: { uz: '🚚 Kuryer', ru: '🚚 Курьер', en: '🚚 Courier' },
+    content_manager: { uz: '🎨 Kontent Menejer', ru: '🎨 Контент-менеджер', en: '🎨 Content Manager' }
   };
 
   const currentRoleBadge = roleBadges[userRole]?.[lang] || roleBadges[userRole]?.uz || 'Administrator';
@@ -75,24 +75,50 @@ export const AdminLayout = () => {
   const translations = {
     uz: {
       adminPanel: 'Admin Panel',
+      storeManagement: 'Do\'kon boshqaruvi',
       dashboard: 'Statistika',
       orders: 'Buyurtmalar',
       products: 'Mahsulotlar',
       categories: 'Kategoriyalar',
+      users: 'Mijozlar',
+      employees: 'Xodimlar',
       settings: 'Bannerlar',
+      siteSettings: 'Sozlamalar',
+      myProfile: 'Profil ma\'lumotlari',
       logout: 'Chiqish',
       store: 'Saytga qaytish',
       admin: currentRoleBadge
     },
     ru: {
       adminPanel: 'Панель админа',
+      storeManagement: 'Управление магазином',
       dashboard: 'Статистика',
       orders: 'Заказы',
       products: 'Товары',
       categories: 'Категории',
+      users: 'Клиенты',
+      employees: 'Сотрудники',
       settings: 'Баннеры',
+      siteSettings: 'Настройки',
+      myProfile: 'Мой профиль',
       logout: 'Выйти',
       store: 'Вернуться на сайт',
+      admin: currentRoleBadge
+    },
+    en: {
+      adminPanel: 'Admin Panel',
+      storeManagement: 'Store Management',
+      dashboard: 'Analytics',
+      orders: 'Orders',
+      products: 'Products',
+      categories: 'Categories',
+      users: 'Customers',
+      employees: 'Employees',
+      settings: 'Banners',
+      siteSettings: 'Settings',
+      myProfile: 'My Profile',
+      logout: 'Log out',
+      store: 'Return to store',
       admin: currentRoleBadge
     }
   };
@@ -104,10 +130,10 @@ export const AdminLayout = () => {
     { id: 'orders', name: t.orders, icon: ShoppingCartIcon },
     { id: 'products', name: t.products, icon: PackageIcon },
     { id: 'categories', name: t.categories, icon: LayersIcon },
-    { id: 'users', name: lang === 'uz' ? 'Mijozlar' : 'Клиенты', icon: UsersIcon },
-    { id: 'employees', name: lang === 'uz' ? 'Xodimlar' : 'Сотрудники', icon: UserGroupIcon },
+    { id: 'users', name: t.users, icon: UsersIcon },
+    { id: 'employees', name: t.employees, icon: UserGroupIcon },
     { id: 'settings', name: t.settings, icon: PhotoIcon },
-    { id: 'site-settings', name: lang === 'uz' ? 'Sozlamalar' : 'Настройки', icon: SettingsIcon }
+    { id: 'site-settings', name: t.siteSettings, icon: SettingsIcon }
   ];
 
   const allowedMenuItems = allMenuItems.filter(item => permissions.includes(item.id));
@@ -207,7 +233,7 @@ export const AdminLayout = () => {
                 {siteSettings?.name || 'Ravshan Rivoj Market'}
               </h2>
               <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mt-0.5">
-                {lang === 'uz' ? 'Boshqaruv' : 'Управление'}
+                {t.storeManagement}
               </span>
             </div>
           </div>
