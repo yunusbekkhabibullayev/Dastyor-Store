@@ -121,11 +121,10 @@ const publicController = {
   },
 
   /**
-   * POST /api/checkout — Process checkout with stock validation
-   * Inspired by online-menu's OrderController::store() with DB::beginTransaction()
+   * POST /api/checkout — Process checkout with transaction & promo discount
    */
   checkout: async (req, res) => {
-    const { cart, address, phone, paymentMethod, user, total } = req.body;
+    const { cart, address, phone, paymentMethod, user, total, appliedPromo } = req.body;
 
     if (!user || !user.id) {
       return res.status(400).json({ success: false, message: 'Foydalanuvchi ma\'lumotlari to\'liq emas.' });
@@ -141,12 +140,14 @@ const publicController = {
       });
     };
 
-    try {
-      // Security Fix: Calculate total from database prices, do not trust client 'total' or 'item.price'
-      let calculatedTotal = 0;
-      const validItems = [];
+    const { pool, dbGet } = require('../config/database.cjs');
 
-      // Stock validation & Price Calculation
+    try {
+      let subtotal = 0;
+      const validItems = [];
+      const productUpdates = [];
+
+      // 1. Stock validation & Price Calculation
       for (const item of cart) {
         const product = await Product.getById(item.id);
         if (!product) {
@@ -185,6 +186,22 @@ const publicController = {
             const variantDesc = Object.entries(item.selectedVariant).map(([k, v]) => `${v}`).join(', ');
             title = `${title} (${variantDesc})`;
           }
+
+          const currentStockVal = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseFloat(comb.stock) : 0;
+          comb.stock = Math.max(0, currentStockVal - item.quantity).toString();
+          const totalStock = attrs.combinations.reduce((sum, c) => sum + (parseFloat(c.stock) || 0), 0);
+          productUpdates.push({
+            type: 'variant',
+            id: product.id,
+            totalStock,
+            attributes: attrs
+          });
+        } else {
+          productUpdates.push({
+            type: 'simple',
+            id: item.id,
+            quantity: item.quantity
+          });
         }
         
         if (availableStock < item.quantity) {
@@ -194,7 +211,7 @@ const publicController = {
           });
         }
 
-        calculatedTotal += itemPrice * item.quantity;
+        subtotal += itemPrice * item.quantity;
         validItems.push({
           id: item.id,
           quantity: item.quantity,
@@ -203,17 +220,30 @@ const publicController = {
         });
       }
 
+      // 2. Promo Code Calculation
+      let discountAmount = 0;
+      if (appliedPromo && appliedPromo.code) {
+        const cleanCode = String(appliedPromo.code).trim().toUpperCase();
+        let validPercent = 0;
+        if (cleanCode === 'RAVSHANRIVOJ2026' || cleanCode === 'PROMO15') validPercent = 15;
+        else if (cleanCode === 'PROMO10' || cleanCode === 'SKIDKA10') validPercent = 10;
+        else if (appliedPromo.discountPercent && Number(appliedPromo.discountPercent) > 0) {
+          validPercent = Math.min(50, Math.max(1, parseInt(appliedPromo.discountPercent, 10)));
+        }
+        discountAmount = Math.round((subtotal * validPercent) / 100);
+      }
+
+      let calculatedTotal = Math.max(0, subtotal - discountAmount);
+
       // Add delivery price if applicable
       const isDelivery = ['Yetkazib berish', 'Доставка', 'Delivery'].includes(paymentMethod);
       if (isDelivery) {
-        const { dbGet } = require('../config/database.cjs');
         const settings = await dbGet("SELECT delivery_price FROM site_settings WHERE id = 1");
         const deliveryPrice = settings && settings.delivery_price !== undefined ? settings.delivery_price : 30000;
         calculatedTotal += deliveryPrice;
       }
 
-      // Generate order ID — sequential, server-authoritative (client-supplied
-      // orderId, if any, is ignored so numbering can't skip/collide/be spoofed).
+      // Generate order ID — sequential, server-authoritative
       const chatId = user.id;
       const dbOrderId = await Order.getNextId();
 
@@ -224,61 +254,63 @@ const publicController = {
         phone,
         address,
         paymentMethod,
-        totalAmount: calculatedTotal, // Using backend calculated total
+        totalAmount: calculatedTotal,
         status: 'processing',
         createdAt: Order.nowTashkent(),
         items: validItems
       };
 
-      // 1. Save order to database
-      await Order.create(orderRecord);
-      console.log(`[Checkout] Order ${dbOrderId} saved to database.`);
+      // 3. Database Transaction Execution
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-      // 2. Decrease stock for each item
-      for (const item of cart) {
-        const product = await Product.getById(item.id);
-        if (product) {
-          let attrs = null;
-          if (product.attributes) {
-            try {
-              attrs = typeof product.attributes === 'string' ? JSON.parse(product.attributes) : product.attributes;
-            } catch (e) {
-              console.error('Failed to parse product attributes for stock decrease:', e);
-            }
-          }
-          
-          if (attrs && attrs.variants && attrs.variants.length > 0) {
-            const comb = findCombination(attrs, item.selectedVariant);
-            if (comb) {
-              const currentStockVal = comb.stock !== undefined && comb.stock !== null && comb.stock !== '' ? parseFloat(comb.stock) : 0;
-              comb.stock = Math.max(0, currentStockVal - item.quantity).toString();
-              
-              // Also update main product stock as sum of all variant combination stocks
-              const totalStock = attrs.combinations.reduce((sum, c) => sum + (parseFloat(c.stock) || 0), 0);
-              
-              await Product.update(product.id, {
-                ...product,
-                stock: totalStock,
-                attributes: attrs
-              });
-              console.log(`[Checkout] Decreased variant stock for product ${product.id} (${JSON.stringify(item.selectedVariant)}) to ${comb.stock}. Total stock: ${totalStock}.`);
-            } else {
-              await Product.decreaseStock(item.id, item.quantity);
-            }
+        // Insert Order
+        await client.query(
+          "INSERT INTO orders (id, user_id, name, phone, address, payment_method, total_amount, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [dbOrderId, chatId, orderRecord.name, phone, address, paymentMethod, calculatedTotal, 'processing', orderRecord.createdAt]
+        );
+
+        // Insert Order Items
+        for (const item of validItems) {
+          await client.query(
+            "INSERT INTO order_items (order_id, product_id, quantity, price, selected_variant) VALUES ($1, $2, $3, $4, $5)",
+            [dbOrderId, item.id, item.quantity, item.price, item.selectedVariant]
+          );
+        }
+
+        // Decrement Stock
+        for (const update of productUpdates) {
+          if (update.type === 'variant') {
+            await client.query(
+              "UPDATE products SET stock = $1, attributes = $2 WHERE id = $3",
+              [update.totalStock, JSON.stringify(update.attributes), update.id]
+            );
           } else {
-            await Product.decreaseStock(item.id, item.quantity);
+            await client.query(
+              "UPDATE products SET stock = GREATEST(0, stock - $1) WHERE id = $2",
+              [update.quantity, update.id]
+            );
           }
         }
+
+        await client.query('COMMIT');
+        console.log(`[Checkout] Order ${dbOrderId} successfully committed to database in transaction.`);
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
       }
 
-      // 3. Send Telegram notification (non-blocking, don't fail checkout)
+      // 4. Send Telegram notification (non-blocking, don't fail checkout)
       try {
         await telegramService.sendOrderConfirmation(chatId, dbOrderId);
       } catch (telegramError) {
         console.error('[Checkout] Telegram notification failed:', telegramError.message);
       }
 
-      // 4. Notify admins of new order (non-blocking)
+      // 5. Notify admins of new order (non-blocking)
       try {
         const detailedItems = [];
         for (const item of cart) {
@@ -305,7 +337,7 @@ const publicController = {
         console.error('[Checkout] Admin Telegram notification failed:', adminNotifyError.message);
       }
 
-      // 5. Clear products cache since stock decreased
+      // 6. Clear products cache since stock decreased
       cacheService.clear('products');
 
       res.json({ success: true, message: 'Buyurtma tasdiqlandi!', orderId: dbOrderId });

@@ -33,9 +33,9 @@ const Order = {
     return `ORD-${row.n}`;
   },
 
-  /** Get all orders (newest first — numeric id order, which is chronological) */
+  /** Get all orders (newest first — safe numeric id order, which is chronological) */
   getAll: () => {
-    return dbAll("SELECT * FROM orders ORDER BY (REPLACE(id, 'ORD-', ''))::int DESC");
+    return dbAll("SELECT * FROM orders ORDER BY (CASE WHEN id ~ '^ORD-[0-9]+$' THEN (REPLACE(id, 'ORD-', ''))::bigint ELSE 0 END) DESC, id DESC");
   },
 
   /** Get single order by ID */
@@ -47,7 +47,7 @@ const Order = {
   getByUserId: (userId) => {
     const numId = parseInt(userId, 10);
     return dbAll(
-      "SELECT * FROM orders WHERE user_id = ? OR user_id = ? ORDER BY (REPLACE(id, 'ORD-', ''))::int DESC",
+      "SELECT * FROM orders WHERE user_id = ? OR user_id = ? ORDER BY (CASE WHEN id ~ '^ORD-[0-9]+$' THEN (REPLACE(id, 'ORD-', ''))::bigint ELSE 0 END) DESC, id DESC",
       [userId, isNaN(numId) ? userId : numId]
     );
   },
