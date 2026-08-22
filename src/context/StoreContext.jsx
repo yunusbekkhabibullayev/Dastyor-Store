@@ -398,6 +398,8 @@ export const StoreProvider = ({ children }) => {
 
   const showConfirm = (arg1, arg2, arg3, arg4, arg5) => {
     let title = '';
+    let message = '';
+    let type = 'danger'; // 'danger' | 'warning' | 'info' | 'logout'
     let onConfirm = null;
     let onCancel = null;
     let confirmText = lang === 'uz' ? 'Ha' : 'Да';
@@ -405,6 +407,8 @@ export const StoreProvider = ({ children }) => {
 
     if (typeof arg1 === 'object' && arg1 !== null) {
       title = arg1.title || '';
+      message = arg1.message || arg1.description || '';
+      type = arg1.type || 'danger';
       onConfirm = arg1.onConfirm || null;
       onCancel = arg1.onCancel || null;
       if (arg1.confirmText) confirmText = arg1.confirmText;
@@ -418,20 +422,38 @@ export const StoreProvider = ({ children }) => {
       if (typeof arg4 === 'string') cancelText = arg4;
     } else if (typeof arg3 === 'function') {
       // Called as: showConfirm(title, messageText, onConfirmFn, onCancelFn)
-      title = typeof arg2 === 'string' && arg2 ? `${arg1}` : arg1;
+      title = arg1 || '';
+      message = typeof arg2 === 'string' ? arg2 : '';
       onConfirm = arg3;
       onCancel = typeof arg4 === 'function' ? arg4 : null;
       if (typeof arg4 === 'string') confirmText = arg4;
       if (typeof arg5 === 'string') cancelText = arg5;
     } else {
       title = arg1 || '';
+      message = typeof arg2 === 'string' ? arg2 : '';
       onConfirm = typeof arg2 === 'function' ? arg2 : null;
       onCancel = typeof arg3 === 'function' ? arg3 : null;
+    }
+
+    // Auto-detect type and labels
+    const lower = (title + ' ' + message).toLowerCase();
+    if (lower.includes('chiqish') || lower.includes('logout') || lower.includes('выйти')) {
+      type = 'logout';
+      if (confirmText === 'Ha' || confirmText === 'Да') {
+        confirmText = lang === 'uz' ? 'Chiqish' : 'Выйти';
+      }
+    } else if (lower.includes('o\'chirish') || lower.includes('delete') || lower.includes('ochirish') || lower.includes('удалить')) {
+      type = 'danger';
+      if (confirmText === 'Ha' || confirmText === 'Да') {
+        confirmText = lang === 'uz' ? 'O\'chirish' : 'Удалить';
+      }
     }
 
     setConfirmModal({
       isOpen: true,
       title,
+      message,
+      type,
       onConfirm,
       onCancel,
       confirmText,
