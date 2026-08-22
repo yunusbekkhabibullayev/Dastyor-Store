@@ -44,8 +44,9 @@ router.get('/user/profile', publicLimiter, publicController.getUserProfile);
 router.post('/user/profile', publicLimiter, publicController.saveUserProfile);
 router.post('/user/sync', publicLimiter, publicController.syncUser);
 
-// User order history
+// User order history & Public order verification
 router.get('/user/:userId/orders', publicLimiter, publicController.getUserOrders);
+router.get('/orders/public/:orderId', publicLimiter, publicController.getPublicOrder);
 
 // Geocode
 router.get('/geocode/reverse', publicLimiter, publicController.reverseGeocode);

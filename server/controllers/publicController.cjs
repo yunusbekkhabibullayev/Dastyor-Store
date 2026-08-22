@@ -138,6 +138,42 @@ const publicController = {
   },
 
   /**
+   * GET /api/orders/public/:orderId — Public Order Verification for QR Code Scans
+   */
+  getPublicOrder: async (req, res) => {
+    const { orderId } = req.params;
+    try {
+      const order = await Order.getById(orderId);
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Buyurtma topilmadi' });
+      }
+      const rawItems = await Order.getItems(order.id);
+      const items = rawItems.map(item => ({
+        ...item,
+        title: { uz: item.title_uz, ru: item.title_ru, en: item.title_en }
+      }));
+
+      res.json({
+        success: true,
+        order: {
+          id: order.id,
+          date: order.created_at,
+          total: order.total_amount,
+          status: order.status,
+          address: order.address,
+          customer_name: order.name,
+          phone: order.phone,
+          payment_method: order.payment_method,
+          items
+        }
+      });
+    } catch (error) {
+      console.error(`[API] Failed to fetch public order ${orderId}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
    * POST /api/checkout — Process checkout with transaction & promo discount
    */
   checkout: async (req, res) => {

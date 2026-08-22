@@ -1,6 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
-import { XMarkIcon, EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { 
+  XMarkIcon, 
+  EyeIcon, 
+  EyeSlashIcon, 
+  EnvelopeIcon, 
+  LockClosedIcon,
+  CheckCircleIcon,
+  DocumentTextIcon,
+  ShoppingBagIcon,
+  MapPinIcon,
+  PhoneIcon,
+  UserIcon,
+  ClockIcon,
+  DocumentDuplicateIcon,
+  ArrowLeftIcon
+} from '@heroicons/react/24/outline';
 import { Header } from './components/Header';
 import { AdminLayout } from './components/Admin/AdminLayout';
 import { BannerSlider } from './components/BannerSlider';
@@ -201,11 +216,203 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
   );
 };
 
+// Full-Screen Electronic Receipt Verification View (Triggered by QR Code Scan / ?orderId=... or ?order=...)
+const PublicOrderReceiptModal = ({ orderId, onClose }) => {
+  const { lang, siteSettings, triggerHaptic } = useStore();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!orderId) return;
+    setLoading(true);
+    setError('');
+
+    fetch(`/api/orders/public/${encodeURIComponent(orderId)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.order) {
+          setOrder(data.order);
+        } else {
+          setError(data.message || (lang === 'uz' ? 'Buyurtma topilmadi' : 'Заказ не найден'));
+        }
+      })
+      .catch(err => {
+        setError(err.message || 'Ulanish xatoligi');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [orderId]);
+
+  if (!orderId) return null;
+
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+      <div className="bg-white w-full max-w-md rounded-[32px] p-6 shadow-2xl space-y-4 my-auto text-left relative animate-slideUp">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#7000ff] flex items-center justify-center font-black">
+              <DocumentTextIcon className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-gray-900 leading-tight">
+                {lang === 'uz' ? 'Elektron Xarid Cheki' : 'Электронный Чек Покупки'}
+              </h3>
+              <p className="text-[11px] text-emerald-600 font-extrabold flex items-center gap-1">
+                <CheckCircleIcon className="w-3.5 h-3.5" />
+                <span>{lang === 'uz' ? 'Rasmiy tasdiqlangan' : 'Официально подтвержден'}</span>
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
+          >
+            <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="py-12 text-center space-y-3">
+            <div className="w-8 h-8 border-3 border-[#7000ff] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs text-gray-500 font-bold">
+              {lang === 'uz' ? 'Chek ma\'lumotlari yuklanmoqda...' : 'Загрузка данных чека...'}
+            </p>
+          </div>
+        ) : error ? (
+          <div className="py-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <p className="text-xs text-rose-600 font-bold">{error}</p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
+            >
+              {lang === 'uz' ? 'Bosh sahifaga o\'tish' : 'На главную'}
+            </button>
+          </div>
+        ) : order && (
+          <div className="space-y-4">
+            {/* Store & Receipt Info Card */}
+            <div className="bg-[#f8f9fa] rounded-3xl p-5 border border-gray-200/80 space-y-3.5">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                <div>
+                  <h4 className="font-black text-sm text-gray-900">
+                    {siteSettings?.name || 'Ravshan Rivoj Market'}
+                  </h4>
+                  <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                    Buyurtma №{order.id}
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  {order.status || 'To\'langan'}
+                </span>
+              </div>
+
+              {/* Date, Customer & Address */}
+              <div className="text-[11px] space-y-1 text-gray-600 border-b border-gray-200/80 pb-3">
+                <p><strong className="text-gray-900">{lang === 'uz' ? 'Sana va vaqt:' : 'Дата и время:'}</strong> {order.date || 'Bugun'}</p>
+                <p><strong className="text-gray-900">{lang === 'uz' ? 'Mijoz:' : 'Покупатель:'}</strong> {order.customer_name || 'Mijoz'} {order.phone ? `(${order.phone})` : ''}</p>
+                {order.address && (
+                  <p><strong className="text-gray-900">{lang === 'uz' ? 'Yetkazish manzili:' : 'Адрес доставки:'}</strong> {order.address}</p>
+                )}
+              </div>
+
+              {/* Itemized List */}
+              <div className="space-y-2 text-xs max-h-48 overflow-y-auto pr-1">
+                {(order.items || []).map((it, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-150 pb-1.5 last:border-b-0 last:pb-0">
+                    <div>
+                      <p className="font-bold text-gray-900">
+                        {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                      </p>
+                      <p className="text-[11px] text-gray-400 font-mono">
+                        {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                      </p>
+                    </div>
+                    <span className="font-black text-gray-900 font-mono shrink-0">
+                      {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total Amount */}
+              <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-sm font-black">
+                <span className="text-gray-700">{lang === 'uz' ? 'Jami to\'langan summa:' : 'Итого оплачено:'}</span>
+                <span className="text-[#7000ff] font-mono text-base">
+                  {(order.total || 0).toLocaleString()} so'm
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  triggerHaptic('light');
+                  navigator.clipboard?.writeText(currentUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="w-1/2 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                <DocumentDuplicateIcon className="w-4 h-4 text-purple-600" />
+                <span>{copied ? (lang === 'uz' ? 'Nusxalandi!' : 'Скопировано!') : (lang === 'uz' ? 'Chekni ulashish' : 'Поделиться')}</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 bg-[#7000ff] hover:bg-[#5e00db] text-white font-black rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-95 transition-all cursor-pointer"
+              >
+                {lang === 'uz' ? 'Do\'konga o\'tish' : 'В магазин'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const MainLayout = () => {
   const { activeTab, selectedCategory, setSelectedCategory, lang, isSearchOpen, setIsSearchOpen, isOrderSuccess, setIsOrderSuccess, botUsername, isAdminMode, setIsAdminMode, products, categories, adminAuth, checkAdminAuth } = useStore();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [expandedCats, setExpandedCats] = useState({});
+  const [publicScannedOrderId, setPublicScannedOrderId] = useState(null);
+
+  // Check URL parameters on mount (?orderId=ORD-17 or ?order=ORD-17)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const oid = params.get('orderId') || params.get('order');
+      if (oid) {
+        setPublicScannedOrderId(oid);
+      }
+    } catch (e) {
+      console.warn('URL parsing error:', e);
+    }
+  }, []);
+
+  const handleClosePublicReceipt = () => {
+    setPublicScannedOrderId(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('orderId');
+      url.searchParams.delete('order');
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+    } catch (e) {
+      // Ignore
+    }
+  };
 
   const isClickScrolling = useRef(false);
 
@@ -539,6 +746,7 @@ const MainLayout = () => {
       <ProductDetailModal />
       <ConfirmationModal />
       <CustomerAuthModal />
+      <PublicOrderReceiptModal orderId={publicScannedOrderId} onClose={handleClosePublicReceipt} />
 
       {/* Full-screen Search View */}
       {isSearchOpen && (
