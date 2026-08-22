@@ -66,6 +66,12 @@ Production'dagi 16 ta eski buyurtma (tasodifiy ID bilan yaratilgan)
 (2026-08-22). Tafsilot: `~/server-admin/.claude/artifacts/*/2026-08-22-20-39-dastyor-store-order-sequence.md`
 (server ops, repo tashqarisida).
 
+`orders.created_at` avval faqat sana edi (`new Date().toISOString().split('T')[0]`)
+— hozir `Order.nowTashkent()` orqali to'liq `"YYYY-MM-DD HH:MM:SS"` (Asia/Tashkent
+mahalliy vaqti) saqlanadi (checkout paytida). `getStats()`ning "bugungi"
+so'rovlari shu sabab aniq tenglik (`= ?`) emas, `LIKE 'YYYY-MM-DD%'` bilan
+ishlaydi — buni qaytarmang, aks holda statistika doim 0 chiqadi.
+
 ## Deploy
 
 Bu server (Contabo, `194.163.188.28`) uchun deploy jarayoni **repo tashqarisida**
