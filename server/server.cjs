@@ -54,6 +54,14 @@ app.get(['/health', '/ping'], (req, res) => {
   });
 });
 
+// ─── Telegram Webhook Receiver ──────────────────────────────────
+// Telegram bu yerga POST qiladi (webhook rejimida, TelegramService.init()
+// tomonidan sozlanadi). Body express.json() bilan allaqachon parse qilingan.
+app.post('/telegram/webhook', (req, res) => {
+  telegramService.handleWebhookUpdate(req.body);
+  res.sendStatus(200);
+});
+
 // ─── API Routes ────────────────────────────────────────────────
 app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
@@ -130,6 +138,40 @@ app.use((req, res) => {
   }
 });
 
+// ─── Global Error Handler ────────────────────────────────────────
+// Express route/middleware xatolarini ushlab, .env ADMIN_IDS'ga TG orqali
+// xabar beradi. Har doim JSON response bilan tugaydi (client HTML olmasin).
+app.use((err, req, res, next) => {
+  console.error(`[Server] Unhandled error on ${req.method} ${req.path}:`, err);
+  telegramService
+    .notifyAdminsThrottled(
+      `${req.method} ${req.path}: ${err.message}`,
+      `🚨 *Server xatosi*\n\n*So'rov:* \`${req.method} ${req.path}\`\n*Xabar:* ${String(err.message || err).slice(0, 500)}`
+    )
+    .catch(() => {});
+  if (res.headersSent) return next(err);
+  res.status(500).json({ success: false, message: 'Server xatosi yuz berdi.' });
+});
+
+// Process darajasidagi kutilmagan xatolar — ham TG'ga xabar beradi, jarayonni
+// o'zi to'xtatmaydi (crash bo'lsa, Docker restart:always qayta ko'taradi).
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught exception:', err);
+  telegramService
+    .notifyAdminsThrottled(
+      `uncaughtException:${err.message}`,
+      `🚨 *Uncaught exception*\n\n${String(err.message || err).slice(0, 500)}`
+    )
+    .catch(() => {});
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled rejection:', reason);
+  const msg = reason && reason.message ? reason.message : String(reason);
+  telegramService
+    .notifyAdminsThrottled(`unhandledRejection:${msg}`, `🚨 *Unhandled promise rejection*\n\n${msg.slice(0, 500)}`)
+    .catch(() => {});
+});
+
 // ─── Startup ───────────────────────────────────────────────────
 async function start() {
   try {
@@ -144,6 +186,11 @@ async function start() {
     app.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
       console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
+
+      // Sayt yangilandi/qayta ishga tushdi — .env ADMIN_IDS'ga xabar
+      telegramService
+        .notifyAdmins(`✅ *Sayt yangilandi*\n\nServer qayta ishga tushdi va ishlamoqda.\n🕐 ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`)
+        .catch(() => {});
     });
   } catch (err) {
     console.error('[Server] Startup failed:', err.message);

@@ -13,6 +13,7 @@ class TelegramService {
     this.bot = null;
     this.botUsername = '';
     this.isConfigured = false;
+    this._lastErrorNotify = { key: null, at: 0 };
   }
 
   /**
@@ -24,8 +25,12 @@ class TelegramService {
       return;
     }
 
+    const useWebhook = !!telegramConfig.webhookUrl;
+
     try {
-      this.bot = new TelegramBot(telegramConfig.botToken, { polling: true });
+      // Webhook rejimida polling yoqilmaydi — update'lar /telegram/webhook
+      // route orqali kelib, handleWebhookUpdate() bilan processUpdate qilinadi.
+      this.bot = new TelegramBot(telegramConfig.botToken, { polling: !useWebhook });
       this.isConfigured = true;
 
       // Retrieve bot info
@@ -39,11 +44,27 @@ class TelegramService {
       // Register /start command handler
       this.registerCommands();
 
+      if (useWebhook) {
+        await this.bot.setWebHook(telegramConfig.webhookUrl);
+        console.log('[Telegram] Webhook mode:', telegramConfig.webhookUrl);
+      } else {
+        console.log('[Telegram] Polling mode (WEBAPP_URL sozlanmagan).');
+      }
+
       console.log('[Telegram] Bot initialized successfully.');
     } catch (err) {
       console.error('[Telegram] Bot initialization failed:', err.message);
       this.isConfigured = false;
     }
+  }
+
+  /**
+   * Feed an incoming Telegram update (from the /telegram/webhook Express route)
+   * into node-telegram-bot-api's event pipeline. Webhook-mode counterpart of polling.
+   */
+  handleWebhookUpdate(update) {
+    if (!this.bot) return;
+    this.bot.processUpdate(update);
   }
 
   /**
@@ -159,23 +180,11 @@ class TelegramService {
       return false;
     }
 
-    const { dbGet } = require('../config/database.cjs');
+    // Faqat .env ADMIN_IDS — bazadagi site_settings.admin_ids ataylab e'tiborga
+    // olinmaydi (foydalanuvchi so'rovi: DB adminlar ko'rishi shart emas).
     const telegramConfig = require('../config/telegram.cjs');
-    let adminIds = [...(telegramConfig.adminIds || [])];
+    const adminIds = [...(telegramConfig.adminIds || [])];
 
-    try {
-      const settings = await dbGet("SELECT admin_ids FROM site_settings WHERE id = 1");
-      if (settings && settings.admin_ids) {
-        const dbAdminIds = settings.admin_ids
-          .split(',')
-          .map(id => parseInt(id.trim(), 10))
-          .filter(id => !isNaN(id));
-        adminIds = Array.from(new Set([...adminIds, ...dbAdminIds]));
-      }
-    } catch (e) {
-      console.error('[Telegram] Failed to load DB admin IDs for notifications:', e.message);
-    }
-    
     if (adminIds.length === 0) {
       console.warn('[Telegram] No admin IDs configured for notifications.');
       return false;
@@ -231,6 +240,41 @@ class TelegramService {
       }
     }
     return sent;
+  }
+
+  /**
+   * Send a raw text message to every .env ADMIN_IDS admin (site update / error
+   * notifications — bazadagi admin_ids bunga aralashmaydi, faqat .env).
+   */
+  async notifyAdmins(text) {
+    if (!this.bot || !this.isConfigured) return false;
+    const adminIds = telegramConfig.adminIds || [];
+    if (adminIds.length === 0) return false;
+
+    let sent = false;
+    for (const adminId of adminIds) {
+      try {
+        await this.bot.sendMessage(adminId, text, { parse_mode: 'Markdown' });
+        sent = true;
+      } catch (error) {
+        console.error(`[Telegram] notifyAdmins failed for ${adminId}:`, error.message);
+      }
+    }
+    return sent;
+  }
+
+  /**
+   * Same as notifyAdmins but collapses repeats of the same `key` within
+   * cooldownMs — guards against notification floods from repeating errors
+   * (e.g. a crash loop or a hot request-handler exception).
+   */
+  async notifyAdminsThrottled(key, text, cooldownMs = 5 * 60 * 1000) {
+    const now = Date.now();
+    if (this._lastErrorNotify.key === key && (now - this._lastErrorNotify.at) < cooldownMs) {
+      return false;
+    }
+    this._lastErrorNotify = { key, at: now };
+    return this.notifyAdmins(text);
   }
 
   /**
