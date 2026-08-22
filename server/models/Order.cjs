@@ -8,7 +8,21 @@
 
 const { dbRun, dbAll, dbGet } = require('../config/database.cjs');
 
+/** Current moment in Tashkent local time, formatted "YYYY-MM-DD HH:MM:SS". */
+function nowTashkent() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tashkent',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+}
+
 const Order = {
+  nowTashkent,
+
   /**
    * Next sequential order id (ORD-1, ORD-2, ...) — atomic via Postgres
    * SEQUENCE, safe under concurrent checkouts. Continues from the highest
@@ -80,12 +94,14 @@ const Order = {
 
   /** Get dashboard statistics */
   getStats: async () => {
-    const today = new Date().toISOString().split('T')[0];
+    // created_at endi "YYYY-MM-DD HH:MM:SS" — sana bo'yicha solishtirish uchun
+    // prefiks bilan (LIKE), aniq tenglik emas.
+    const todayPrefix = `${nowTashkent().slice(0, 10)}%`;
 
     const [todayOrders, totalRevenue, todayRevenue, totalProducts, pendingOrders, totalCategories] = await Promise.all([
-      dbGet("SELECT COUNT(*) as count FROM orders WHERE created_at = ?", [today]),
+      dbGet("SELECT COUNT(*) as count FROM orders WHERE created_at LIKE ?", [todayPrefix]),
       dbGet("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status != 'cancelled'"),
-      dbGet("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE created_at = ? AND status != 'cancelled'", [today]),
+      dbGet("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE created_at LIKE ? AND status != 'cancelled'", [todayPrefix]),
       dbGet("SELECT COUNT(*) as count FROM products"),
       dbGet("SELECT COUNT(*) as count FROM orders WHERE status = 'processing'"),
       dbGet("SELECT COUNT(*) as count FROM categories"),

@@ -226,7 +226,7 @@ const publicController = {
         paymentMethod,
         totalAmount: calculatedTotal, // Using backend calculated total
         status: 'processing',
-        createdAt: new Date().toISOString().split('T')[0],
+        createdAt: Order.nowTashkent(),
         items: validItems
       };
 
