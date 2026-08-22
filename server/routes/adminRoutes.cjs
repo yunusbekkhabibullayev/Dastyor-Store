@@ -51,44 +51,44 @@ router.post('/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// Dashboard (super_admin, manager)
-router.get('/stats', requireRole(['super_admin', 'manager']), adminController.getStats);
+// Dashboard (super_admin, developer, manager)
+router.get('/stats', requireRole(['super_admin', 'developer', 'manager']), adminController.getStats);
 
-// Orders (super_admin, manager, courier)
-router.get('/orders', requireRole(['super_admin', 'manager', 'courier']), adminController.getOrders);
-router.patch('/orders/:id/status', requireRole(['super_admin', 'manager', 'courier']), validate(schemas.orderStatus), adminController.updateOrderStatus);
+// Orders (super_admin, developer, manager, courier)
+router.get('/orders', requireRole(['super_admin', 'developer', 'manager', 'courier']), adminController.getOrders);
+router.patch('/orders/:id/status', requireRole(['super_admin', 'developer', 'manager', 'courier']), validate(schemas.orderStatus), adminController.updateOrderStatus);
 
-// Categories CRUD (super_admin, content_manager, manager)
+// Categories CRUD (super_admin, developer, content_manager, manager)
 router.get('/categories', adminController.getCategories);
-router.post('/categories', requireRole(['super_admin', 'content_manager']), validate(schemas.category), adminController.createCategory);
-router.put('/categories/:id', requireRole(['super_admin', 'content_manager']), validate(schemas.category), adminController.updateCategory);
-router.delete('/categories/:id', requireRole(['super_admin', 'content_manager']), adminController.deleteCategory);
+router.post('/categories', requireRole(['super_admin', 'developer', 'content_manager']), validate(schemas.category), adminController.createCategory);
+router.put('/categories/:id', requireRole(['super_admin', 'developer', 'content_manager']), validate(schemas.category), adminController.updateCategory);
+router.delete('/categories/:id', requireRole(['super_admin', 'developer', 'content_manager']), adminController.deleteCategory);
 
-// Products CRUD (super_admin, content_manager, manager)
+// Products CRUD (super_admin, developer, content_manager, manager)
 router.get('/products', adminController.getProducts);
-router.post('/products', requireRole(['super_admin', 'content_manager']), validate(schemas.product), adminController.createProduct);
-router.put('/products/:id', requireRole(['super_admin', 'content_manager']), validate(schemas.product), adminController.updateProduct);
-router.delete('/products/:id', requireRole(['super_admin', 'content_manager']), adminController.deleteProduct);
+router.post('/products', requireRole(['super_admin', 'developer', 'content_manager']), validate(schemas.product), adminController.createProduct);
+router.put('/products/:id', requireRole(['super_admin', 'developer', 'content_manager']), validate(schemas.product), adminController.updateProduct);
+router.delete('/products/:id', requireRole(['super_admin', 'developer', 'content_manager']), adminController.deleteProduct);
 
-// Banners CRUD (super_admin, content_manager)
+// Banners CRUD (super_admin, developer, content_manager)
 router.get('/banners', adminBannerController.getBanners);
-router.post('/banners', requireRole(['super_admin', 'content_manager']), adminBannerController.createBanner);
-router.put('/banners/:id', requireRole(['super_admin', 'content_manager']), adminBannerController.updateBanner);
-router.delete('/banners/:id', requireRole(['super_admin', 'content_manager']), adminBannerController.deleteBanner);
+router.post('/banners', requireRole(['super_admin', 'developer', 'content_manager']), adminBannerController.createBanner);
+router.put('/banners/:id', requireRole(['super_admin', 'developer', 'content_manager']), adminBannerController.updateBanner);
+router.delete('/banners/:id', requireRole(['super_admin', 'developer', 'content_manager']), adminBannerController.deleteBanner);
 
-// Site Settings (super_admin only)
-router.get('/site-settings', requireRole(['super_admin']), adminController.getSiteSettings);
-router.put('/site-settings', requireRole(['super_admin']), adminController.updateSiteSettings);
-router.post('/test-telegram', requireRole(['super_admin']), adminController.testTelegram);
-router.get('/telegram/webhook-status', requireRole(['super_admin']), adminController.getWebhookStatus);
-router.post('/telegram/set-webhook', requireRole(['super_admin']), adminController.setWebhook);
-router.post('/telegram/delete-webhook', requireRole(['super_admin']), adminController.deleteWebhook);
+// Site Settings (super_admin, developer)
+router.get('/site-settings', requireRole(['super_admin', 'developer']), adminController.getSiteSettings);
+router.put('/site-settings', requireRole(['super_admin', 'developer']), adminController.updateSiteSettings);
+router.post('/test-telegram', requireRole(['super_admin', 'developer']), adminController.testTelegram);
+router.get('/telegram/webhook-status', requireRole(['super_admin', 'developer']), adminController.getWebhookStatus);
+router.post('/telegram/set-webhook', requireRole(['super_admin', 'developer']), adminController.setWebhook);
+router.post('/telegram/delete-webhook', requireRole(['super_admin', 'developer']), adminController.deleteWebhook);
 
-// Customer CRM (super_admin, manager)
-router.get('/users', requireRole(['super_admin', 'manager']), adminController.getUsers);
-router.get('/users/:id', requireRole(['super_admin', 'manager']), adminController.getUserDetail);
-router.patch('/users/:id/block', requireRole(['super_admin', 'manager']), adminController.toggleUserBlock);
-router.patch('/users/:id/notes', requireRole(['super_admin', 'manager']), adminController.updateUserNotes);
+// Customer CRM (super_admin, developer, manager)
+router.get('/users', requireRole(['super_admin', 'developer', 'manager']), adminController.getUsers);
+router.get('/users/:id', requireRole(['super_admin', 'developer', 'manager']), adminController.getUserDetail);
+router.patch('/users/:id/block', requireRole(['super_admin', 'developer', 'manager']), adminController.toggleUserBlock);
+router.patch('/users/:id/notes', requireRole(['super_admin', 'developer', 'manager']), adminController.updateUserNotes);
 
 // Staff & Employees Management (super_admin, developer)
 router.get('/employees', requireRole(['super_admin', 'developer']), adminController.getEmployees);

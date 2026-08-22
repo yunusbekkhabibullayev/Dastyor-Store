@@ -126,15 +126,13 @@ const isAdmin = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
-        // Password login (AuthService) always signs role:'admin' — the
-        // highest-trust login path, mapped to 'super_admin' here. Spreading
-        // ...decoded AFTER these fields would silently put role back to
-        // 'admin' and fail every requireRole(['super_admin', ...]) check.
-        const role = decoded.role === 'admin' ? 'super_admin' : decoded.role;
+      if (decoded && (decoded.role || decoded.email)) {
+        const role = decoded.role === 'admin' ? 'super_admin' : (decoded.role || 'super_admin');
         req.adminUser = {
           ...decoded,
-          id: decoded.email,
+          id: decoded.id || decoded.email || decoded.login,
+          name: decoded.name || 'Admin',
+          login: decoded.login,
           role,
           permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.super_admin,
           source: 'jwt'
