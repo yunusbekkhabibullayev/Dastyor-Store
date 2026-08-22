@@ -4,6 +4,20 @@ To'liq loyiha hujjati `README.md`da. Bu fayl — kod bilan ishlaydigan AI
 agentlar (Claude Code va h.k.) uchun, README'da yo'q, lekin kodni tushunish
 uchun muhim bo'lgan nozik holatlar va qarorlar.
 
+## ⚠️ Admin auth — faqat verifyInitData(), hech qachon xom ID emas (2026-08-22)
+
+`server/services/telegramAuth.cjs: verifyInitData()` — Telegram WebApp
+identifikatsiyasining **yagona ishonchli manbai**. `initDataUnsafe.user`
+(frontend), `req.body.telegramId`, `X-Admin-Id` header — bularning HECH
+BIRI imzolanmagan, client to'g'ridan-to'g'ri o'ylab topishi mumkin.
+
+2026-08-22'da aynan shu narsaga (xom `X-Admin-Id`ga ishonish) tayangan
+RBAC implementatsiyasi **to'liq parolsiz admin panel bypass**iga olib
+keldi — production'da real `curl` bilan isbotlangan va tuzatilgan.
+Kelajakda yangi admin/auth funksiya yozganda: faqat
+`req.headers['x-telegram-init-data']`ni `verifyInitData()`dan o'tkazing,
+natijasidagi `user.id`dan boshqa hech narsaga ishonmang.
+
 ## Telegram bot — webhook rejimi (2026-08-22'da to'liq ishga tushirilgan)
 
 Bot **webhook** rejimida ishlaydi (`server/config/telegram.cjs` — `webhookUrl`
