@@ -67,9 +67,9 @@ app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
 // ─── Dynamic OG Meta Tags ──────────────────────────────────────
-const backendProducts = [];
+const Product = require('./models/Product.cjs');
 
-app.get('/', (req, res, next) => {
+app.get('/', async (req, res, next) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
   if (!fs.existsSync(indexPath)) {
     return res.status(200).json({
@@ -91,11 +91,17 @@ app.get('/', (req, res, next) => {
   let ogImage = NGROK_URL + "/uploads/logo.png";
 
   if (productId) {
-    const product = backendProducts.find(p => p.id === productId);
-    if (product) {
-      ogTitle = `🛒 ${product.title[lang] || product.title['uz']}`;
-      ogDesc = product.description[lang] || product.description['uz'];
-      ogImage = NGROK_URL + product.image;
+    try {
+      const product = await Product.getById(productId);
+      if (product) {
+        ogTitle = `🛒 ${product[`title_${lang}`] || product.title_uz || 'Mahsulot'}`;
+        ogDesc = product[`description_${lang}`] || product.description_uz || ogDesc;
+        if (product.image) {
+          ogImage = product.image.startsWith('http') ? product.image : (NGROK_URL + product.image);
+        }
+      }
+    } catch (e) {
+      console.warn('[OG Meta] Failed to load product for OG tags:', e.message);
     }
   }
 

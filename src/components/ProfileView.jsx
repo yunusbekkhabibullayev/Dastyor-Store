@@ -54,7 +54,6 @@ export const ProfileView = () => {
   const checkIsAdmin = () => {
     if (!telegramUser || !telegramUser.id) return false;
     const currentId = telegramUser.id;
-    if (currentId === 1165441564 || currentId === 116541564) return true;
     if (siteSettings && siteSettings.admin_ids) {
       const dynamicIds = siteSettings.admin_ids.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id));
       if (dynamicIds.includes(currentId)) {

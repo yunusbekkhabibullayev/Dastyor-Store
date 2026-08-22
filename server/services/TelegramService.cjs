@@ -172,6 +172,14 @@ class TelegramService {
   }
 
   /**
+   * Safe Markdown V1 escape helper
+   */
+  escapeMarkdown(text) {
+    if (!text) return '';
+    return String(text).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+  }
+
+  /**
    * Send admin notification about a new order (used by test-telegram and checkout)
    */
   async sendNotification(orderData) {
@@ -239,7 +247,15 @@ class TelegramService {
         console.log(`[Telegram] Order notification sent to admin ${adminId}`);
         sent = true;
       } catch (error) {
-        console.error(`[Telegram] Failed to notify admin ${adminId}:`, error.message);
+        console.error(`[Telegram] Failed to notify admin ${adminId} with Markdown, retrying plain text:`, error.message);
+        try {
+          // Fallback to plain text if Markdown parsing failed
+          const plainMessage = message.replace(/[*_`[\]()]/g, '');
+          await this.bot.sendMessage(adminId, plainMessage);
+          sent = true;
+        } catch (plainErr) {
+          console.error(`[Telegram] Fallback notification failed for admin ${adminId}:`, plainErr.message);
+        }
       }
     }
     return sent;
