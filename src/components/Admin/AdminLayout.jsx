@@ -172,6 +172,32 @@ export const AdminLayout = () => {
     }
   }, [adminTab, permissions]);
 
+  // Read and sync tab from URL query params or history on mount & popstate
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlTab = params.get('tab');
+        if (urlTab && permissions.includes(urlTab)) {
+          setAdminTab(urlTab);
+        }
+      } catch (e) {}
+    };
+
+    syncTabFromUrl();
+
+    const handlePopState = (e) => {
+      if (e.state && e.state.tab) {
+        setAdminTab(e.state.tab);
+      } else {
+        syncTabFromUrl();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [permissions]);
+
   useEffect(() => {
     if (mainRef.current) {
       mainRef.current.scrollTop = 0;
@@ -198,6 +224,13 @@ export const AdminLayout = () => {
     triggerHaptic('light');
     setAdminTab(tabId);
     setSidebarOpen(false);
+
+    // Update browser URL query parameter with history pushState
+    try {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('tab', tabId);
+      window.history.pushState({ tab: tabId }, '', currentUrl.toString());
+    } catch (e) {}
   };
 
   const handleBackToStore = () => {
@@ -332,7 +365,7 @@ export const AdminLayout = () => {
         
         {/* Top Navbar Header */}
         <header className="h-14 border-b border-gray-150 bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setSidebarOpen(true)}
               className="md:hidden p-2 text-gray-500 hover:bg-gray-50 rounded-xl"
@@ -340,9 +373,24 @@ export const AdminLayout = () => {
               <MenuIcon className="w-5 h-5" />
             </button>
             
-            <h1 className="font-extrabold text-gray-900 text-sm uppercase tracking-wide">
-              {allowedMenuItems.find(item => item.id === adminTab)?.name || t.adminPanel}
-            </h1>
+            {/* Active Tab Icon Badge + Title */}
+            {(() => {
+              const activeItem = allowedMenuItems.find(item => item.id === adminTab) ||
+                allMenuItems.find(item => adminTab.startsWith(item.id.replace('-add', '').replace('-edit', '').replace('-details', ''))) ||
+                allowedMenuItems[0];
+              const ActiveIcon = activeItem?.icon || LayoutDashboardIcon;
+
+              return (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-2xs shrink-0">
+                    <ActiveIcon className="w-4 h-4" />
+                  </div>
+                  <h1 className="font-extrabold text-gray-900 text-sm uppercase tracking-wide">
+                    {activeItem?.name || t.adminPanel}
+                  </h1>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-3">
