@@ -50,7 +50,8 @@ export const AdminLayout = () => {
     triggerHaptic, 
     telegramUser,
     showConfirm,
-    adminAuth
+    adminAuth,
+    siteSettings
   } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -187,17 +188,37 @@ export const AdminLayout = () => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
 
-        {/* User Badge Mobile Header */}
-        <div className="md:hidden p-4 border-b border-slate-800 bg-slate-950/20 text-left flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shrink-0">
-              {adminName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h4 className="font-bold text-xs truncate max-w-36">{adminName}</h4>
-              <span className="text-[9px] text-blue-400 font-bold">{currentRoleBadge}</span>
+        {/* Store Brand / Logo Header in Sidebar */}
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            {siteSettings?.logo ? (
+              <img 
+                src={siteSettings.logo} 
+                alt={siteSettings?.name || 'Store'} 
+                className="w-9 h-9 rounded-xl object-contain bg-white/10 p-1 shrink-0 border border-slate-700 shadow-xs" 
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-blue-500/20 shrink-0">
+                {(siteSettings?.name || 'R').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="font-extrabold text-xs text-white truncate leading-tight tracking-tight">
+                {siteSettings?.name || 'Ravshan Rivoj Market'}
+              </h2>
+              <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mt-0.5">
+                {lang === 'uz' ? 'Boshqaruv' : 'Управление'}
+              </span>
             </div>
           </div>
+          
+          {/* Mobile close sidebar button */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Menu Links */}
