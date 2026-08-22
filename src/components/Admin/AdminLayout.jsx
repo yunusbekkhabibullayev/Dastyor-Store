@@ -475,17 +475,6 @@ export const AdminLayout = () => {
                       <span>{lang === 'uz' ? 'Profil ma\'lumotlari' : 'Профиль'}</span>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        handleBackToStore();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 font-bold transition-colors text-left cursor-pointer"
-                    >
-                      <StoreIcon className="w-4 h-4 text-gray-500 shrink-0" />
-                      <span>{t.store}</span>
-                    </button>
-
                     <div className="my-1 border-t border-gray-100"></div>
 
                     <button

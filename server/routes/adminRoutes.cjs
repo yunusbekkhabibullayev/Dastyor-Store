@@ -98,4 +98,8 @@ router.post('/employees', requireRole(['super_admin', 'developer']), adminContro
 router.put('/employees/:id', requireRole(['super_admin', 'developer']), adminController.updateEmployee);
 router.delete('/employees/:id', requireRole(['super_admin', 'developer']), adminController.deleteEmployee);
 
+// Authenticated Admin / Staff Self Profile
+router.get('/profile', adminController.getMyProfile);
+router.put('/profile', adminController.updateMyProfile);
+
 module.exports = router;

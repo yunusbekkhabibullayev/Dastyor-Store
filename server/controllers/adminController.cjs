@@ -720,6 +720,116 @@ const adminController = {
       console.error('[Admin] setupEmployeeCredentials error:', e);
       res.status(400).json({ success: false, message: e.message || 'Saqlashda xatolik yuz berdi' });
     }
+  },
+
+  /** GET /api/admin/profile */
+  getMyProfile: async (req, res) => {
+    try {
+      const user = req.adminUser;
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Foydalanuvchi aniqlanmadi' });
+      }
+
+      let employeeData = null;
+      const Employee = require('../models/Employee.cjs');
+
+      if (user.id && typeof user.id === 'number' && user.id > 0) {
+        employeeData = await Employee.getById(user.id);
+      }
+      if (!employeeData && user.telegram_id) {
+        employeeData = await Employee.getByTelegramId(user.telegram_id);
+      }
+      if (!employeeData && user.login) {
+        employeeData = await Employee.getByLogin(user.login);
+      }
+
+      res.json({
+        success: true,
+        profile: {
+          id: employeeData ? employeeData.id : user.id,
+          name: employeeData ? employeeData.name : user.name,
+          login: employeeData ? employeeData.login : user.login,
+          phone: employeeData ? employeeData.phone : user.phone,
+          telegram_id: employeeData ? employeeData.telegram_id : (user.telegram_id || user.id),
+          role: employeeData ? employeeData.role : user.role,
+          notes: employeeData ? employeeData.notes : user.notes,
+          permissions: user.permissions,
+          source: user.source
+        }
+      });
+    } catch (e) {
+      console.error('[Admin] getMyProfile error:', e);
+      res.status(500).json({ success: false, message: e.message });
+    }
+  },
+
+  /** PUT /api/admin/profile */
+  updateMyProfile: async (req, res) => {
+    try {
+      const user = req.adminUser;
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Foydalanuvchi aniqlanmadi' });
+      }
+
+      const { name, phone, password } = req.body;
+      const Employee = require('../models/Employee.cjs');
+
+      let employee = null;
+      if (user.id && typeof user.id === 'number' && user.id > 0) {
+        employee = await Employee.getById(user.id);
+      }
+      if (!employee && user.telegram_id) {
+        employee = await Employee.getByTelegramId(user.telegram_id);
+      }
+      if (!employee && user.login) {
+        employee = await Employee.getByLogin(user.login);
+      }
+
+      if (employee) {
+        const updateData = {};
+        if (name && name.trim()) updateData.name = name.trim();
+        if (phone !== undefined) updateData.phone = phone.trim();
+        if (password && password.trim()) updateData.password = password.trim();
+
+        const updated = await Employee.update(employee.id, updateData);
+
+        // Renew JWT token with updated name
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+        const newToken = jwt.sign(
+          {
+            id: updated.id,
+            name: updated.name,
+            login: updated.login,
+            telegram_id: updated.telegram_id,
+            role: updated.role || 'manager'
+          },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        return res.json({
+          success: true,
+          message: 'Profil ma\'lumotlari muvaffaqiyatli saqlandi!',
+          token: newToken,
+          user: {
+            id: updated.id,
+            name: updated.name,
+            login: updated.login,
+            phone: updated.phone,
+            telegram_id: updated.telegram_id,
+            role: updated.role,
+            permissions: user.permissions,
+            source: user.source
+          }
+        });
+      } else {
+        return res.status(404).json({ success: false, message: 'Xodim ma\'lumoti topilmadi' });
+      }
+    } catch (e) {
+      console.error('[Admin] updateMyProfile error:', e);
+      res.status(400).json({ success: false, message: e.message || 'Saqlashda xatolik yuz berdi' });
+    }
   }
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { 
   UserCircleIcon, 
@@ -10,20 +10,29 @@ import {
   PhotoIcon, 
   PhoneIcon, 
   IdentificationIcon, 
-  BuildingStorefrontIcon as StoreIcon, 
   ArrowRightOnRectangleIcon as LogOutIcon,
-  CheckBadgeIcon,
   CheckCircleIcon,
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
-  UserIcon
+  PencilSquareIcon,
+  KeyIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import versionInfo from '../../version.json';
 
-export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) => {
-  const { lang, telegramUser, adminAuth, triggerHaptic } = useStore();
+export const AdminProfileModal = ({ isOpen, onClose, onLogout }) => {
+  const { lang, telegramUser, adminAuth, setAdminAuth, getAdminHeaders, triggerHaptic } = useStore();
 
-  if (!isOpen) return null;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [toastMessage, setToastMessage] = useState(null);
 
   const role = adminAuth?.role || 'super_admin';
   const permissions = adminAuth?.permissions || [];
@@ -71,6 +80,7 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
     || 'Administrator';
 
   const adminLogin = adminUser.login;
+  const adminPhone = adminUser.phone || '';
   const adminTelegramId = adminUser.telegram_id || telegramUser?.id;
   const initial = (adminName || 'A').charAt(0).toUpperCase();
 
@@ -85,9 +95,84 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
     'site-settings': 'Sayt Sozlamalari'
   };
 
+  const handleStartEdit = () => {
+    triggerHaptic('light');
+    setEditName(adminUser.name || adminName || '');
+    setEditPhone(adminUser.phone || '');
+    setEditPassword('');
+    setShowPassword(false);
+    setSaveError('');
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      triggerHaptic('warning');
+      setSaveError(lang === 'uz' ? 'Ism kiritilishi shart!' : 'Имя обязательно!');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError('');
+
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAdminHeaders()
+        },
+        body: JSON.stringify({
+          name: editName.trim(),
+          phone: editPhone.trim(),
+          password: editPassword.trim() || undefined
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.user) {
+        triggerHaptic('notification');
+        if (data.token) {
+          if (localStorage.getItem('qlay_admin_token')) {
+            localStorage.setItem('qlay_admin_token', data.token);
+          } else {
+            sessionStorage.setItem('qlay_admin_token', data.token);
+          }
+        }
+        setAdminAuth(prev => ({
+          ...prev,
+          user: data.user
+        }));
+        setIsEditing(false);
+        setToastMessage(lang === 'uz' ? 'Profil muvaffaqiyatli saqlandi!' : 'Профиль успешно сохранен!');
+        setTimeout(() => setToastMessage(null), 3000);
+      } else {
+        triggerHaptic('warning');
+        setSaveError(data.message || 'Saqlashda xatolik yuz berdi');
+      }
+    } catch (err) {
+      triggerHaptic('warning');
+      setSaveError(err.message || 'Server bilan aloqa xatosi');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-md rounded-3xl border border-gray-150 shadow-2xl overflow-hidden animate-scaleUp">
+      <div className="bg-white w-full max-w-md rounded-3xl border border-gray-150 shadow-2xl overflow-hidden animate-scaleUp relative">
+        
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold backdrop-blur-md border border-gray-700 animate-scaleUp">
+            <CheckCircleIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="p-5 border-b border-gray-150 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 text-white">
           <div className="flex items-center gap-3">
@@ -110,112 +195,214 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
             </div>
           </div>
 
-          <button
-            onClick={() => { triggerHaptic('light'); onClose(); }}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {!isEditing && (
+              <button
+                onClick={handleStartEdit}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all flex items-center gap-1 cursor-pointer"
+                title="Profilni tahrirlash"
+              >
+                <PencilSquareIcon className="w-3.5 h-3.5" />
+                <span>Tahrirlash</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => { triggerHaptic('light'); onClose(); }}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Body Info */}
         <div className="p-6 space-y-4 text-xs">
-          {/* Role Card */}
-          <div className={`p-4 rounded-2xl border ${currentRoleConfig.color} space-y-1`}>
-            <div className="flex items-center gap-2 font-black text-xs">
-              <RoleIcon className="w-4 h-4" />
-              <span>{currentRoleConfig.name}</span>
-            </div>
-            <p className="text-[11px] opacity-90 leading-snug font-medium">
-              {currentRoleConfig.desc}
-            </p>
-          </div>
 
-          {/* Details Row */}
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2.5">
-            {adminLogin && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 font-bold text-[11px]">Xodim Logini:</span>
-                <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                  @{adminLogin}
+          {isEditing ? (
+            /* Edit Form */
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-left animate-fadeIn">
+              {saveError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 font-bold text-center">
+                  ⚠️ {saveError}
+                </div>
+              )}
+
+              {/* Name */}
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">Ism va Familiya *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Masalan: Sardor Rahimov"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">Telefon Raqami</label>
+                <input
+                  type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-mono font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="font-extrabold text-gray-700 block mb-1">
+                  Yangi Maxfiy Parol (Ixtiyoriy)
+                </label>
+                <div className="relative">
+                  <KeyIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="O'zgartirmaslik uchun bo'sh qoldiring"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-10 py-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                  >
+                    {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">
+                  Parolni yangilashni xohlamasangiz, bu maydonni bo'sh qoldiring.
                 </span>
               </div>
-            )}
-            {adminTelegramId && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 font-bold text-[11px]">Telegram ID:</span>
-                <span className="font-mono font-black text-gray-800">{adminTelegramId}</span>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
+                >
+                  Bekor qilish
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {saving ? (
+                    <span>Saqlanmoqda...</span>
+                  ) : (
+                    <>
+                      <CheckIcon className="w-4 h-4" />
+                      <span>Saqlash</span>
+                    </>
+                  )}
+                </button>
               </div>
-            )}
-            {telegramUser && telegramUser.username && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 font-bold text-[11px]">Telegram Username:</span>
-                <span className="font-bold text-blue-600">@{telegramUser.username}</span>
+            </form>
+          ) : (
+            /* View Details */
+            <>
+              {/* Role Card */}
+              <div className={`p-4 rounded-2xl border ${currentRoleConfig.color} space-y-1 text-left`}>
+                <div className="flex items-center gap-2 font-black text-xs">
+                  <RoleIcon className="w-4 h-4" />
+                  <span>{currentRoleConfig.name}</span>
+                </div>
+                <p className="text-[11px] opacity-90 leading-snug font-medium">
+                  {currentRoleConfig.desc}
+                </p>
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 font-bold text-[11px]">Kirish usuli:</span>
-              <span className="font-bold text-gray-800 flex items-center gap-1.5">
-                {telegramUser ? (
-                  <>
-                    <DevicePhoneMobileIcon className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Telegram WebApp (Auto-Auth)</span>
-                  </>
-                ) : (
-                  <>
-                    <ComputerDesktopIcon className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Web Browser ({adminLogin ? `@${adminLogin}` : 'JWT Session'})</span>
-                  </>
+
+              {/* Details Row */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2.5 text-left">
+                {adminLogin && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-bold text-[11px]">Xodim Logini:</span>
+                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      @{adminLogin}
+                    </span>
+                  </div>
                 )}
-              </span>
-            </div>
-            <div className="flex items-center justify-between border-t border-gray-100 pt-2">
-              <span className="text-gray-400 font-bold text-[11px]">Tizim versiyasi:</span>
-              <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[10px]">
-                {versionInfo?.version || 'v2.0.85'}
-              </span>
-            </div>
-          </div>
+                {adminPhone && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-bold text-[11px]">Telefon raqami:</span>
+                    <span className="font-mono font-bold text-gray-800">{adminPhone}</span>
+                  </div>
+                )}
+                {adminTelegramId && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-bold text-[11px]">Telegram ID:</span>
+                    <span className="font-mono font-black text-gray-800">{adminTelegramId}</span>
+                  </div>
+                )}
+                {telegramUser && telegramUser.username && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-bold text-[11px]">Telegram Username:</span>
+                    <span className="font-bold text-blue-600">@{telegramUser.username}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 font-bold text-[11px]">Kirish usuli:</span>
+                  <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                    {telegramUser ? (
+                      <>
+                        <DevicePhoneMobileIcon className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Telegram WebApp (Auto-Auth)</span>
+                      </>
+                    ) : (
+                      <>
+                        <ComputerDesktopIcon className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Web Browser ({adminLogin ? `@${adminLogin}` : 'JWT Session'})</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+                  <span className="text-gray-400 font-bold text-[11px]">Tizim versiyasi:</span>
+                  <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[10px]">
+                    {versionInfo?.version || 'v2.0.86'}
+                  </span>
+                </div>
+              </div>
 
-          {/* Active Permissions Badges */}
-          <div>
-            <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider block mb-2">
-              Faol Ruxsatlar ({permissions.length})
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {permissions.map((p) => (
-                <span key={p} className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-[10px] rounded-lg border border-gray-200 flex items-center gap-1">
-                  <CheckCircleIcon className="w-3 h-3 text-blue-600" />
-                  <span>{permissionLabels[p] || p}</span>
+              {/* Active Permissions Badges */}
+              <div className="text-left">
+                <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider block mb-2">
+                  Faol Ruxsatlar ({permissions.length})
                 </span>
-              ))}
-            </div>
-          </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {permissions.map((p) => (
+                    <span key={p} className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-[10px] rounded-lg border border-gray-200 flex items-center gap-1">
+                      <CheckCircleIcon className="w-3 h-3 text-blue-600" />
+                      <span>{permissionLabels[p] || p}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="pt-2 border-t border-gray-100 space-y-2">
-            <button
-              onClick={() => {
-                onClose();
-                onBackToStore();
-              }}
-              className="w-full py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
-            >
-              <StoreIcon className="w-4 h-4 text-blue-600" />
-              <span>{lang === 'uz' ? 'Saytga qaytish' : 'Вернуться в магазин'}</span>
-            </button>
+              {/* Logout Action Button */}
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    onClose();
+                    onLogout();
+                  }}
+                  className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+                >
+                  <LogOutIcon className="w-4 h-4 text-rose-600" />
+                  <span>{lang === 'uz' ? 'Tizimdan chiqish' : 'Выйти из системы'}</span>
+                </button>
+              </div>
+            </>
+          )}
 
-            <button
-              onClick={() => {
-                onClose();
-                onLogout();
-              }}
-              className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
-            >
-              <LogOutIcon className="w-4 h-4 text-rose-600" />
-              <span>{lang === 'uz' ? 'Tizimdan chiqish' : 'Выйти из системы'}</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>
