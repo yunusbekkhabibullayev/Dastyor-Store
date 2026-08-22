@@ -32,7 +32,10 @@ import {
   HomeIcon,
   BriefcaseIcon,
   BuildingOfficeIcon,
-  MapIcon
+  MapIcon,
+  DocumentDuplicateIcon,
+  DocumentTextIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { ProductImage } from './ProductImage';
 
@@ -354,7 +357,7 @@ export const ProfileView = () => {
     lang, toggleLanguage, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
     customerToken, customerUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, 
     showConfirm, telegramUser, siteSettings, formatQuantity, adminAuth,
-    isCustomerLoggedIn, openAuthModal, setActiveTab, favorites
+    isCustomerLoggedIn, openAuthModal, setActiveTab, favorites, addToCart
   } = useStore();
 
   // Edit Page States
@@ -386,9 +389,11 @@ export const ProfileView = () => {
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrError, setAddrError] = useState('');
 
-  // Order history accordion & pagination
+  // Order history state (Uzum Market Style)
+  const [orderTab, setOrderTab] = useState('active'); // 'active' | 'all'
   const [expandedOrders, setExpandedOrders] = useState({});
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState(null);
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
 
   const isUserAuthenticated = isCustomerLoggedIn || (profileUser && (profileUser.name || profileUser.phone));
 
@@ -1200,92 +1205,394 @@ export const ProfileView = () => {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // SUB-VIEW: FULL ORDER HISTORY ACCORDION PAGE
+  // SUB-VIEW: UZUM-STYLE "BUYURTMALARIM" (ORDER HISTORY & TABS)
   // ─────────────────────────────────────────────────────────────────────────────
   if (profileSubView === 'history') {
-    const visibleOrders = orders.slice(0, visibleCount);
+    // Filter active vs all orders
+    // Active statuses: pending, processing, confirmed, shipping, delivering
+    // Inactive statuses: delivered, completed, cancelled, rejected
+    const activeOrders = orders.filter(o => {
+      const st = String(o.status || '').toLowerCase();
+      return !st.includes('deliv') && !st.includes('beril') && !st.includes('compl') && !st.includes('cancel') && !st.includes('bekor');
+    });
+
+    const displayedOrders = orderTab === 'active' ? activeOrders : orders;
+
+    // Helper status styling & badge text
+    const getStatusBadge = (statusStr) => {
+      const s = String(statusStr || '').toLowerCase();
+      if (s.includes('cancel') || s.includes('bekor')) {
+        return {
+          text: lang === 'uz' ? 'BEKOR QILINGAN' : 'ОТМЕНЕН',
+          badgeClass: 'bg-rose-50 text-rose-600 border-rose-100',
+          dotClass: 'bg-rose-500'
+        };
+      }
+      if (s.includes('deliv') || s.includes('beril') || s.includes('compl')) {
+        return {
+          text: lang === 'uz' ? 'XARIDORGA BERILGAN' : 'ВЫДАН ПОКУПАТЕЛЮ',
+          badgeClass: 'bg-gray-100 text-gray-700 border-gray-200',
+          dotClass: 'bg-emerald-500'
+        };
+      }
+      if (s.includes('ship') || s.includes('yo\'lda') || s.includes('yetkazil')) {
+        return {
+          text: lang === 'uz' ? 'YETKAZILMOQDA' : 'ДОСТАВЛЯЕТСЯ',
+          badgeClass: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+          dotClass: 'bg-indigo-500'
+        };
+      }
+      return {
+        text: lang === 'uz' ? 'RASMIYLASHTIRILGAN' : 'ОФОРМЛЕН',
+        badgeClass: 'bg-purple-50 text-[#7000ff] border-purple-100',
+        dotClass: 'bg-[#7000ff]'
+      };
+    };
+
+    const copyOrderNumber = (orderId) => {
+      triggerHaptic('light');
+      navigator.clipboard?.writeText(String(orderId));
+      setCopiedOrderId(orderId);
+      setTimeout(() => setCopiedOrderId(null), 2000);
+    };
 
     return (
-      <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-24">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              setProfileSubView(null);
-            }}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className="text-base font-extrabold text-gray-900 leading-tight">
-              {lang === 'uz' ? 'Buyurtmalar tarixi' : 'История заказов'}
+      <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-28">
+        {/* Top Header Card */}
+        <div className="bg-white rounded-3xl border border-gray-150 shadow-2xs overflow-hidden">
+          <div className="p-4 flex items-center gap-3">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setProfileSubView(null);
+              }}
+              className="w-9 h-9 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 active:scale-95 transition-all cursor-pointer shrink-0"
+            >
+              <ArrowLeftIcon className="w-4 h-4 stroke-[2.2]" />
+            </button>
+            <h2 className="text-base font-black text-gray-900 leading-tight">
+              {lang === 'uz' ? 'Buyurtmalarim' : 'Мои заказы'}
             </h2>
-            <p className="text-xs text-gray-500 font-medium">
-              {orders.length} {lang === 'uz' ? 'ta buyurtma' : 'заказов'}
-            </p>
+          </div>
+
+          {/* Uzum Tabs: Faollar | Barchasi */}
+          <div className="flex border-t border-gray-100 text-xs font-black">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setOrderTab('active');
+              }}
+              className={`flex-1 py-3 text-center transition-all cursor-pointer relative ${
+                orderTab === 'active' 
+                  ? 'text-[#7000ff]' 
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <span>{lang === 'uz' ? 'Faollar' : 'Активные'}</span>
+              {activeOrders.length > 0 && (
+                <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-[#7000ff]">
+                  {activeOrders.length}
+                </span>
+              )}
+              {orderTab === 'active' && (
+                <div className="absolute bottom-0 inset-x-4 h-0.5 bg-[#7000ff] rounded-full animate-fadeIn" />
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setOrderTab('all');
+              }}
+              className={`flex-1 py-3 text-center transition-all cursor-pointer relative ${
+                orderTab === 'all' 
+                  ? 'text-[#7000ff]' 
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <span>{lang === 'uz' ? 'Barchasi' : 'Все'}</span>
+              {orders.length > 0 && (
+                <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-gray-600">
+                  {orders.length}
+                </span>
+              )}
+              {orderTab === 'all' && (
+                <div className="absolute bottom-0 inset-x-4 h-0.5 bg-[#7000ff] rounded-full animate-fadeIn" />
+              )}
+            </button>
           </div>
         </div>
 
-        {orders.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 border border-gray-150 text-center space-y-3 shadow-2xs">
-            <ClockIcon className="w-12 h-12 text-gray-300 mx-auto" />
-            <h3 className="text-sm font-bold text-gray-700">
-              {lang === 'uz' ? 'Hozircha buyurtmalar yo\'q' : 'Заказов пока нет'}
-            </h3>
+        {/* Orders List / Empty States */}
+        {displayedOrders.length === 0 ? (
+          <div className="bg-white rounded-3xl p-10 border border-gray-150 text-center space-y-3.5 shadow-2xs">
+            <div className="w-14 h-14 bg-purple-50 text-[#7000ff] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+              <ShoppingBagIcon className="w-7 h-7 stroke-[1.8]" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-gray-900">
+                {orderTab === 'active' 
+                  ? (lang === 'uz' ? 'Faol buyurtmalar yo\'q' : 'Нет активных заказов')
+                  : (lang === 'uz' ? 'Hozircha buyurtmalar yo\'q' : 'Заказов пока нет')}
+              </h3>
+              <p className="text-xs text-gray-400 font-medium max-w-xs mx-auto leading-relaxed">
+                {orderTab === 'active'
+                  ? (lang === 'uz' 
+                      ? 'Bu yerda siz rasmiylashtirgan, lekin hali olmagan buyurtmalarni ko\'rsatamiz' 
+                      : 'Здесь будут отображаться оформленные, но еще не полученные заказы')
+                  : (lang === 'uz'
+                      ? 'Do\'konimizdan sevimli mahsulotlaringizni xarid qiling'
+                      : 'Совершайте покупки любимых товаров в нашем магазине')}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setActiveTab('home');
+              }}
+              className="mt-1 px-6 py-3 bg-[#7000ff] hover:bg-[#5e00db] text-white text-xs font-black rounded-2xl shadow-md shadow-purple-500/20 active:scale-95 transition-all cursor-pointer"
+            >
+              {lang === 'uz' ? 'Xarid qilishni boshlash' : 'Начать покупки'}
+            </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {visibleOrders.map((order) => {
+          <div className="space-y-3.5">
+            {displayedOrders.map((order) => {
+              const statusInfo = getStatusBadge(order.status);
+              const items = order.items || [];
+              const totalItemsCount = items.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
               const isExpanded = !!expandedOrders[order.id];
 
               return (
-                <div key={order.id} className="bg-white rounded-2xl border border-gray-150 shadow-2xs overflow-hidden transition-all">
-                  <div 
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setExpandedOrders(prev => ({ ...prev, [order.id]: !prev[order.id] }));
-                    }}
-                    className="p-4 flex items-center justify-between cursor-pointer select-none hover:bg-gray-50/50"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-gray-900 text-sm">#{order.id}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-                          {order.status || 'Kutilmoqda'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-400 font-medium mt-0.5">{order.date}</p>
+                <div 
+                  key={order.id}
+                  className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4 text-left transition-all"
+                >
+                  {/* Status Badge & Order Number */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${statusInfo.badgeClass}`}>
+                        {statusInfo.text}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="font-black text-gray-900 text-sm">{order.total?.toLocaleString()} so'm</span>
-                      <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <div className="flex items-center justify-between pt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-gray-900">
+                          Buyurtma №{order.id}
+                        </span>
+                        <button
+                          onClick={() => copyOrderNumber(order.id)}
+                          className="p-1 text-gray-400 hover:text-purple-600 cursor-pointer"
+                          title="Nusxalash"
+                        >
+                          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                        </button>
+                        {copiedOrderId === order.id && (
+                          <span className="text-[10px] font-bold text-emerald-600 animate-fadeIn">
+                            Nusxalandi!
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-gray-400 font-medium font-mono">
+                        {order.date || 'Bugun'}
+                      </span>
                     </div>
                   </div>
 
-                  {isExpanded && (
-                    <div className="p-4 border-t border-gray-100 bg-gray-50/40 space-y-3 animate-fadeIn">
-                      <div className="space-y-2">
-                        {(order.items || []).map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs">
-                            <span className="text-gray-700 font-bold">{item.title?.[lang] || item.title?.uz || item.title || 'Mahsulot'} × {item.quantity}</span>
-                            <span className="font-bold text-gray-900">{(item.price * item.quantity).toLocaleString()} so'm</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {order.address && (
-                        <div className="pt-2 border-t border-gray-150 flex items-start gap-1.5 text-[11px] text-gray-600">
-                          <MapPinIcon className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                          <span>{order.address}</span>
+                  {/* Horizontal Product Image Thumbnails */}
+                  {items.length > 0 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {items.map((it, idx) => (
+                        <div 
+                          key={idx} 
+                          className="w-14 h-14 min-w-[56px] min-h-[56px] rounded-2xl bg-[#f2f4f7] border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center p-1"
+                        >
+                          {it.image ? (
+                            <img 
+                              src={it.image} 
+                              alt={it.title?.uz || it.title || ''} 
+                              className="w-full h-full object-contain" 
+                            />
+                          ) : (
+                            <ShoppingBagIcon className="w-6 h-6 text-gray-400 stroke-[1.5]" />
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
+
+                  {/* Item count & Price Summary line */}
+                  <div className="text-xs font-bold text-gray-500">
+                    {totalItemsCount} ta tovar · {(order.total || 0).toLocaleString()} so'm
+                  </div>
+
+                  {/* Delivery Address & Customer Info */}
+                  <div className="pt-2 border-t border-gray-100 space-y-2 text-xs">
+                    {order.address && (
+                      <div>
+                        <span className="text-[10px] font-extrabold text-gray-400 block uppercase tracking-wider">
+                          {lang === 'uz' ? 'Topshirish punktiga / Manzilga' : 'Адрес доставки'}
+                        </span>
+                        <p className="text-xs font-black text-gray-800 leading-snug mt-0.5">
+                          {order.address}
+                        </p>
+                      </div>
+                    )}
+
+                    {(profileUser?.name || profileUser?.phone || order.phone) && (
+                      <div>
+                        <span className="text-[10px] font-extrabold text-gray-400 block uppercase tracking-wider">
+                          {lang === 'uz' ? 'Buyurtmani qabul qiluvchi' : 'Получатель'}
+                        </span>
+                        <p className="text-xs font-black text-gray-800 leading-snug mt-0.5">
+                          {profileUser?.name || 'Mijoz'}
+                        </p>
+                        <p className="text-[11px] text-gray-500 font-mono font-bold">
+                          {profileUser?.phone ? formatUzPhone(profileUser.phone) : order.phone}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Total & Batafsil Accordion Toggle */}
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-500">{lang === 'uz' ? 'Jami' : 'Итого'}</span>
+                      <p className="text-base font-black text-gray-900">
+                        {(order.total || 0).toLocaleString()} so'm
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setExpandedOrders(prev => ({ ...prev, [order.id]: !prev[order.id] }));
+                      }}
+                      className="text-xs font-black text-[#7000ff] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{isExpanded ? (lang === 'uz' ? 'Yopish' : 'Скрыть') : (lang === 'uz' ? 'Batafsil' : 'Подробнее')}</span>
+                      <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Expanded Itemized Breakdown */}
+                  {isExpanded && (
+                    <div className="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200/70 space-y-2 animate-fadeIn text-xs">
+                      {items.map((it, idx) => (
+                        <div key={idx} className="flex items-start justify-between gap-2 border-b border-gray-150 pb-2 last:border-b-0 last:pb-0">
+                          <div>
+                            <p className="font-black text-gray-900 text-xs leading-snug">
+                              {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                            </p>
+                            <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                              {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                            </p>
+                          </div>
+                          <span className="font-black text-gray-900 text-xs shrink-0 font-mono">
+                            {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Electronic Receipt Button */}
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-end">
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setSelectedReceiptOrder(order);
+                      }}
+                      className="text-xs font-black text-[#7000ff] hover:text-[#5e00db] flex items-center gap-1.5 py-1 px-2.5 rounded-xl hover:bg-purple-50 transition-colors cursor-pointer"
+                    >
+                      <DocumentTextIcon className="w-4 h-4 stroke-[2.2]" />
+                      <span>{lang === 'uz' ? 'Elektron chek' : 'Электронный чек'}</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Electronic Receipt Modal (Uzum Style Screenshot 5) */}
+        {selectedReceiptOrder && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
+            <div 
+              onClick={() => setSelectedReceiptOrder(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fadeIn" 
+            />
+
+            <div className="relative w-full max-w-lg bg-white rounded-t-[32px] p-6 pb-9 shadow-2xl z-10 animate-slideUp max-h-[90vh] overflow-y-auto space-y-4">
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-2" />
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-base font-black text-gray-900">
+                  {lang === 'uz' ? 'Elektron chek' : 'Электронный чек'}
+                </h3>
+                <button
+                  onClick={() => setSelectedReceiptOrder(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer"
+                >
+                  <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+
+              {/* Tax / Soliq Info Banner */}
+              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 flex items-start gap-3 text-xs text-sky-900">
+                <InformationCircleIcon className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed font-medium text-[11px]">
+                  {lang === 'uz' 
+                    ? 'Tovarlar olingach, agar telefon raqamingizga ulangan Soliq akkaunti bo\'lsa, soliq keshbeki avtomatik keladi.' 
+                    : 'После получения товаров, если к вашему номеру привязан налоговый аккаунт Soliq, налоговый кешбэк начислится автоматически.'}
+                </p>
+              </div>
+
+              {/* Receipt Breakdown Card */}
+              <div className="bg-[#f8f9fa] rounded-3xl p-5 border border-gray-200/80 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                  <div>
+                    <h4 className="font-black text-sm text-gray-900">
+                      {lang === 'uz' ? 'Xarid cheki' : 'Чек покупки'}
+                    </h4>
+                    <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                      {selectedReceiptOrder.date || 'Bugun'}
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700">
+                    To'langan
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {(selectedReceiptOrder.items || []).map((it, idx) => (
+                    <div key={idx} className="flex justify-between items-start text-xs">
+                      <span className="text-gray-700 font-medium">
+                        {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'} × {Number(it.quantity) || 1}
+                      </span>
+                      <span className="font-bold text-gray-900 font-mono">
+                        {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-sm font-black">
+                  <span>{lang === 'uz' ? 'Jami summa:' : 'Итого к оплате:'}</span>
+                  <span className="text-[#7000ff] font-mono text-base">
+                    {(selectedReceiptOrder.total || 0).toLocaleString()} so'm
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedReceiptOrder(null)}
+                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-2xl text-xs active:scale-98 transition-all cursor-pointer"
+              >
+                {lang === 'uz' ? 'Yopish' : 'Закрыть'}
+              </button>
+            </div>
           </div>
         )}
       </div>
