@@ -107,14 +107,80 @@ const adminController = {
   // ─── Authentication ────────────────────────────────────────
 
   /**
-   * POST /api/admin/verify-password — Admin login (returns JWT)
+   * POST /api/admin/auth/check — Check admin status & role (Supports Telegram ID and JWT token via POST)
+   */
+  checkAuth: async (req, res) => {
+    try {
+      const { telegramId, token } = req.body || {};
+      const { getAdminInfo, JWT_SECRET, ROLE_PERMISSIONS } = require('../middleware/auth.cjs');
+      const jwt = require('jsonwebtoken');
+
+      // 1. Check via Telegram ID (POST body or X-Admin-Id header)
+      const tId = telegramId || req.headers['x-admin-id'];
+      if (tId) {
+        const adminInfo = await getAdminInfo(tId);
+        if (adminInfo) {
+          return res.json({
+            success: true,
+            isAdmin: true,
+            user: {
+              id: adminInfo.id,
+              role: adminInfo.role,
+              permissions: adminInfo.permissions,
+              source: 'telegram'
+            }
+          });
+        }
+      }
+
+      // 2. Check via JWT Token (POST body or Authorization header)
+      const bearerToken = token || req.headers['authorization'] || req.headers['x-admin-token'];
+      if (bearerToken) {
+        const cleanToken = typeof bearerToken === 'string' && bearerToken.startsWith('Bearer ')
+          ? bearerToken.substring(7)
+          : bearerToken;
+        try {
+          const decoded = jwt.verify(cleanToken, JWT_SECRET);
+          if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
+            const role = decoded.role === 'admin' ? 'super_admin' : decoded.role;
+            return res.json({
+              success: true,
+              isAdmin: true,
+              user: {
+                id: decoded.email,
+                role: role,
+                permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.super_admin,
+                source: 'jwt'
+              }
+            });
+          }
+        } catch (jwtErr) {
+          // Token invalid or expired
+        }
+      }
+
+      return res.json({ success: true, isAdmin: false, user: null });
+    } catch (err) {
+      console.error('[Admin Auth] checkAuth error:', err);
+      res.status(500).json({ success: false, message: 'Server xatosi' });
+    }
+  },
+
+  /**
+   * POST /api/admin/verify-password — Admin login (returns JWT with role)
    */
   verifyPassword: (req, res) => {
     const { email, password } = req.body;
     const result = AuthService.verifyAdmin(email, password);
 
     if (result.success) {
-      res.json({ success: true, token: result.token, message: 'Kirish muvaffaqiyatli!' });
+      res.json({
+        success: true,
+        token: result.token,
+        role: 'super_admin',
+        permissions: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
+        message: 'Kirish muvaffaqiyatli!'
+      });
     } else {
       res.status(401).json({ success: false, message: 'Email yoki parol noto\'g\'ri!' });
     }

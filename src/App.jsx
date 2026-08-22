@@ -206,7 +206,7 @@ const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
 };
 
 const MainLayout = () => {
-  const { activeTab, selectedCategory, setSelectedCategory, lang, isSearchOpen, setIsSearchOpen, isOrderSuccess, setIsOrderSuccess, botUsername, isAdminMode, setIsAdminMode, products, categories } = useStore();
+  const { activeTab, selectedCategory, setSelectedCategory, lang, isSearchOpen, setIsSearchOpen, isOrderSuccess, setIsOrderSuccess, botUsername, isAdminMode, setIsAdminMode, products, categories, adminAuth, checkAdminAuth } = useStore();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [expandedCats, setExpandedCats] = useState({});
@@ -249,54 +249,56 @@ const MainLayout = () => {
       animateScrollTo(0, 500, () => {
         isClickScrolling.current = false;
       });
-    } else {
-      const element = document.getElementById(`category-sec-${selectedCategory}`);
-      if (element) {
-        const yOffset = -115; // height offset of sticky header + category tabs
-        const targetY = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        animateScrollTo(targetY, 600, () => {
-          isClickScrolling.current = false;
-        });
-      } else {
+      return;
+    }
+
+    const element = document.getElementById(`category-sec-${selectedCategory}`);
+    if (element) {
+      const headerOffset = 135;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      animateScrollTo(offsetPosition, 600, () => {
         isClickScrolling.current = false;
-      }
+      });
+    } else {
+      isClickScrolling.current = false;
     }
   }, [selectedCategory, activeTab]);
 
-  // Scroll listener to update highlighted category tab during manual scrolling
+  // Handle active category tab highlight on user manual scroll
   useEffect(() => {
     if (activeTab !== 'catalog') return;
 
     let debounceTimeout = null;
 
     const handleScroll = () => {
-      // If we are currently click-scrolling, don't interfere
       if (isClickScrolling.current) return;
 
-      const scrollPosition = window.scrollY;
-
-      // Find active category section
+      const headerOffset = 150;
+      const sections = categories.map(cat => document.getElementById(`category-sec-${cat.id}`)).filter(Boolean);
+      
       let activeSecId = 'all';
-      if (scrollPosition >= 120) {
-        for (const cat of categories) {
-          if (cat.id === 'all') continue;
-          const element = document.getElementById(`category-sec-${cat.id}`);
-          if (element) {
-            const rect = element.getBoundingClientRect();
-            if (rect.top <= 125 && rect.bottom > 125) {
-              activeSecId = cat.id;
-              break;
-            }
+
+      if (window.scrollY < 200) {
+        activeSecId = 'all';
+      } else {
+        for (let i = sections.length - 1; i >= 0; i--) {
+          const sec = sections[i];
+          const rect = sec.getBoundingClientRect();
+          if (rect.top <= headerOffset) {
+            activeSecId = sec.id.replace('category-sec-', '');
+            break;
           }
         }
       }
 
-      // Update DOM classes instantly (smooth, no layout thrashing, 60fps)
-      const buttons = document.querySelectorAll('.category-tab-btn');
-      buttons.forEach(btn => {
+      // Update DOM classes directly without triggering React re-renders while scrolling
+      const allBtns = document.querySelectorAll('.category-tab-btn');
+      allBtns.forEach(btn => {
         const catId = btn.getAttribute('data-category-id');
         if (catId === activeSecId) {
-          btn.className = 'category-tab-btn px-4 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all duration-200 shrink-0 bg-[#3b82f6] text-white border border-transparent';
+          btn.className = 'category-tab-btn px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 bg-blue-600 text-white shadow-sm';
           
           // Center tab in the sticky scroll container
           const container = btn.parentElement;
@@ -327,7 +329,7 @@ const MainLayout = () => {
       window.removeEventListener('scroll', handleScroll);
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, [activeTab, selectedCategory, setSelectedCategory]);
+  }, [activeTab, selectedCategory, setSelectedCategory, categories]);
 
   // Reset order success state when navigating away from catalog
   useEffect(() => {
@@ -351,10 +353,11 @@ const MainLayout = () => {
     ? `https://t.me/${botUsername}?start=${productId}` 
     : `https://t.me/${botUsername}`;
 
-  // Parse admin mode on mount if ?admin=true is present
+  // Parse admin mode on mount if ?admin=true or /admin is present
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === 'true') {
+    const path = window.location.pathname;
+    if (params.get('admin') === 'true' || path === '/admin' || path.startsWith('/admin/')) {
       setIsAdminMode(true);
     }
   }, [setIsAdminMode]);
@@ -364,25 +367,36 @@ const MainLayout = () => {
   const forceUpdate = () => setTick(t => t + 1);
 
   if (isAdminMode) {
-    const isBrowserAdminVerified = sessionStorage.getItem('qlay_admin_verified') === 'true' ||
-                                   !!localStorage.getItem('qlay_admin_token') ||
-                                   !!sessionStorage.getItem('qlay_admin_token');
+    const isTokenPresent = !!localStorage.getItem('qlay_admin_token') || !!sessionStorage.getItem('qlay_admin_token');
+    const isTelegramAdmin = !!(adminAuth && adminAuth.isAdmin);
 
-    if (isBrowserAdminVerified) {
+    if (isTelegramAdmin || (isTokenPresent && adminAuth.isAdmin)) {
       return <AdminLayout />;
+    } else if (adminAuth.loading && isTokenPresent) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+          <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
     } else {
       return (
         <AdminLoginScreen 
-          onLoginSuccess={(token, remember) => {
+          onLoginSuccess={async (token, remember) => {
             sessionStorage.setItem('qlay_admin_verified', 'true');
             if (remember) {
               localStorage.setItem('qlay_admin_token', token);
             } else {
               sessionStorage.setItem('qlay_admin_token', token);
             }
+            await checkAdminAuth();
             forceUpdate();
           }} 
-          onCancel={() => setIsAdminMode(false)} 
+          onCancel={() => {
+            setIsAdminMode(false);
+            if (window.location.pathname === '/admin') {
+              window.history.pushState({}, '', '/');
+            }
+          }} 
         />
       );
     }

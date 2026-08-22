@@ -45,6 +45,7 @@ const SiteSettings = {
       delivery_price: data.delivery_price !== undefined ? (parseInt(data.delivery_price, 10) || 0) : (current.delivery_price || 0),
       bts_delivery_price: data.bts_delivery_price !== undefined ? (parseInt(data.bts_delivery_price, 10) || 0) : (current.bts_delivery_price || 0),
       admin_ids: data.admin_ids !== undefined ? data.admin_ids : current.admin_ids,
+      admin_roles: data.admin_roles !== undefined ? (typeof data.admin_roles === 'object' ? JSON.stringify(data.admin_roles) : data.admin_roles) : (current.admin_roles || '{}'),
       is_active: data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active
     };
 
@@ -52,7 +53,7 @@ const SiteSettings = {
       `UPDATE site_settings SET 
         name = ?, description = ?, logo = ?, phone = ?, address = ?, 
         working_hours = ?, telegram_channel = ?, instagram = ?, 
-        bot_token = ?, bot_username = ?, delivery_price = ?, bts_delivery_price = ?, admin_ids = ?, is_active = ?
+        bot_token = ?, bot_username = ?, delivery_price = ?, bts_delivery_price = ?, admin_ids = ?, admin_roles = ?, is_active = ?
        WHERE id = 1`,
       [
         merged.name,
@@ -68,6 +69,7 @@ const SiteSettings = {
         merged.delivery_price,
         merged.bts_delivery_price,
         merged.admin_ids,
+        merged.admin_roles,
         merged.is_active
       ]
     );

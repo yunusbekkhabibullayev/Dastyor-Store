@@ -42,17 +42,23 @@ export const AdminLayout = () => {
     setAdminTab, 
     triggerHaptic, 
     telegramUser,
-    showConfirm
+    showConfirm,
+    adminAuth
   } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef(null);
 
-  useEffect(() => {
-    if (mainRef.current) {
-      mainRef.current.scrollTop = 0;
-    }
-    window.scrollTo(0, 0);
-  }, [adminTab]);
+  const permissions = adminAuth?.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'];
+  const userRole = adminAuth?.role || 'super_admin';
+
+  const roleBadges = {
+    super_admin: { uz: '👑 Super Admin', ru: '👑 Главный Админ' },
+    manager: { uz: '🧑‍💼 Menejer', ru: '🧑‍💼 Менеджер' },
+    courier: { uz: '🚚 Kuryer', ru: '🚚 Курьер' },
+    content_manager: { uz: '🎨 Kontent Menejer', ru: '🎨 Контент-менеджер' }
+  };
+
+  const currentRoleBadge = roleBadges[userRole]?.[lang] || roleBadges[userRole]?.uz || 'Administrator';
 
   const translations = {
     uz: {
@@ -61,10 +67,10 @@ export const AdminLayout = () => {
       orders: 'Buyurtmalar',
       products: 'Mahsulotlar',
       categories: 'Kategoriyalar',
-      settings: 'Banners',
+      settings: 'Bannerlar',
       logout: 'Chiqish',
       store: 'Saytga qaytish',
-      admin: 'Administrator'
+      admin: currentRoleBadge
     },
     ru: {
       adminPanel: 'Панель админа',
@@ -75,13 +81,13 @@ export const AdminLayout = () => {
       settings: 'Баннеры',
       logout: 'Выйти',
       store: 'Вернуться на сайт',
-      admin: 'Администратор'
+      admin: currentRoleBadge
     }
   };
 
   const t = translations[lang] || translations.uz;
 
-  const menuItems = [
+  const allMenuItems = [
     { id: 'dashboard', name: t.dashboard, icon: LayoutDashboardIcon },
     { id: 'orders', name: t.orders, icon: ShoppingCartIcon },
     { id: 'products', name: t.products, icon: PackageIcon },
@@ -90,9 +96,27 @@ export const AdminLayout = () => {
     { id: 'site-settings', name: lang === 'uz' ? 'Sozlamalar' : 'Настройки', icon: SettingsIcon }
   ];
 
+  const allowedMenuItems = allMenuItems.filter(item => permissions.includes(item.id));
+
+  // Fallback to first available tab if current is forbidden
+  useEffect(() => {
+    const parentTab = adminTab.split('-')[0];
+    const isAllowed = permissions.includes(adminTab) || permissions.includes(parentTab) || adminTab.startsWith('product') || adminTab.startsWith('category') || adminTab.startsWith('order');
+    if (!isAllowed && allowedMenuItems.length > 0) {
+      setAdminTab(allowedMenuItems[0].id);
+    }
+  }, [adminTab, permissions]);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+  }, [adminTab]);
+
   const adminName = telegramUser 
     ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() 
-    : 'Yunusbek Khabibullayev';
+    : 'Admin';
 
   const handleTabChange = (tabId) => {
     triggerHaptic('light');
@@ -147,14 +171,14 @@ export const AdminLayout = () => {
             </div>
             <div>
               <h4 className="font-bold text-xs truncate max-w-36">{adminName}</h4>
-              <span className="text-[9px] text-gray-400 uppercase font-semibold">{t.admin}</span>
+              <span className="text-[9px] text-blue-400 font-bold">{currentRoleBadge}</span>
             </div>
           </div>
         </div>
 
         {/* Menu Links */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {allowedMenuItems.map((item) => {
             const Icon = item.icon;
             const active = adminTab === item.id;
             

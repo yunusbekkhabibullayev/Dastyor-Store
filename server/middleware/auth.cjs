@@ -1,8 +1,7 @@
 /**
- * Admin Authentication Middleware
+ * Admin Authentication & RBAC Middleware
  * 
- * Supports JWT token and Telegram ID authentication.
- * Inspired by online-menu's AdminMiddleware.php pattern.
+ * Supports JWT token and Telegram ID authentication with Role-Based Access Control.
  */
 
 const jwt = require('jsonwebtoken');
@@ -14,50 +13,131 @@ const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_
 
 const { dbGet } = require('../config/database.cjs');
 
-const isAdmin = async (req, res, next) => {
-  // 1. Authenticate via Telegram ID (Bot/WebApp environment)
-  const adminId = parseInt(req.headers['x-admin-id'], 10);
-  if (adminId) {
-    let adminIds = [...telegramConfig.adminIds];
-    try {
-      const settings = await dbGet("SELECT admin_ids FROM site_settings WHERE id = 1");
-      if (settings && settings.admin_ids) {
+const ROLE_PERMISSIONS = {
+  super_admin: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
+  manager: ['dashboard', 'orders', 'products'],
+  courier: ['orders'],
+  content_manager: ['products', 'categories', 'settings']
+};
+
+/**
+ * Resolve admin user role & permissions from DB / Config
+ */
+const getAdminInfo = async (identifier) => {
+  if (!identifier) return null;
+
+  // 1. Check if identifier is string / JWT email
+  if (typeof identifier === 'string' && identifier.includes('@')) {
+    return {
+      id: identifier,
+      role: 'super_admin',
+      permissions: ROLE_PERMISSIONS.super_admin,
+      source: 'jwt'
+    };
+  }
+
+  // 2. Telegram ID check
+  const numId = parseInt(identifier, 10);
+  if (isNaN(numId)) return null;
+
+  let adminIds = [...telegramConfig.adminIds];
+  let adminRoles = {};
+
+  try {
+    const settings = await dbGet("SELECT admin_ids, admin_roles FROM site_settings WHERE id = 1");
+    if (settings) {
+      if (settings.admin_ids) {
         const dbAdminIds = settings.admin_ids
           .split(',')
           .map(id => parseInt(id.trim(), 10))
           .filter(id => !isNaN(id));
         adminIds = Array.from(new Set([...adminIds, ...dbAdminIds]));
       }
-    } catch (e) {
-      console.error('Failed to load admin IDs from database:', e);
+      if (settings.admin_roles) {
+        try {
+          adminRoles = typeof settings.admin_roles === 'string' ? JSON.parse(settings.admin_roles) : settings.admin_roles;
+        } catch (e) {}
+      }
     }
+  } catch (e) {
+    console.error('Failed to load admin settings from database:', e);
+  }
 
-    if (adminIds.includes(adminId)) {
-      req.adminUser = { id: adminId, source: 'telegram' };
+  if (adminIds.includes(numId)) {
+    // Specific role or default to super_admin for primary env admins, manager for others
+    const isPrimaryAdmin = telegramConfig.adminIds.includes(numId) || numId === 1165441564;
+    const assignedRole = adminRoles[String(numId)] || (isPrimaryAdmin ? 'super_admin' : 'manager');
+    const validRole = ROLE_PERMISSIONS[assignedRole] ? assignedRole : 'super_admin';
+
+    return {
+      id: numId,
+      role: validRole,
+      permissions: ROLE_PERMISSIONS[validRole] || ROLE_PERMISSIONS.manager,
+      source: 'telegram'
+    };
+  }
+
+  return null;
+};
+
+const isAdmin = async (req, res, next) => {
+  // 1. Authenticate via Telegram ID (Body or Header)
+  const headerId = req.headers['x-admin-id'];
+  const bodyId = req.body && req.body.telegramId;
+  const adminId = parseInt(headerId || bodyId, 10);
+
+  if (adminId) {
+    const adminInfo = await getAdminInfo(adminId);
+    if (adminInfo) {
+      req.adminUser = adminInfo;
       return next();
     }
   }
 
   // 2. Authenticate via JWT Bearer Token (Desktop Web Browser environment)
-  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'] || (req.body && req.body.token);
   if (authHeader) {
-    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+    const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded && decoded.role === 'admin') {
-        req.adminUser = { id: decoded.email, source: 'jwt', ...decoded };
+      if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
+        req.adminUser = {
+          id: decoded.email,
+          role: decoded.role || 'super_admin',
+          permissions: ROLE_PERMISSIONS[decoded.role] || ROLE_PERMISSIONS.super_admin,
+          source: 'jwt',
+          ...decoded
+        };
         return next();
       }
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({ success: false, message: 'Token muddati tugagan. Qayta kiring.' });
       }
-      // Invalid token — fall through to 403
     }
   }
 
   return res.status(403).json({ success: false, message: 'Admin huquqi mavjud emas!' });
 };
 
-module.exports = { isAdmin, JWT_SECRET };
+/**
+ * Require specific roles middleware
+ */
+const requireRole = (allowedRoles = []) => {
+  return (req, res, next) => {
+    if (!req.adminUser) {
+      return res.status(403).json({ success: false, message: 'Ruxsat berilmagan!' });
+    }
+    const userRole = req.adminUser.role || 'super_admin';
+    if (userRole === 'super_admin' || allowedRoles.includes(userRole)) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: `Ushbu amal uchun ruxsat yo'q. Talab qilinadigan rol: ${allowedRoles.join(', ')}`
+    });
+  };
+};
+
+module.exports = { isAdmin, requireRole, getAdminInfo, ROLE_PERMISSIONS, JWT_SECRET };

@@ -210,6 +210,9 @@ const dbInit = async () => {
   if (!(await checkColumn('site_settings', 'admin_ids'))) {
     try { await dbRun("ALTER TABLE site_settings ADD COLUMN admin_ids TEXT DEFAULT ''"); } catch (e) {}
   }
+  if (!(await checkColumn('site_settings', 'admin_roles'))) {
+    try { await dbRun("ALTER TABLE site_settings ADD COLUMN admin_roles TEXT DEFAULT '{}'"); } catch (e) {}
+  }
   if (!(await checkColumn('site_settings', 'bts_delivery_price'))) {
     try { await dbRun("ALTER TABLE site_settings ADD COLUMN bts_delivery_price INTEGER DEFAULT 50000"); } catch (e) {}
   }

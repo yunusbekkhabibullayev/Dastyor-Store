@@ -15,10 +15,13 @@ const { isAdmin } = require('../middleware/auth.cjs');
 const { adminLimiter, loginLimiter } = require('../middleware/rateLimiter.cjs');
 const { validate, schemas } = require('../middleware/validate.cjs');
 
-// ─── Authentication (no auth middleware needed) ──────────────
+// ─── Authentication (publicly accessible endpoints) ──────────────
 router.post('/verify-password', loginLimiter, validate(schemas.adminLogin), adminController.verifyPassword);
+router.post('/auth/check', loginLimiter, adminController.checkAuth);
 
 // ─── All routes below require admin authentication ──────────
+const { requireRole } = require('../middleware/auth.cjs');
+
 router.use(isAdmin);
 router.use(adminLimiter);
 
@@ -48,37 +51,37 @@ router.post('/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// Dashboard
-router.get('/stats', adminController.getStats);
+// Dashboard (super_admin, manager)
+router.get('/stats', requireRole(['super_admin', 'manager']), adminController.getStats);
 
-// Orders
-router.get('/orders', adminController.getOrders);
-router.patch('/orders/:id/status', validate(schemas.orderStatus), adminController.updateOrderStatus);
+// Orders (super_admin, manager, courier)
+router.get('/orders', requireRole(['super_admin', 'manager', 'courier']), adminController.getOrders);
+router.patch('/orders/:id/status', requireRole(['super_admin', 'manager', 'courier']), validate(schemas.orderStatus), adminController.updateOrderStatus);
 
-// Categories CRUD
+// Categories CRUD (super_admin, content_manager, manager)
 router.get('/categories', adminController.getCategories);
-router.post('/categories', validate(schemas.category), adminController.createCategory);
-router.put('/categories/:id', validate(schemas.category), adminController.updateCategory);
-router.delete('/categories/:id', adminController.deleteCategory);
+router.post('/categories', requireRole(['super_admin', 'content_manager']), validate(schemas.category), adminController.createCategory);
+router.put('/categories/:id', requireRole(['super_admin', 'content_manager']), validate(schemas.category), adminController.updateCategory);
+router.delete('/categories/:id', requireRole(['super_admin', 'content_manager']), adminController.deleteCategory);
 
-// Products CRUD
+// Products CRUD (super_admin, content_manager, manager)
 router.get('/products', adminController.getProducts);
-router.post('/products', validate(schemas.product), adminController.createProduct);
-router.put('/products/:id', validate(schemas.product), adminController.updateProduct);
-router.delete('/products/:id', adminController.deleteProduct);
+router.post('/products', requireRole(['super_admin', 'content_manager']), validate(schemas.product), adminController.createProduct);
+router.put('/products/:id', requireRole(['super_admin', 'content_manager']), validate(schemas.product), adminController.updateProduct);
+router.delete('/products/:id', requireRole(['super_admin', 'content_manager']), adminController.deleteProduct);
 
-// Banners CRUD
+// Banners CRUD (super_admin, content_manager)
 router.get('/banners', adminBannerController.getBanners);
-router.post('/banners', adminBannerController.createBanner);
-router.put('/banners/:id', adminBannerController.updateBanner);
-router.delete('/banners/:id', adminBannerController.deleteBanner);
+router.post('/banners', requireRole(['super_admin', 'content_manager']), adminBannerController.createBanner);
+router.put('/banners/:id', requireRole(['super_admin', 'content_manager']), adminBannerController.updateBanner);
+router.delete('/banners/:id', requireRole(['super_admin', 'content_manager']), adminBannerController.deleteBanner);
 
-// Site Settings
-router.get('/site-settings', adminController.getSiteSettings);
-router.put('/site-settings', adminController.updateSiteSettings);
-router.post('/test-telegram', adminController.testTelegram);
-router.get('/telegram/webhook-status', adminController.getWebhookStatus);
-router.post('/telegram/set-webhook', adminController.setWebhook);
-router.post('/telegram/delete-webhook', adminController.deleteWebhook);
+// Site Settings (super_admin only)
+router.get('/site-settings', requireRole(['super_admin']), adminController.getSiteSettings);
+router.put('/site-settings', requireRole(['super_admin']), adminController.updateSiteSettings);
+router.post('/test-telegram', requireRole(['super_admin']), adminController.testTelegram);
+router.get('/telegram/webhook-status', requireRole(['super_admin']), adminController.getWebhookStatus);
+router.post('/telegram/set-webhook', requireRole(['super_admin']), adminController.setWebhook);
+router.post('/telegram/delete-webhook', requireRole(['super_admin']), adminController.deleteWebhook);
 
 module.exports = router;

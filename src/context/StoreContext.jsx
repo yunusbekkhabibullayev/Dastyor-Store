@@ -38,6 +38,12 @@ export const StoreProvider = ({ children }) => {
   });
   const [telegramUser, setTelegramUser] = useState(null);
   const [botUsername, setBotUsername] = useState('');
+  const [adminAuth, setAdminAuth] = useState({
+    isAdmin: false,
+    role: null,
+    permissions: [],
+    loading: true
+  });
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard', 'orders', 'products', 'categories'
   const [selectedAdminOrder, setSelectedAdminOrder] = useState(null);
@@ -190,6 +196,36 @@ export const StoreProvider = ({ children }) => {
       .catch(err => console.warn('Failed to fetch site settings:', err));
   };
 
+  const checkAdminAuth = async (overrideUser) => {
+    try {
+      const token = localStorage.getItem('qlay_admin_token') || sessionStorage.getItem('qlay_admin_token');
+      const currentUser = overrideUser !== undefined ? overrideUser : telegramUser;
+      const telegramId = currentUser?.id;
+
+      const res = await fetch('/api/admin/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId, token })
+      });
+      const data = await res.json();
+      if (data.success && data.isAdmin && data.user) {
+        setAdminAuth({
+          isAdmin: true,
+          role: data.user.role || 'super_admin',
+          permissions: data.user.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
+          loading: false
+        });
+        return { isAdmin: true, role: data.user.role, permissions: data.user.permissions };
+      } else {
+        setAdminAuth({ isAdmin: false, role: null, permissions: [], loading: false });
+        return { isAdmin: false };
+      }
+    } catch (e) {
+      setAdminAuth({ isAdmin: false, role: null, permissions: [], loading: false });
+      return { isAdmin: false };
+    }
+  };
+
   // Fetch bot info, products, categories, banners, site settings, and user orders on mount
   useEffect(() => {
     fetch('/api/bot-info')
@@ -206,6 +242,7 @@ export const StoreProvider = ({ children }) => {
     fetchBanners();
     fetchSiteSettings();
     fetchUserOrders();
+    checkAdminAuth(telegramUser);
   }, [telegramUser]);
 
   // Sync data smoothly on tab switches without aggressive intervals
@@ -652,6 +689,9 @@ export const StoreProvider = ({ children }) => {
       placeOrder,
       telegramUser,
       botUsername,
+      adminAuth,
+      setAdminAuth,
+      checkAdminAuth,
       isAdminMode,
       setIsAdminMode,
       adminTab,

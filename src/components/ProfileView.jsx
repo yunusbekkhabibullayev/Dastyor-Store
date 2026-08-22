@@ -48,7 +48,7 @@ const formatUzPhone = (inputValue) => {
 
 export const ProfileView = () => {
   const {
-    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings, formatQuantity
+    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, showConfirm, telegramUser, setIsAdminMode, siteSettings, formatQuantity, adminAuth
   } = useStore();
 
   const checkIsAdmin = () => {
@@ -363,7 +363,7 @@ export const ProfileView = () => {
             </button>
           </div>
 
-          {checkIsAdmin() && (
+          {(adminAuth?.isAdmin || checkIsAdmin()) && (
             <>
               <div className="border-t border-gray-100 my-4"></div>
               <button
@@ -371,10 +371,16 @@ export const ProfileView = () => {
                   triggerHaptic('medium');
                   setIsAdminMode(true);
                 }}
-                className="w-full py-3 bg-[#e8f0fe] hover:bg-[#dbeafe] text-[#2563eb] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all border border-blue-100 active:scale-[0.98] shadow-2xs cursor-pointer"
+                className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all border border-blue-200 active:scale-[0.98] shadow-2xs cursor-pointer"
               >
-                <SettingsIcon className="w-4 h-4" />
-                <span>{lang === 'uz' ? 'Admin panelga o\'tish' : 'Перейти в админ панель'}</span>
+                <SettingsIcon className="w-4 h-4 text-blue-600" />
+                <span>
+                  {adminAuth?.role === 'courier'
+                    ? (lang === 'uz' ? '🚚 Kuryer paneliga o\'tish' : '🚚 Панель курьера')
+                    : adminAuth?.role === 'manager'
+                    ? (lang === 'uz' ? '🧑‍💼 Menejer paneliga o\'tish' : '🧑‍💼 Панель менеджера')
+                    : (lang === 'uz' ? '👑 Admin panelga o\'tish' : '👑 Панель управления')}
+                </span>
               </button>
             </>
           )}
