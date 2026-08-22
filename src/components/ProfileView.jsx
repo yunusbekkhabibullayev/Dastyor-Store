@@ -1516,85 +1516,143 @@ export const ProfileView = () => {
           </div>
         )}
 
-        {/* Electronic Receipt Modal (Uzum Style Screenshot 5) */}
-        {selectedReceiptOrder && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
-            <div 
-              onClick={() => setSelectedReceiptOrder(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fadeIn" 
-            />
+        {/* Electronic Receipt Modal (Uzum Style with Dynamic Verification QR Code) */}
+        {selectedReceiptOrder && (() => {
+          const orderLink = typeof window !== 'undefined' 
+            ? `${window.location.origin}/?orderId=${encodeURIComponent(selectedReceiptOrder.id)}`
+            : `https://dastyor.store/?orderId=${selectedReceiptOrder.id}`;
+          
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(orderLink)}`;
 
-            <div className="relative w-full max-w-lg bg-white rounded-t-[32px] p-6 pb-9 shadow-2xl z-10 animate-slideUp max-h-[90vh] overflow-y-auto space-y-4">
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-2" />
+          return (
+            <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
+              <div 
+                onClick={() => setSelectedReceiptOrder(null)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fadeIn" 
+              />
 
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-base font-black text-gray-900">
-                  {lang === 'uz' ? 'Elektron chek' : 'Электронный чек'}
-                </h3>
-                <button
-                  onClick={() => setSelectedReceiptOrder(null)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer"
-                >
-                  <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
-                </button>
-              </div>
+              <div className="relative w-full max-w-lg bg-white rounded-t-[32px] p-6 pb-9 shadow-2xl z-10 animate-slideUp max-h-[90vh] overflow-y-auto space-y-4 text-left">
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-2" />
 
-              {/* Tax / Soliq Info Banner */}
-              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 flex items-start gap-3 text-xs text-sky-900">
-                <InformationCircleIcon className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
-                <p className="leading-relaxed font-medium text-[11px]">
-                  {lang === 'uz' 
-                    ? 'Tovarlar olingach, agar telefon raqamingizga ulangan Soliq akkaunti bo\'lsa, soliq keshbeki avtomatik keladi.' 
-                    : 'После получения товаров, если к вашему номеру привязан налоговый аккаунт Soliq, налоговый кешбэк начислится автоматически.'}
-                </p>
-              </div>
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <DocumentTextIcon className="w-5 h-5 text-[#7000ff]" />
+                    <h3 className="text-base font-black text-gray-900">
+                      {lang === 'uz' ? 'Elektron chek' : 'Электронный чек'}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedReceiptOrder(null)}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-200 transition-colors"
+                  >
+                    <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
 
-              {/* Receipt Breakdown Card */}
-              <div className="bg-[#f8f9fa] rounded-3xl p-5 border border-gray-200/80 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                  <div>
-                    <h4 className="font-black text-sm text-gray-900">
-                      {lang === 'uz' ? 'Xarid cheki' : 'Чек покупки'}
+                {/* 1. Dynamic QR Code Verification Card */}
+                <div className="bg-gradient-to-b from-purple-50/70 via-white to-gray-50 rounded-3xl p-5 border border-purple-100/80 text-center space-y-3 shadow-2xs">
+                  <div className="relative inline-block mx-auto bg-white p-2.5 rounded-2xl shadow-md border border-gray-150">
+                    <img 
+                      src={qrUrl} 
+                      alt={`Order #${selectedReceiptOrder.id} QR Code`}
+                      className="w-36 h-36 object-contain rounded-xl block mx-auto"
+                    />
+                    <div className="absolute inset-0 border-2 border-purple-500/30 rounded-2xl pointer-events-none" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-gray-900">
+                      {lang === 'uz' ? 'Buyurtmani tekshirish QR-kodi' : 'QR-код проверки заказа'}
                     </h4>
-                    <p className="text-[11px] text-gray-500 font-mono mt-0.5">
-                      {selectedReceiptOrder.date || 'Bugun'}
+                    <p className="text-[11px] text-gray-500 font-medium max-w-xs mx-auto leading-relaxed">
+                      {lang === 'uz' 
+                        ? 'Kamera yoki QR-skaner orqali ushbu buyurtmaning to\'liq ma\'lumotlarini tekshiring.' 
+                        : 'Отсканируйте камерой для проверки подлинности и деталей заказа.'}
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700">
-                    To'langan
-                  </span>
+
+                  {/* Copy Link Button */}
+                  <button
+                    onClick={() => {
+                      triggerHaptic('light');
+                      navigator.clipboard?.writeText(orderLink);
+                      setCopiedOrderId(`receipt_${selectedReceiptOrder.id}`);
+                      setTimeout(() => setCopiedOrderId(null), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 text-[11px] font-bold rounded-xl border border-gray-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <DocumentDuplicateIcon className="w-3.5 h-3.5 text-purple-600" />
+                    <span>
+                      {copiedOrderId === `receipt_${selectedReceiptOrder.id}` 
+                        ? (lang === 'uz' ? 'Havola nusxalandi!' : 'Ссылка скопирована!') 
+                        : (lang === 'uz' ? 'Chek havolasini nusxalash' : 'Скопировать ссылку чека')}
+                    </span>
+                  </button>
                 </div>
 
-                <div className="space-y-2 text-xs">
-                  {(selectedReceiptOrder.items || []).map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-start text-xs">
-                      <span className="text-gray-700 font-medium">
-                        {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'} × {Number(it.quantity) || 1}
-                      </span>
-                      <span className="font-bold text-gray-900 font-mono">
-                        {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
-                      </span>
+                {/* 2. Receipt Itemized Breakdown Card */}
+                <div className="bg-[#f8f9fa] rounded-3xl p-5 border border-gray-200/80 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                    <div>
+                      <h4 className="font-black text-sm text-gray-900">
+                        {lang === 'uz' ? 'Xarid cheki' : 'Чек покупки'} №{selectedReceiptOrder.id}
+                      </h4>
+                      <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                        {selectedReceiptOrder.date || 'Bugun'}
+                      </p>
                     </div>
-                  ))}
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                      <CheckCircleIcon className="w-3 h-3 stroke-[2.5]" />
+                      <span>{lang === 'uz' ? 'To\'langan' : 'Оплачено'}</span>
+                    </span>
+                  </div>
+
+                  {/* Recipient & Address in receipt */}
+                  <div className="text-[11px] space-y-1 text-gray-600 border-b border-gray-200/80 pb-3">
+                    <p><strong className="text-gray-900">{lang === 'uz' ? 'Mijoz:' : 'Покупатель:'}</strong> {profileUser?.name || selectedReceiptOrder.customer_name || 'Mijoz'} ({profileUser?.phone ? formatUzPhone(profileUser.phone) : selectedReceiptOrder.phone || ''})</p>
+                    {selectedReceiptOrder.address && (
+                      <p><strong className="text-gray-900">{lang === 'uz' ? 'Manzil:' : 'Адрес:'}</strong> {selectedReceiptOrder.address}</p>
+                    )}
+                  </div>
+
+                  {/* Items List */}
+                  <div className="space-y-2 text-xs">
+                    {(selectedReceiptOrder.items || []).map((it, idx) => (
+                      <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-150 pb-1.5 last:border-b-0 last:pb-0">
+                        <div>
+                          <p className="font-bold text-gray-900">
+                            {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                          </p>
+                          <p className="text-[11px] text-gray-400 font-mono">
+                            {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                          </p>
+                        </div>
+                        <span className="font-black text-gray-900 font-mono shrink-0">
+                          {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total */}
+                  <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-sm font-black">
+                    <span className="text-gray-700">{lang === 'uz' ? 'Jami to\'langan summa:' : 'Итого оплачено:'}</span>
+                    <span className="text-[#7000ff] font-mono text-base">
+                      {(selectedReceiptOrder.total || 0).toLocaleString()} so'm
+                    </span>
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-sm font-black">
-                  <span>{lang === 'uz' ? 'Jami summa:' : 'Итого к оплате:'}</span>
-                  <span className="text-[#7000ff] font-mono text-base">
-                    {(selectedReceiptOrder.total || 0).toLocaleString()} so'm
-                  </span>
-                </div>
+                <button
+                  onClick={() => setSelectedReceiptOrder(null)}
+                  className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-2xl text-xs active:scale-98 transition-all cursor-pointer"
+                >
+                  {lang === 'uz' ? 'Yopish' : 'Закрыть'}
+                </button>
               </div>
-
-              <button
-                onClick={() => setSelectedReceiptOrder(null)}
-                className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-2xl text-xs active:scale-98 transition-all cursor-pointer"
-              >
-                {lang === 'uz' ? 'Yopish' : 'Закрыть'}
-              </button>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   }
