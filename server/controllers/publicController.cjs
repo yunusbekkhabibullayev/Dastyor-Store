@@ -14,12 +14,26 @@ const telegramService = require('../services/TelegramService.cjs');
 const cacheService = require('../services/cacheService.cjs');
 
 const publicController = {
-  /** GET /api/site-settings */
+  /**
+   * GET /api/site-settings — public, unauthenticated. Only display-safe
+   * fields: bot_token/admin_ids/admin_roles never leave the server here
+   * (use GET /api/admin/site-settings, which is auth-gated, for those).
+   */
   getSiteSettings: async (req, res) => {
     try {
       let settings = cacheService.get('siteSettings');
       if (!settings) {
-        settings = await SiteSettings.get();
+        const full = await SiteSettings.get();
+        const {
+          id, name, description, logo, phone, address, working_hours,
+          telegram_channel, instagram, bot_username, delivery_price,
+          bts_delivery_price, is_active
+        } = full;
+        settings = {
+          id, name, description, logo, phone, address, working_hours,
+          telegram_channel, instagram, bot_username, delivery_price,
+          bts_delivery_price, is_active
+        };
         cacheService.set('siteSettings', settings);
       }
       res.json({ success: true, settings });

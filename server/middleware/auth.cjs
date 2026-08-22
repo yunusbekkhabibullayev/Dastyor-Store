@@ -6,6 +6,7 @@
 
 const jwt = require('jsonwebtoken');
 const telegramConfig = require('../config/telegram.cjs');
+const { verifyInitData } = require('../services/telegramAuth.cjs');
 
 require('dotenv').config();
 
@@ -81,16 +82,19 @@ const getAdminInfo = async (identifier) => {
 };
 
 const isAdmin = async (req, res, next) => {
-  // 1. Authenticate via Telegram ID (Body or Header)
-  const headerId = req.headers['x-admin-id'];
-  const bodyId = req.body && req.body.telegramId;
-  const adminId = parseInt(headerId || bodyId, 10);
-
-  if (adminId) {
-    const adminInfo = await getAdminInfo(adminId);
-    if (adminInfo) {
-      req.adminUser = adminInfo;
-      return next();
+  // 1. Authenticate via Telegram WebApp — initData is HMAC-signed by Telegram
+  // using the bot token, so its user id can be trusted once verified. Never
+  // trust a raw client-supplied id (X-Admin-Id / body.telegramId) — anyone
+  // can put any number in a header.
+  const initData = req.headers['x-telegram-init-data'] || (req.body && req.body.initData);
+  if (initData) {
+    const tgUser = verifyInitData(initData);
+    if (tgUser) {
+      const adminInfo = await getAdminInfo(tgUser.id);
+      if (adminInfo) {
+        req.adminUser = adminInfo;
+        return next();
+      }
     }
   }
 

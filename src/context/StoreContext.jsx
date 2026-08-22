@@ -196,16 +196,17 @@ export const StoreProvider = ({ children }) => {
       .catch(err => console.warn('Failed to fetch site settings:', err));
   };
 
-  const checkAdminAuth = async (overrideUser) => {
+  const checkAdminAuth = async () => {
     try {
       const token = localStorage.getItem('qlay_admin_token') || sessionStorage.getItem('qlay_admin_token');
-      const currentUser = overrideUser !== undefined ? overrideUser : telegramUser;
-      const telegramId = currentUser?.id;
+      // Signed initData, not the unverified telegramUser state — the server
+      // checks the signature itself, so this can't be spoofed by editing state.
+      const initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
 
       const res = await fetch('/api/admin/auth/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, token })
+        body: JSON.stringify({ initData, token })
       });
       const data = await res.json();
       if (data.success && data.isAdmin && data.user) {
@@ -242,7 +243,7 @@ export const StoreProvider = ({ children }) => {
     fetchBanners();
     fetchSiteSettings();
     fetchUserOrders();
-    checkAdminAuth(telegramUser);
+    checkAdminAuth();
   }, [telegramUser]);
 
   // Sync data smoothly on tab switches without aggressive intervals
@@ -648,8 +649,11 @@ export const StoreProvider = ({ children }) => {
 
   const getAdminHeaders = () => {
     const headers = {};
-    if (telegramUser && telegramUser.id) {
-      headers['X-Admin-Id'] = telegramUser.id.toString();
+    // Raw, Telegram-signed initData — NOT initDataUnsafe.user.id. The server
+    // verifies the signature against the bot token before trusting it.
+    const initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+    if (initData) {
+      headers['X-Telegram-Init-Data'] = initData;
     }
     const token = localStorage.getItem('qlay_admin_token') || sessionStorage.getItem('qlay_admin_token');
     if (token) {

@@ -13,7 +13,7 @@ import {
 import { compressImage } from '../../utils/imageCompressor';
 
 export const AdminSiteSettings = () => {
-  const { lang, triggerHaptic, getAdminHeaders, siteSettings, fetchSiteSettings } = useStore();
+  const { lang, triggerHaptic, getAdminHeaders, fetchSiteSettings } = useStore();
 
   const [submitting, setSubmitting] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
@@ -69,27 +69,37 @@ export const AdminSiteSettings = () => {
     return clean.slice(-9);
   };
 
+  // bot_token/admin_ids are stripped from the public /api/site-settings
+  // response — this screen needs the real values, so it fetches the
+  // auth-gated admin copy directly instead of using the shared public
+  // `siteSettings` from context.
   useEffect(() => {
-    if (siteSettings) {
-      setForm({
-        name: siteSettings.name || 'Ravshan Rivoj Market',
-        logo: siteSettings.logo || '',
-        bot_token: siteSettings.bot_token || '',
-        delivery_price: siteSettings.delivery_price || 0,
-        bts_delivery_price: siteSettings.bts_delivery_price || 50000
-      });
-      setLogoPreview(siteSettings.logo || '');
-      if (siteSettings.phone) {
-        setPhoneDigits(parsePhoneDigits(siteSettings.phone));
+    const loadFullSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/site-settings', { headers: getAdminHeaders() });
+        const data = await res.json();
+        if (data.success && data.settings) {
+          const s = data.settings;
+          setForm({
+            name: s.name || 'Ravshan Rivoj Market',
+            logo: s.logo || '',
+            bot_token: s.bot_token || '',
+            delivery_price: s.delivery_price || 0,
+            bts_delivery_price: s.bts_delivery_price || 50000
+          });
+          setLogoPreview(s.logo || '');
+          if (s.phone) {
+            setPhoneDigits(parsePhoneDigits(s.phone));
+          }
+          setAdminIdsList(s.admin_ids ? s.admin_ids.split(',').map(x => x.trim()).filter(Boolean) : []);
+        }
+      } catch (err) {
+        console.warn('Failed to load admin site settings:', err);
       }
-      if (siteSettings.admin_ids) {
-        setAdminIdsList(siteSettings.admin_ids.split(',').map(s => s.trim()).filter(Boolean));
-      } else {
-        setAdminIdsList([]);
-      }
-    }
+    };
+    loadFullSettings();
     fetchWebhookStatus();
-  }, [siteSettings]);
+  }, []);
 
   const handlePhoneChange = (e) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 9);

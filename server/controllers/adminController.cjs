@@ -111,25 +111,31 @@ const adminController = {
    */
   checkAuth: async (req, res) => {
     try {
-      const { telegramId, token } = req.body || {};
+      const { initData, token } = req.body || {};
       const { getAdminInfo, JWT_SECRET, ROLE_PERMISSIONS } = require('../middleware/auth.cjs');
+      const { verifyInitData } = require('../services/telegramAuth.cjs');
       const jwt = require('jsonwebtoken');
 
-      // 1. Check via Telegram ID (POST body or X-Admin-Id header)
-      const tId = telegramId || req.headers['x-admin-id'];
-      if (tId) {
-        const adminInfo = await getAdminInfo(tId);
-        if (adminInfo) {
-          return res.json({
-            success: true,
-            isAdmin: true,
-            user: {
-              id: adminInfo.id,
-              role: adminInfo.role,
-              permissions: adminInfo.permissions,
-              source: 'telegram'
-            }
-          });
+      // 1. Check via Telegram WebApp initData — HMAC-verified against the bot
+      // token, so the user id inside it can be trusted. A raw client-supplied
+      // telegramId (old behavior) cannot: anyone could claim any admin's id.
+      const rawInitData = initData || req.headers['x-telegram-init-data'];
+      if (rawInitData) {
+        const tgUser = verifyInitData(rawInitData);
+        if (tgUser) {
+          const adminInfo = await getAdminInfo(tgUser.id);
+          if (adminInfo) {
+            return res.json({
+              success: true,
+              isAdmin: true,
+              user: {
+                id: adminInfo.id,
+                role: adminInfo.role,
+                permissions: adminInfo.permissions,
+                source: 'telegram'
+              }
+            });
+          }
         }
       }
 
