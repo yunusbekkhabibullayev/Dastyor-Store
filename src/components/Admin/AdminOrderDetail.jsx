@@ -152,20 +152,32 @@ export const AdminOrderDetail = () => {
               ))}
             </div>
 
-            <div className="space-y-2 pt-4 border-t border-gray-150 text-xs font-semibold text-gray-600">
-              <div className="flex justify-between">
-                <span>{t.subtotal}</span>
-                <span>{formatPrice(order.total_amount)} {t.currency}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t.delivery}</span>
-                <span>{formatPrice(15000)} {t.currency}</span>
-              </div>
-              <div className="flex justify-between font-black text-sm text-gray-955 pt-2 border-t border-gray-100">
-                <span>{t.total}</span>
-                <span className="text-orange-500">{formatPrice(order.total_amount + 15000)} {t.currency}</span>
-              </div>
-            </div>
+            {(() => {
+              const itemsTotal = (order.items || []).reduce((sum, item) => {
+                return sum + (Number(item.price || 0) * Number(item.quantity || 1));
+              }, 0);
+              const totalAmount = Number(order.total_amount || order.total || 0);
+              const deliveryFee = totalAmount > itemsTotal ? (totalAmount - itemsTotal) : 0;
+
+              return (
+                <div className="space-y-2 pt-4 border-t border-gray-150 text-xs font-semibold text-gray-600">
+                  <div className="flex justify-between">
+                    <span>{t.subtotal}</span>
+                    <span>{formatPrice(itemsTotal > 0 ? itemsTotal : totalAmount)} {t.currency}</span>
+                  </div>
+                  {deliveryFee > 0 && (
+                    <div className="flex justify-between text-blue-600 font-bold">
+                      <span>{t.delivery}</span>
+                      <span>+{formatPrice(deliveryFee)} {t.currency}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-black text-sm text-gray-900 pt-2 border-t border-gray-100">
+                    <span>{t.total}</span>
+                    <span className="text-blue-600 font-black">{formatPrice(totalAmount || itemsTotal)} {t.currency}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
