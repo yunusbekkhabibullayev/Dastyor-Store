@@ -140,6 +140,57 @@ const User = {
   },
 
   /**
+   * Get customer saved addresses
+   */
+  getAddresses: async (identifier) => {
+    const user = await User.getById(identifier);
+    if (!user) return [];
+
+    let list = [];
+    if (user.saved_addresses) {
+      try {
+        list = typeof user.saved_addresses === 'string' ? JSON.parse(user.saved_addresses) : user.saved_addresses;
+      } catch (e) {
+        list = [];
+      }
+    }
+
+    // If saved_addresses is empty but user.address exists, migrate it
+    if (list.length === 0 && user.address && user.address.trim()) {
+      const defaultAddr = {
+        id: 'addr_' + Date.now(),
+        title: 'Asosiy manzil',
+        address: user.address.trim(),
+        is_default: true,
+        created_at: new Date().toISOString()
+      };
+      list = [defaultAddr];
+      await dbRun('UPDATE users SET saved_addresses = ? WHERE telegram_id = ?', [JSON.stringify(list), user.telegram_id]);
+    }
+
+    return Array.isArray(list) ? list : [];
+  },
+
+  /**
+   * Save customer addresses list
+   */
+  saveAddresses: async (identifier, addresses) => {
+    const user = await User.getById(identifier);
+    if (!user) throw new Error('Foydalanuvchi topilmadi');
+
+    const validList = Array.isArray(addresses) ? addresses : [];
+    const defaultAddr = validList.find(a => a.is_default) || validList[0];
+    const mainAddressStr = defaultAddr ? defaultAddr.address : (user.address || '');
+
+    await dbRun(
+      'UPDATE users SET saved_addresses = ?, address = ?, last_active_at = CURRENT_TIMESTAMP WHERE telegram_id = ?',
+      [JSON.stringify(validList), mainAddressStr, user.telegram_id]
+    );
+
+    return validList;
+  },
+
+  /**
    * Find user by Telegram ID
    */
   getByTelegramId: async (telegramId) => {

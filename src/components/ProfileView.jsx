@@ -9,23 +9,27 @@ import {
   XMarkIcon, 
   ChevronDownIcon, 
   ChevronRightIcon, 
-  Cog6ToothIcon as SettingsIcon,
-  PhoneIcon,
-  LockClosedIcon,
-  KeyIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  PencilSquareIcon,
-  MapPinIcon,
-  ArrowLeftIcon,
-  ShieldCheckIcon,
-  CheckIcon,
-  SparklesIcon,
-  ShoppingBagIcon,
-  HeartIcon,
-  GlobeAltIcon,
-  InformationCircleIcon
+  PhoneIcon, 
+  LockClosedIcon, 
+  KeyIcon, 
+  EyeIcon, 
+  EyeSlashIcon, 
+  PencilSquareIcon, 
+  MapPinIcon, 
+  ArrowLeftIcon, 
+  ShieldCheckIcon, 
+  CheckIcon, 
+  SparklesIcon, 
+  ShoppingBagIcon, 
+  HeartIcon, 
+  GlobeAltIcon, 
+  InformationCircleIcon,
+  PlusIcon,
+  TrashIcon,
+  BuildingOfficeIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
+import { ProductImage } from './ProductImage';
 
 const formatUzPhone = (inputValue) => {
   let digits = inputValue || '';
@@ -63,8 +67,8 @@ const formatUzPhone = (inputValue) => {
 export const ProfileView = () => {
   const {
     lang, toggleLanguage, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
-    loginCustomer, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, 
-    showConfirm, telegramUser, setIsAdminMode, siteSettings, formatQuantity, adminAuth,
+    customerToken, customerUser, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, 
+    showConfirm, telegramUser, siteSettings, formatQuantity, adminAuth,
     isCustomerLoggedIn, openAuthModal, setActiveTab
   } = useStore();
 
@@ -72,60 +76,208 @@ export const ProfileView = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profileUser?.name || '');
   const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ');
-  const [editAddress, setEditAddress] = useState(profileUser?.address || '');
   const [editPassword, setEditPassword] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  // Address management states
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addrTitle, setAddrTitle] = useState('🏠 Uy');
+  const [addrText, setAddrText] = useState('');
+  const [addrIsDefault, setAddrIsDefault] = useState(false);
+  const [addrSaving, setAddrSaving] = useState(false);
+  const [addrError, setAddrError] = useState('');
 
   // Order history accordion & pagination
   const [expandedOrders, setExpandedOrders] = useState({});
   const [visibleCount, setVisibleCount] = useState(5);
 
-  const checkIsAdmin = () => {
-    if (!telegramUser || !telegramUser.id) return false;
-    const currentId = telegramUser.id;
-    if (siteSettings && siteSettings.admin_ids) {
-      const dynamicIds = siteSettings.admin_ids.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id));
-      if (dynamicIds.includes(currentId)) {
-        return true;
-      }
-    }
-    return false;
-  };
+  const isUserAuthenticated = isCustomerLoggedIn || (profileUser && (profileUser.name || profileUser.phone));
 
   // Sync edit states when profileUser changes
   useEffect(() => {
     if (profileUser) {
       setEditName(profileUser.name || '');
       setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '+998 ');
-      setEditAddress(profileUser.address || '');
     }
   }, [profileUser]);
 
-  // Infinite Scroll for history sub-view
+  // Fetch saved addresses from server
+  const fetchAddresses = async () => {
+    const identifier = customerUser?.telegram_id || customerUser?.phone || (profileUser?.phone ? profileUser.phone.replace(/\D/g, '') : null);
+    if (!identifier) return;
+
+    setAddressesLoading(true);
+    try {
+      const headers = {};
+      if (customerToken) headers['Authorization'] = `Bearer ${customerToken}`;
+
+      const res = await fetch(`/api/user/addresses?userId=${encodeURIComponent(identifier)}&phone=${encodeURIComponent(profileUser?.phone || '')}`, { headers });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.addresses)) {
+        setSavedAddresses(data.addresses);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch saved addresses:', e);
+    } finally {
+      setAddressesLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (profileSubView !== 'history') return;
+    if (isUserAuthenticated) {
+      fetchAddresses();
+    }
+  }, [isUserAuthenticated, customerToken]);
 
-    const handleScroll = () => {
-      const threshold = 120;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const windowHeight = window.innerHeight;
-      const docHeight = document.documentElement.scrollHeight;
+  // Handle Save Address (Create / Update)
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    if (!addrText.trim()) {
+      triggerHaptic('warning');
+      setAddrError(lang === 'uz' ? 'Manzilni to\'liq kiriting' : 'Введите адрес');
+      return;
+    }
 
-      if (docHeight - (scrollTop + windowHeight) < threshold) {
-        setVisibleCount((prev) => {
-          if (prev < orders.length) {
-            triggerHaptic('light');
-            return prev + 5;
+    setAddrSaving(true);
+    setAddrError('');
+
+    try {
+      let updatedList = [...savedAddresses];
+      const now = new Date().toISOString();
+
+      if (editingAddressId) {
+        // Update existing
+        updatedList = updatedList.map(a => {
+          if (a.id === editingAddressId) {
+            return {
+              ...a,
+              title: addrTitle,
+              address: addrText.trim(),
+              is_default: addrIsDefault
+            };
           }
-          return prev;
+          return addrIsDefault ? { ...a, is_default: false } : a;
+        });
+      } else {
+        // Create new
+        const newAddr = {
+          id: 'addr_' + Date.now(),
+          title: addrTitle,
+          address: addrText.trim(),
+          is_default: addrIsDefault || updatedList.length === 0,
+          created_at: now
+        };
+
+        if (newAddr.is_default) {
+          updatedList = updatedList.map(a => ({ ...a, is_default: false }));
+        }
+        updatedList.unshift(newAddr);
+      }
+
+      const identifier = customerUser?.telegram_id || customerUser?.phone || (profileUser?.phone ? profileUser.phone.replace(/\D/g, '') : null);
+      const headers = { 'Content-Type': 'application/json' };
+      if (customerToken) headers['Authorization'] = `Bearer ${customerToken}`;
+
+      const res = await fetch('/api/user/addresses', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: identifier,
+          phone: profileUser?.phone,
+          addresses: updatedList
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        triggerHaptic('notification');
+        setSavedAddresses(data.addresses || updatedList);
+        
+        // Also sync active address to profileUser
+        const defaultOne = (data.addresses || updatedList).find(a => a.is_default);
+        if (defaultOne) {
+          setProfileUser(prev => ({ ...prev, address: defaultOne.address }));
+        }
+
+        setIsAddressModalOpen(false);
+        setEditingAddressId(null);
+        setAddrText('');
+      } else {
+        triggerHaptic('warning');
+        setAddrError(data.message || 'Saqlashda xatolik');
+      }
+    } catch (err) {
+      triggerHaptic('warning');
+      setAddrError(err.message || 'Server xatosi');
+    } finally {
+      setAddrSaving(false);
+    }
+  };
+
+  // Handle Delete Address
+  const handleDeleteAddress = (addrId) => {
+    showConfirm(
+      lang === 'uz' ? 'Manzilni o\'chirish' : 'Удалить адрес',
+      lang === 'uz' ? 'Haqiqatan ham ushbu manzilni o\'chirmoqchimisiz?' : 'Вы уверены, что хотите удалить этот адрес?',
+      async () => {
+        triggerHaptic('medium');
+        const updatedList = savedAddresses.filter(a => a.id !== addrId);
+        
+        // If deleted address was default, make first remaining default
+        if (updatedList.length > 0 && !updatedList.some(a => a.is_default)) {
+          updatedList[0].is_default = true;
+        }
+
+        setSavedAddresses(updatedList);
+        const identifier = customerUser?.telegram_id || customerUser?.phone || (profileUser?.phone ? profileUser.phone.replace(/\D/g, '') : null);
+        const headers = { 'Content-Type': 'application/json' };
+        if (customerToken) headers['Authorization'] = `Bearer ${customerToken}`;
+
+        await fetch('/api/user/addresses', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            userId: identifier,
+            phone: profileUser?.phone,
+            addresses: updatedList
+          })
         });
       }
-    };
+    );
+  };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [profileSubView, orders.length, triggerHaptic]);
+  // Handle Set Default Address
+  const handleSetDefaultAddress = async (addrId) => {
+    triggerHaptic('light');
+    const updatedList = savedAddresses.map(a => ({
+      ...a,
+      is_default: a.id === addrId
+    }));
+    setSavedAddresses(updatedList);
+
+    const defaultOne = updatedList.find(a => a.is_default);
+    if (defaultOne) {
+      setProfileUser(prev => ({ ...prev, address: defaultOne.address }));
+    }
+
+    const identifier = customerUser?.telegram_id || customerUser?.phone || (profileUser?.phone ? profileUser.phone.replace(/\D/g, '') : null);
+    const headers = { 'Content-Type': 'application/json' };
+    if (customerToken) headers['Authorization'] = `Bearer ${customerToken}`;
+
+    await fetch('/api/user/addresses', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        userId: identifier,
+        phone: profileUser?.phone,
+        addresses: updatedList
+      })
+    });
+  };
 
   // Handle Logged-in Profile Edit Save
   const handleSaveEdit = async (e) => {
@@ -149,11 +301,9 @@ export const ProfileView = () => {
     try {
       await updateProfileUser({
         name: editName.trim(),
-        phone: editPhone.trim(),
-        address: editAddress.trim()
+        phone: editPhone.trim()
       });
 
-      // If new password provided, sync via API
       if (editPassword && editPassword.trim()) {
         await fetch('/api/user/me', {
           method: 'PUT',
@@ -161,8 +311,7 @@ export const ProfileView = () => {
           body: JSON.stringify({
             phone: editPhone.trim(),
             name: editName.trim(),
-            password: editPassword.trim(),
-            address: editAddress.trim()
+            password: editPassword.trim()
           })
         });
       }
@@ -178,7 +327,260 @@ export const ProfileView = () => {
     }
   };
 
-  const isUserAuthenticated = isCustomerLoggedIn || (profileUser && (profileUser.name || profileUser.phone));
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUB-VIEW: SAVED ADDRESSES (MANZILLARIM)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (profileSubView === 'addresses') {
+    return (
+      <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-28">
+        {/* Top Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setProfileSubView(null);
+              }}
+              className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
+            >
+              <ArrowLeftIcon className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+                {lang === 'uz' ? 'Yetkazib berish manzillarim' : 'Мои адреса доставки'}
+              </h2>
+              <p className="text-xs text-gray-500 font-medium">
+                {savedAddresses.length} {lang === 'uz' ? 'ta manzil' : 'адресов'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setEditingAddressId(null);
+              setAddrTitle('🏠 Uy');
+              setAddrText('');
+              setAddrIsDefault(savedAddresses.length === 0);
+              setAddrError('');
+              setIsAddressModalOpen(true);
+            }}
+            className="px-3.5 py-2 bg-[#7000ff] hover:bg-[#5e00db] text-white text-xs font-extrabold rounded-2xl flex items-center gap-1.5 shadow-md shadow-purple-500/20 active:scale-95 transition-all cursor-pointer"
+          >
+            <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+            <span>{lang === 'uz' ? 'Qo\'shish' : 'Добавить'}</span>
+          </button>
+        </div>
+
+        {/* Addresses List */}
+        {savedAddresses.length === 0 ? (
+          <div className="bg-white rounded-3xl p-10 border border-gray-150 text-center space-y-3 shadow-2xs">
+            <div className="w-14 h-14 bg-purple-50 text-[#7000ff] rounded-2xl flex items-center justify-center mx-auto">
+              <MapPinIcon className="w-7 h-7" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900">
+              {lang === 'uz' ? 'Hozircha saqlangan manzillar yo\'q' : 'Нет сохраненных адресов'}
+            </h3>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto">
+              {lang === 'uz' 
+                ? 'Buyurtmalarni tezkor qabul qilish uchun manzilingizni qo\'shing.' 
+                : 'Добавьте свой адрес для быстрого оформления заказов.'}
+            </p>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setIsAddressModalOpen(true);
+              }}
+              className="mt-2 px-5 py-2.5 bg-[#7000ff] text-white text-xs font-bold rounded-xl shadow-xs"
+            >
+              {lang === 'uz' ? 'Manzil qo\'shish' : 'Добавить адрес'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {savedAddresses.map((item) => (
+              <div 
+                key={item.id} 
+                className={`bg-white rounded-3xl p-4 border transition-all shadow-2xs space-y-3 ${
+                  item.is_default ? 'border-[#7000ff]/60 bg-purple-50/20 ring-1 ring-[#7000ff]/30' : 'border-gray-150'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
+                      {item.title || '📍 Manzil'}
+                    </span>
+                    {item.is_default && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-[#7000ff]">
+                        {lang === 'uz' ? 'Asosiy' : 'Основной'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setEditingAddressId(item.id);
+                        setAddrTitle(item.title || '🏠 Uy');
+                        setAddrText(item.address || '');
+                        setAddrIsDefault(item.is_default || false);
+                        setAddrError('');
+                        setIsAddressModalOpen(true);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Tahrirlash"
+                    >
+                      <PencilSquareIcon className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteAddress(item.id)}
+                      className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="O'chirish"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-700 font-medium leading-relaxed bg-gray-50/70 rounded-2xl p-3 border border-gray-100">
+                  {item.address}
+                </div>
+
+                {!item.is_default && (
+                  <button
+                    onClick={() => handleSetDefaultAddress(item.id)}
+                    className="text-xs text-[#7000ff] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>{lang === 'uz' ? 'Asosiy manzil qilib belgilash' : 'Сделать основным'}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Address Add / Edit Modal Drawer */}
+        {isAddressModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
+            <div 
+              onClick={() => setIsAddressModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fadeIn" 
+            />
+
+            <div className="relative w-full max-w-lg bg-white rounded-t-[32px] p-6 pb-9 shadow-2xl z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
+
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-black text-gray-900">
+                  {editingAddressId 
+                    ? (lang === 'uz' ? 'Manzilni tahrirlash' : 'Редактировать адрес') 
+                    : (lang === 'uz' ? 'Yangi manzil qo\'shish' : 'Добавить новый адрес')}
+                </h3>
+                <button
+                  onClick={() => setIsAddressModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer"
+                >
+                  <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+
+              {addrError && (
+                <div className="mb-3 p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
+                  ⚠️ {addrError}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAddress} className="space-y-4">
+                {/* Title Preset Chips */}
+                <div>
+                  <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
+                    {lang === 'uz' ? 'Manzil nomi' : 'Название адреса'}
+                  </label>
+                  <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-1">
+                    {['🏠 Uy', '💼 Ishxona', '🏢 Ofis', '📍 Boshqa'].map(chip => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setAddrTitle(chip)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                          addrTitle === chip 
+                            ? 'bg-[#7000ff] text-white shadow-xs' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={addrTitle}
+                    onChange={(e) => setAddrTitle(e.target.value)}
+                    placeholder="Masalan: Uyim, Dacha, ..."
+                    className="w-full bg-[#f2f4f7] border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-all"
+                  />
+                </div>
+
+                {/* Address Textarea */}
+                <div>
+                  <label className="text-[11px] font-extrabold text-gray-700 block mb-1.5">
+                    {lang === 'uz' ? 'To\'liq manzil va mo\'ljal *' : 'Полный адрес и ориентир *'}
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    autoFocus
+                    value={addrText}
+                    onChange={(e) => setAddrText(e.target.value)}
+                    placeholder="Masalan: Toshkent sh., Chilonzor 5-mavze, 12-uy, 45-xonadon (Mo'ljal: Maktab yonida)"
+                    className="w-full bg-[#f2f4f7] border border-gray-200 rounded-2xl p-3.5 text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-[#7000ff] transition-all resize-none"
+                  />
+                </div>
+
+                {/* Set as Default Checkbox */}
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={addrIsDefault}
+                    onChange={(e) => setAddrIsDefault(e.target.checked)}
+                    className="w-4 h-4 text-[#7000ff] rounded-md focus:ring-0 border-gray-300"
+                  />
+                  <span className="text-xs font-bold text-gray-700">
+                    {lang === 'uz' ? 'Asosiy manzil qilib belgilash' : 'Сделать основным адресом'}
+                  </span>
+                </label>
+
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressModalOpen(false)}
+                    className="w-1/3 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    {lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={addrSaving}
+                    className="flex-1 py-3.5 bg-[#7000ff] hover:bg-[#5e00db] text-white font-extrabold rounded-2xl text-xs shadow-lg shadow-purple-500/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {addrSaving ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      <span>{lang === 'uz' ? 'Saqlash' : 'Сохранить'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SUB-VIEW: FULL ORDER HISTORY ACCORDION PAGE
@@ -188,7 +590,6 @@ export const ProfileView = () => {
 
     return (
       <div className="p-4 space-y-4 max-w-lg mx-auto text-left animate-fadeIn pb-24">
-        {/* Header with Back button */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -209,7 +610,6 @@ export const ProfileView = () => {
           </div>
         </div>
 
-        {/* Orders List */}
         {orders.length === 0 ? (
           <div className="bg-white rounded-2xl p-10 border border-gray-150 text-center space-y-3 shadow-2xs">
             <ClockIcon className="w-12 h-12 text-gray-300 mx-auto" />
@@ -281,8 +681,6 @@ export const ProfileView = () => {
   if (!isUserAuthenticated) {
     return (
       <div className="p-4 max-w-lg mx-auto text-left space-y-3 animate-fadeIn pb-24">
-        
-        {/* Top Header Link: Kirish / Ro'yxatdan o'tish */}
         <div className="flex items-center justify-end px-1 pb-1">
           <button
             onClick={() => {
@@ -297,7 +695,6 @@ export const ProfileView = () => {
           </button>
         </div>
 
-        {/* Guest Banner Card */}
         <div 
           onClick={() => {
             triggerHaptic('medium');
@@ -324,9 +721,7 @@ export const ProfileView = () => {
           </div>
         </div>
 
-        {/* Uzum-style Menu Items */}
         <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
-          {/* Buyurtmalarim */}
           <button
             onClick={() => {
               triggerHaptic('light');
@@ -343,7 +738,6 @@ export const ProfileView = () => {
             <ChevronRightIcon className="w-4 h-4 text-gray-400" />
           </button>
 
-          {/* Saralanganlar */}
           <button
             onClick={() => {
               triggerHaptic('light');
@@ -360,7 +754,6 @@ export const ProfileView = () => {
             <ChevronRightIcon className="w-4 h-4 text-gray-400" />
           </button>
 
-          {/* Sayt tili */}
           <button
             onClick={() => {
               triggerHaptic('light');
@@ -380,7 +773,6 @@ export const ProfileView = () => {
           </button>
         </div>
 
-        {/* Store Info Footer */}
         <div className="bg-white rounded-3xl p-4 border border-gray-150 shadow-2xs space-y-2 text-xs">
           <div className="flex items-center gap-2 text-gray-900 font-extrabold">
             <InformationCircleIcon className="w-4 h-4 text-purple-600" />
@@ -431,34 +823,6 @@ export const ProfileView = () => {
               <PencilSquareIcon className="w-4 h-4" />
             </button>
           </div>
-
-          {profileUser?.address && (
-            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-150 flex items-start gap-2 text-xs text-gray-700">
-              <MapPinIcon className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Yetkazib berish manzili</span>
-                <span className="font-semibold text-gray-800">{profileUser.address}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Admin Panel button (for admins / employees) */}
-          {(adminAuth?.isAdmin || checkIsAdmin()) && (
-            <button
-              onClick={() => {
-                triggerHaptic('medium');
-                setIsAdminMode(true);
-              }}
-              className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all border border-blue-200 active:scale-98 shadow-2xs cursor-pointer"
-            >
-              <SettingsIcon className="w-4 h-4 text-blue-600" />
-              <span>
-                {adminAuth?.role === 'developer'
-                  ? '💻 Dasturchi paneliga o\'tish'
-                  : '👑 Admin panelga o\'tish'}
-              </span>
-            </button>
-          )}
         </div>
       ) : (
         /* Edit Profile Form */
@@ -513,17 +877,6 @@ export const ProfileView = () => {
             </div>
 
             <div>
-              <label className="font-extrabold text-gray-700 block mb-1">Yetkazib Berish Manzili</label>
-              <input
-                type="text"
-                value={editAddress}
-                onChange={(e) => setEditAddress(e.target.value)}
-                placeholder="Toshkent sh., ..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
-
-            <div>
               <label className="font-extrabold text-gray-700 block mb-1">Yangi Parol (Ixtiyoriy)</label>
               <input
                 type="password"
@@ -555,26 +908,60 @@ export const ProfileView = () => {
         </form>
       )}
 
-      {/* Order History Button */}
-      <button
-        onClick={() => {
-          triggerHaptic('light');
-          setProfileSubView('history');
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }}
-        className="w-full py-4 px-5 bg-white border border-gray-150 rounded-2xl flex items-center justify-between text-gray-900 font-bold text-xs hover:bg-gray-50 active:scale-[0.99] transition-all shadow-2xs cursor-pointer"
-      >
-        <span className="flex items-center gap-2">
-          <ClockIcon className="w-4 h-4 text-blue-600" />
-          <span>{lang === 'uz' ? 'Barcha buyurtmalar tarixi' : 'История заказов'}</span>
-          {orders.length > 0 && (
-            <span className="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-100">
-              {orders.length}
+      {/* Profile Actions List */}
+      <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
+        {/* Order History Button */}
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            setProfileSubView('history');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <ClockIcon className="w-5 h-5 text-blue-600" />
+            <span className="text-xs font-bold text-gray-900">
+              {lang === 'uz' ? 'Barcha buyurtmalar tarixi' : 'История заказов'}
             </span>
-          )}
-        </span>
-        <ChevronRightIcon className="w-4 h-4 text-blue-600" />
-      </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {orders.length > 0 && (
+              <span className="bg-blue-50 text-blue-600 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-100">
+                {orders.length}
+              </span>
+            )}
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+          </div>
+        </button>
+
+        {/* Saved Delivery Addresses Button */}
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            setProfileSubView('addresses');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <MapPinIcon className="w-5 h-5 text-[#7000ff]" />
+            <span className="text-xs font-bold text-gray-900">
+              {lang === 'uz' ? 'Yetkazib berish manzillarim' : 'Мои адреса доставки'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {savedAddresses.length > 0 && (
+              <span className="bg-purple-50 text-[#7000ff] text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-purple-100">
+                {savedAddresses.length}
+              </span>
+            )}
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+          </div>
+        </button>
+      </div>
 
       {/* Log out Button */}
       <div className="pt-2">

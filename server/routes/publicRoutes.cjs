@@ -36,6 +36,8 @@ router.post('/user/auth/login', publicLimiter, publicController.loginUser);
 router.post('/user/auth/register', publicLimiter, publicController.registerUser);
 router.get('/user/me', publicLimiter, publicController.getMe);
 router.put('/user/me', publicLimiter, publicController.updateMe);
+router.get('/user/addresses', publicLimiter, publicController.getUserAddresses);
+router.post('/user/addresses', publicLimiter, publicController.saveUserAddresses);
 router.get('/user/profile', publicLimiter, publicController.getUserProfile);
 router.post('/user/profile', publicLimiter, publicController.saveUserProfile);
 router.post('/user/sync', publicLimiter, publicController.syncUser);

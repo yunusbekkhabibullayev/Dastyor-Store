@@ -635,6 +635,70 @@ const publicController = {
   },
 
   /**
+   * GET /api/user/addresses — Get customer saved addresses
+   */
+  getUserAddresses: async (req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      let identifier = req.query.userId || req.query.phone;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+        try {
+          const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+          identifier = decoded.id || decoded.phone || identifier;
+        } catch (e) {}
+      }
+
+      if (!identifier) {
+        return res.status(400).json({ success: false, message: 'Foydalanuvchi aniqlanmadi' });
+      }
+
+      const User = require('../models/User.cjs');
+      const addresses = await User.getAddresses(identifier);
+
+      res.json({ success: true, addresses });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  },
+
+  /**
+   * POST /api/user/addresses — Save customer addresses list
+   */
+  saveUserAddresses: async (req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      let identifier = req.body.userId || req.body.phone;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+        try {
+          const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+          identifier = decoded.id || decoded.phone || identifier;
+        } catch (e) {}
+      }
+
+      if (!identifier) {
+        return res.status(400).json({ success: false, message: 'Foydalanuvchi aniqlanmadi' });
+      }
+
+      const User = require('../models/User.cjs');
+      const addresses = await User.saveAddresses(identifier, req.body.addresses);
+
+      res.json({
+        success: true,
+        message: 'Manzillar muvaffaqiyatli saqlandi!',
+        addresses
+      });
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message });
+    }
+  },
+
+  /**
    * GET /api/bot-info — Bot username for frontend
    */
   getBotInfo: (req, res) => {
