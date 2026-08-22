@@ -15,14 +15,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_
 const { dbGet } = require('../config/database.cjs');
 
 const ROLE_PERMISSIONS = {
-  super_admin: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users'],
+  developer: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users', 'employees'],
+  super_admin: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users', 'employees'],
   manager: ['dashboard', 'orders', 'products', 'users'],
   courier: ['orders'],
   content_manager: ['products', 'categories', 'settings']
 };
 
 /**
- * Resolve admin user role & permissions from DB / Config
+ * Resolve admin user role & permissions from DB / Employees table
  */
 const getAdminInfo = async (identifier) => {
   if (!identifier) return null;
@@ -41,6 +42,25 @@ const getAdminInfo = async (identifier) => {
   const numId = parseInt(identifier, 10);
   if (isNaN(numId)) return null;
 
+  // 2.1 First check modern `employees` table
+  try {
+    const Employee = require('../models/Employee.cjs');
+    const employee = await Employee.getByTelegramId(numId);
+    if (employee && employee.is_active) {
+      const role = employee.role || 'manager';
+      return {
+        id: numId,
+        name: employee.name,
+        role: role,
+        permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.manager,
+        source: 'telegram'
+      };
+    }
+  } catch (e) {
+    console.error('Failed to lookup employee:', e.message);
+  }
+
+  // 2.2 Fallback to site_settings and environment adminIds
   let adminIds = [...telegramConfig.adminIds];
   let adminRoles = {};
 
@@ -65,9 +85,10 @@ const getAdminInfo = async (identifier) => {
   }
 
   if (adminIds.includes(numId)) {
-    // Specific role or default to super_admin for primary env admins, manager for others
-    const isPrimaryAdmin = telegramConfig.adminIds.includes(numId) || numId === 1165441564;
-    const assignedRole = adminRoles[String(numId)] || (isPrimaryAdmin ? 'super_admin' : 'manager');
+    // Primary developer ID gets 'developer', others get super_admin or manager
+    const isDeveloper = numId === 1165441564;
+    const isPrimaryAdmin = telegramConfig.adminIds.includes(numId);
+    const assignedRole = adminRoles[String(numId)] || (isDeveloper ? 'developer' : (isPrimaryAdmin ? 'super_admin' : 'manager'));
     const validRole = ROLE_PERMISSIONS[assignedRole] ? assignedRole : 'super_admin';
 
     return {
@@ -139,7 +160,7 @@ const requireRole = (allowedRoles = []) => {
       return res.status(403).json({ success: false, message: 'Ruxsat berilmagan!' });
     }
     const userRole = req.adminUser.role || 'super_admin';
-    if (userRole === 'super_admin' || allowedRoles.includes(userRole)) {
+    if (userRole === 'developer' || userRole === 'super_admin' || allowedRoles.includes(userRole)) {
       return next();
     }
     return res.status(403).json({

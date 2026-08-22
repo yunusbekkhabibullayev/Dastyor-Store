@@ -37,31 +37,32 @@ const User = {
   },
 
   /**
-   * Find user by ID or Telegram ID
+   * Find user by ID, Telegram ID, or Phone
    */
   getById: async (id) => {
     if (!id) return null;
-    return dbGet('SELECT * FROM users WHERE id = ? OR telegram_id = ?', [id, String(id)]);
+    const strId = String(id).trim();
+    return dbGet('SELECT * FROM users WHERE telegram_id = ? OR phone = ?', [strId, strId]);
   },
 
   /**
-   * Synchronize & link customer between Telegram and Web
+   * Synchronize & link customer between Telegram and Web (Strict 1 phone = 1 customer)
    */
   sync: async ({ telegramId, phone, name, username, avatarUrl, address, source = 'web' }) => {
     const tId = telegramId ? String(telegramId) : null;
     const cleanPhone = normalizePhone(phone);
-    const cleanName = (name || '').trim() || (cleanPhone ? `Mijoz (${cleanPhone.slice(-4)})` : 'Mijoz');
+    const cleanName = (name || '').trim();
 
     let existingUser = null;
 
-    // 1. Search by Telegram ID
-    if (tId) {
-      existingUser = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [tId]);
+    // 1. Search by Phone first (Phone is universal key)
+    if (cleanPhone) {
+      existingUser = await dbGet('SELECT * FROM users WHERE phone = ?', [cleanPhone]);
     }
 
-    // 2. Search by Phone if not found yet
-    if (!existingUser && cleanPhone) {
-      existingUser = await dbGet('SELECT * FROM users WHERE phone = ?', [cleanPhone]);
+    // 2. Search by Telegram ID if not found by phone
+    if (!existingUser && tId) {
+      existingUser = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [tId]);
     }
 
     if (existingUser) {
@@ -71,9 +72,9 @@ const User = {
         newSource = 'both';
       }
 
-      const updatedTelegramId = tId || existingUser.telegram_id;
+      const updatedTelegramId = (tId && !tId.startsWith('web_')) ? tId : existingUser.telegram_id;
       const updatedPhone = cleanPhone || existingUser.phone;
-      const updatedName = (name && name.trim()) ? name.trim() : existingUser.name;
+      const updatedName = cleanName || existingUser.name || (updatedPhone ? `Mijoz (${updatedPhone.slice(-4)})` : 'Mijoz');
       const updatedUsername = username !== undefined ? username : existingUser.username;
       const updatedAvatar = avatarUrl !== undefined ? avatarUrl : existingUser.avatar_url;
       const updatedAddress = (address && address.trim()) ? address.trim() : existingUser.address;
@@ -110,6 +111,7 @@ const User = {
     // 3. Create new customer profile
     const initialTelegramId = tId || `web_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const userSource = tId ? (cleanPhone ? 'both' : 'telegram') : 'web';
+    const finalName = cleanName || (cleanPhone ? `Mijoz (${cleanPhone.slice(-4)})` : 'Mijoz');
 
     await dbRun(
       `INSERT INTO users (telegram_id, phone, name, username, avatar_url, address, source, total_orders, total_spent, is_blocked, created_at, last_active_at)
@@ -117,7 +119,7 @@ const User = {
       [
         initialTelegramId,
         cleanPhone,
-        cleanName,
+        finalName,
         username || null,
         avatarUrl || null,
         address || '',

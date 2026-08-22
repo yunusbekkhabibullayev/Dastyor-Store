@@ -85,7 +85,9 @@ export const StoreProvider = ({ children }) => {
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+        if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && typeof tg.disableVerticalSwipes === 'function') {
+          tg.disableVerticalSwipes();
+        }
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
           setTelegramUser(tg.initDataUnsafe.user);
         }
@@ -382,8 +384,15 @@ export const StoreProvider = ({ children }) => {
 
   const triggerHaptic = (type = 'light') => {
     try {
-      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+      const tg = window.Telegram?.WebApp;
+      if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1') && tg.HapticFeedback) {
+        if (type === 'notification') {
+          tg.HapticFeedback.notificationOccurred('success');
+        } else if (type === 'warning') {
+          tg.HapticFeedback.notificationOccurred('warning');
+        } else {
+          tg.HapticFeedback.impactOccurred(type);
+        }
       }
     } catch (e) {}
   };

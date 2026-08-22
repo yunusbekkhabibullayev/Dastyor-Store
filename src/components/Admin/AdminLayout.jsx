@@ -14,13 +14,15 @@ import {
   Cog6ToothIcon as SettingsIcon,
   AdjustmentsHorizontalIcon as SlidersIcon,
   PhotoIcon,
-  UsersIcon
+  UsersIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminOrders } from './AdminOrders';
 import { AdminProducts } from './AdminProducts';
 import { AdminCategories } from './AdminCategories';
 import { AdminUsers } from './AdminUsers';
+import { AdminEmployees } from './AdminEmployees';
 import { AdminSettings } from './AdminSettings';
 import { AdminOrderDetail } from './AdminOrderDetail';
 import { AdminCategoryCreate } from './AdminCategoryCreate';
@@ -50,10 +52,11 @@ export const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef(null);
 
-  const permissions = adminAuth?.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'];
+  const permissions = adminAuth?.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users', 'employees'];
   const userRole = adminAuth?.role || 'super_admin';
 
   const roleBadges = {
+    developer: { uz: '💻 Dasturchi', ru: '💻 Разработчик' },
     super_admin: { uz: '👑 Super Admin', ru: '👑 Главный Админ' },
     manager: { uz: '🧑‍💼 Menejer', ru: '🧑‍💼 Менеджер' },
     courier: { uz: '🚚 Kuryer', ru: '🚚 Курьер' },
@@ -95,6 +98,7 @@ export const AdminLayout = () => {
     { id: 'products', name: t.products, icon: PackageIcon },
     { id: 'categories', name: t.categories, icon: LayersIcon },
     { id: 'users', name: lang === 'uz' ? 'Mijozlar' : 'Клиенты', icon: UsersIcon },
+    { id: 'employees', name: lang === 'uz' ? 'Xodimlar' : 'Сотрудники', icon: UserGroupIcon },
     { id: 'settings', name: t.settings, icon: PhotoIcon },
     { id: 'site-settings', name: lang === 'uz' ? 'Sozlamalar' : 'Настройки', icon: SettingsIcon }
   ];
@@ -274,6 +278,7 @@ export const AdminLayout = () => {
             {adminTab === 'products' && <AdminProducts />}
             {adminTab === 'categories' && <AdminCategories />}
             {adminTab === 'users' && <AdminUsers />}
+            {adminTab === 'employees' && <AdminEmployees />}
             {adminTab === 'settings' && <AdminSettings />}
             {adminTab === 'site-settings' && <AdminSiteSettings />}
             {adminTab === 'order-details' && <AdminOrderDetail />}

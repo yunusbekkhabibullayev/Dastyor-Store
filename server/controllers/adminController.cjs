@@ -556,6 +556,66 @@ const adminController = {
       console.error(`[Admin CRM] Failed to update notes for ${req.params.id}:`, error.message);
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  // ─── Employees & Staff Management ───────────────────────────
+
+  /**
+   * GET /api/admin/employees
+   */
+  getEmployees: async (req, res) => {
+    try {
+      const Employee = require('../models/Employee.cjs');
+      const employees = await Employee.getAll();
+      res.json({ success: true, employees });
+    } catch (error) {
+      console.error('[Admin] Failed to get employees:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * POST /api/admin/employees
+   */
+  createEmployee: async (req, res) => {
+    try {
+      const Employee = require('../models/Employee.cjs');
+      const employee = await Employee.create(req.body);
+      res.json({ success: true, message: 'Xodim muvaffaqiyatli qo\'shildi.', employee });
+    } catch (error) {
+      console.error('[Admin] Failed to create employee:', error.message);
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PUT /api/admin/employees/:id
+   */
+  updateEmployee: async (req, res) => {
+    try {
+      const Employee = require('../models/Employee.cjs');
+      const { id } = req.params;
+      const employee = await Employee.update(id, req.body);
+      res.json({ success: true, message: 'Xodim ma\'lumotlari yangilandi.', employee });
+    } catch (error) {
+      console.error(`[Admin] Failed to update employee ${req.params.id}:`, error.message);
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * DELETE /api/admin/employees/:id
+   */
+  deleteEmployee: async (req, res) => {
+    try {
+      const Employee = require('../models/Employee.cjs');
+      const { id } = req.params;
+      await Employee.delete(id);
+      res.json({ success: true, message: 'Xodim o\'chirildi.' });
+    } catch (error) {
+      console.error(`[Admin] Failed to delete employee ${req.params.id}:`, error.message);
+      res.status(400).json({ success: false, message: error.message });
+    }
   }
 };
 

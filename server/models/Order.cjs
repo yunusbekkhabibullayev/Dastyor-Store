@@ -52,6 +52,17 @@ const Order = {
     );
   },
 
+  /** Get orders by phone number (normalized search) */
+  getByPhone: (phone) => {
+    if (!phone) return [];
+    const digits = String(phone).replace(/[^\d]/g, '');
+    const searchPattern = `%${digits.slice(-9)}%`;
+    return dbAll(
+      "SELECT * FROM orders WHERE phone ILIKE ? OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', '') ILIKE ? ORDER BY (CASE WHEN id ~ '^ORD-[0-9]+$' THEN (REPLACE(id, 'ORD-', ''))::bigint ELSE 0 END) DESC, id DESC",
+      [searchPattern, searchPattern]
+    );
+  },
+
   /** Get order items with product info */
   getItems: (orderId) => {
     return dbAll(

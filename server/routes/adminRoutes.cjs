@@ -90,4 +90,10 @@ router.get('/users/:id', requireRole(['super_admin', 'manager']), adminControlle
 router.patch('/users/:id/block', requireRole(['super_admin', 'manager']), adminController.toggleUserBlock);
 router.patch('/users/:id/notes', requireRole(['super_admin', 'manager']), adminController.updateUserNotes);
 
+// Staff & Employees Management (super_admin, developer)
+router.get('/employees', requireRole(['super_admin', 'developer']), adminController.getEmployees);
+router.post('/employees', requireRole(['super_admin', 'developer']), adminController.createEmployee);
+router.put('/employees/:id', requireRole(['super_admin', 'developer']), adminController.updateEmployee);
+router.delete('/employees/:id', requireRole(['super_admin', 'developer']), adminController.deleteEmployee);
+
 module.exports = router;

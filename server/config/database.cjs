@@ -284,6 +284,114 @@ const dbInit = async () => {
     console.warn("[DB Migration] Failed to drop NOT NULL constraints on banner title columns:", e.message);
   }
 
+  // ─── Employees Table (Staff & Roles Management) ──────────────────────────
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      phone VARCHAR(20),
+      telegram_id BIGINT UNIQUE NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'manager',
+      is_active BOOLEAN DEFAULT true,
+      notes TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  try {
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_employees_telegram_id ON employees(telegram_id)');
+  } catch (e) {}
+
+  // Seed primary developer & admins into employees table if empty
+  try {
+    const empCount = await dbGet("SELECT COUNT(*) as count FROM employees");
+    if (parseInt(empCount.count, 10) === 0) {
+      // Add primary developer
+      await dbRun(
+        `INSERT INTO employees (name, phone, telegram_id, role, notes) 
+         VALUES ('Yunusbek Khabibullayev (Dasturchi)', '+998901234567', 1165441564, 'developer', 'Bosh dasturchi / Tizim yaratuvchisi')
+         ON CONFLICT (telegram_id) DO NOTHING`
+      );
+
+      // Seed existing admin IDs from site_settings or telegramConfig
+      const settings = await dbGet("SELECT admin_ids, admin_roles FROM site_settings WHERE id = 1");
+      if (settings && settings.admin_ids) {
+        const ids = settings.admin_ids.split(',').map(s => parseInt(s.trim(), 10)).filter(id => !isNaN(id));
+        let roles = {};
+        try { roles = typeof settings.admin_roles === 'string' ? JSON.parse(settings.admin_roles) : (settings.admin_roles || {}); } catch (e) {}
+
+        for (const tgId of ids) {
+          if (tgId === 1165441564) continue;
+          const assignedRole = roles[String(tgId)] || 'manager';
+          await dbRun(
+            `INSERT INTO employees (name, phone, telegram_id, role, notes)
+             VALUES (?, '', ?, ?, 'Asosiy admin sozlamalaridan olingan')
+             ON CONFLICT (telegram_id) DO NOTHING`,
+            [`Xodim (${tgId})`, tgId, assignedRole]
+          );
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[DB Migration] Failed to seed initial employees:", e.message);
+  }
+
+  // ─── Deduplicate and Normalize User Phone Numbers in Users Table ─────────
+  try {
+    // 1. Normalize all phone numbers in users table to digits only with leading '+'
+    const allUsers = await dbAll("SELECT telegram_id, name, phone, address, total_orders, total_spent, last_active_at, created_at FROM users");
+    const phoneGroups = {};
+
+    for (const u of allUsers) {
+      if (!u.phone) continue;
+      const cleanPhone = '+' + u.phone.replace(/[^\d]/g, '').replace(/^998/, '998');
+      const normalized = cleanPhone.startsWith('+998') ? cleanPhone : ('+998' + cleanPhone.replace(/^\+/, ''));
+      
+      // Update normalized phone
+      if (u.phone !== normalized) {
+        try {
+          await dbRun("UPDATE users SET phone = ? WHERE telegram_id = ?", [normalized, u.telegram_id]);
+          u.phone = normalized;
+        } catch (e) {}
+      }
+
+      if (!phoneGroups[normalized]) {
+        phoneGroups[normalized] = [];
+      }
+      phoneGroups[normalized].push(u);
+    }
+
+    // 2. For each phone group with duplicates, merge them into the single best record
+    for (const [phone, group] of Object.entries(phoneGroups)) {
+      if (group.length > 1) {
+        // Find best record (has real telegram_id, highest orders, or newest)
+        group.sort((a, b) => {
+          const aHasTg = a.telegram_id && !a.telegram_id.startsWith('web_');
+          const bHasTg = b.telegram_id && !b.telegram_id.startsWith('web_');
+          if (aHasTg && !bHasTg) return -1;
+          if (!aHasTg && bHasTg) return 1;
+          return (b.total_orders || 0) - (a.total_orders || 0);
+        });
+
+        const primary = group[0];
+        const duplicates = group.slice(1);
+
+        for (const dup of duplicates) {
+          // Re-link orders if duplicate has a different user_id
+          if (dup.telegram_id && primary.telegram_id && dup.telegram_id !== primary.telegram_id) {
+            try {
+              await dbRun("UPDATE orders SET user_id = ? WHERE user_id = ?", [primary.telegram_id, dup.telegram_id]);
+            } catch (e) {}
+          }
+          // Delete duplicate user row
+          await dbRun("DELETE FROM users WHERE telegram_id = ?", [dup.telegram_id]);
+          console.log(`[DB Migration] Merged duplicate user ${dup.name || dup.telegram_id} into primary ${primary.name || primary.telegram_id} for phone ${phone}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[DB Migration] User phone deduplication note:", e.message);
+  }
+
   // ─── Seed Data (Disabled for Production) ──────────────────────────────────────────────
   // No initial seeding of categories/products to start with a completely empty catalog.
 };
