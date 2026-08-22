@@ -76,7 +76,6 @@ export const ProfileView = () => {
   // Register / Edit states
   const [regName, setRegName] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regAddress, setRegAddress] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -179,7 +178,6 @@ export const ProfileView = () => {
           // New user or has no password -> Go to Step 3 (Register)
           setDetectedUser(data.user || null);
           setRegName(data.user?.name || '');
-          setRegAddress(data.user?.address || '');
           setRegPassword('');
           setAuthStep('register');
         }
@@ -256,8 +254,7 @@ export const ProfileView = () => {
         body: JSON.stringify({
           phone: phoneInput,
           name: regName.trim(),
-          password: regPassword.trim(),
-          address: regAddress.trim()
+          password: regPassword.trim()
         })
       });
       const data = await res.json();
@@ -646,20 +643,6 @@ export const ProfileView = () => {
                     {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              {/* Delivery Address */}
-              <div>
-                <label className="font-extrabold text-gray-700 text-xs block mb-1">
-                  {lang === 'uz' ? 'Yetkazib berish manzili (Ixtiyoriy)' : 'Адрес доставки (необязательно)'}
-                </label>
-                <input
-                  type="text"
-                  value={regAddress}
-                  onChange={(e) => setRegAddress(e.target.value)}
-                  placeholder="Masalan: Toshkent sh., Chilonzor 5"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-medium text-xs text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-                />
               </div>
 
               <div className="pt-2 space-y-2">
