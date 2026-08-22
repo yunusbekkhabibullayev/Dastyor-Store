@@ -40,6 +40,32 @@ arxitektura qarori, bug emas.
 Xato xabarlari **throttle** qilingan (`notifyAdminsThrottled`, 5 daqiqa
 cooldown, key = xato matni) — takrorlanuvchi xato spam qilmaydi.
 
+## Buyurtma raqamlari — sequential, server-authoritative (2026-08-22)
+
+Buyurtma ID (`ORD-N`) **serverda** `orders_id_seq` (Postgres `SEQUENCE`)
+orqali generatsiya qilinadi (`Order.getNextId()`,
+`server/models/Order.cjs`). Client (frontend) ID o'ylab topmaydi va
+yubormaydi — `checkout()` javobidagi `orderId`ni ishlatadi
+(`src/context/StoreContext.jsx: placeOrder()`).
+
+**Kelajakda buni o'zgartirmang:**
+- Client-side random ID generatsiyasini (`Math.random()`) **qaytarmang** —
+  eski kod shunday edi, kollizion xavfi bor edi, ataylab olib tashlangan.
+- `checkout()`da client yuborgan `orderId`ga ishonmang — bu ataylab e'tiborga
+  olinmaydi (spoofing/tartibsizlikning oldini olish uchun).
+- `orders_id_seq` `database.cjs`ning `dbInit()`ida `CREATE SEQUENCE IF NOT
+  EXISTS` bilan yaratiladi — yangi/toza DB'da 1'dan boshlanadi, mavjud DB'da
+  hozirgi hisoblagichni saqlaydi. Buni qo'lda `setval()` bilan orqaga
+  surmang — parallel checkout paytida kollizion yaratadi.
+- `Order.getAll()`/`getByUserId()` endi `created_at` (faqat sana, vaqt yo'q)
+  emas, raqamli `id` bo'yicha saralaydi — bu hozir chronological tartibning
+  yagona ishonchli manbai.
+
+Production'dagi 16 ta eski buyurtma (tasodifiy ID bilan yaratilgan)
+`ORD-1`..`ORD-16`ga bir martalik qo'lda migratsiya bilan qayta raqamlangan
+(2026-08-22). Tafsilot: `~/server-admin/.claude/artifacts/*/2026-08-22-20-39-dastyor-store-order-sequence.md`
+(server ops, repo tashqarisida).
+
 ## Deploy
 
 Bu server (Contabo, `194.163.188.28`) uchun deploy jarayoni **repo tashqarisida**
