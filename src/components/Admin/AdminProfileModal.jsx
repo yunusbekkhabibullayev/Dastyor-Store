@@ -15,7 +15,8 @@ import {
   CheckBadgeIcon,
   CheckCircleIcon,
   ComputerDesktopIcon,
-  DevicePhoneMobileIcon
+  DevicePhoneMobileIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import versionInfo from '../../version.json';
 
@@ -26,6 +27,7 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
 
   const role = adminAuth?.role || 'super_admin';
   const permissions = adminAuth?.permissions || [];
+  const adminUser = adminAuth?.user || {};
 
   const roleConfigs = {
     developer: {
@@ -63,9 +65,14 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
   const currentRoleConfig = roleConfigs[role] || roleConfigs.super_admin;
   const RoleIcon = currentRoleConfig.icon;
 
-  const adminName = telegramUser 
-    ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() 
-    : (adminAuth?.id || 'Yunusbek Khabibullayev');
+  const adminName = adminUser.name 
+    || (telegramUser ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() : null)
+    || (adminUser.login ? `@${adminUser.login}` : null)
+    || 'Administrator';
+
+  const adminLogin = adminUser.login;
+  const adminTelegramId = adminUser.telegram_id || telegramUser?.id;
+  const initial = (adminName || 'A').charAt(0).toUpperCase();
 
   const permissionLabels = {
     dashboard: 'Statistika',
@@ -85,14 +92,21 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
         <div className="p-5 border-b border-gray-150 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 text-white">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center font-black text-lg text-white shadow-md">
-              {adminName.charAt(0).toUpperCase()}
+              {initial}
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-white leading-tight">{adminName}</h3>
-              <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                <RoleIcon className="w-3.5 h-3.5 text-blue-300" />
-                <span>{currentRoleConfig.name}</span>
-              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1">
+                  <RoleIcon className="w-3.5 h-3.5 text-blue-300" />
+                  <span>{currentRoleConfig.name}</span>
+                </span>
+                {adminLogin && (
+                  <span className="text-[10px] font-mono font-bold text-blue-200 bg-blue-500/20 px-1.5 py-0.2 rounded border border-blue-400/30">
+                    @{adminLogin}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -119,10 +133,18 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
 
           {/* Details Row */}
           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2.5">
-            {telegramUser && telegramUser.id && (
+            {adminLogin && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 font-bold text-[11px]">Xodim Logini:</span>
+                <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                  @{adminLogin}
+                </span>
+              </div>
+            )}
+            {adminTelegramId && (
               <div className="flex items-center justify-between">
                 <span className="text-gray-400 font-bold text-[11px]">Telegram ID:</span>
-                <span className="font-mono font-black text-gray-800">{telegramUser.id}</span>
+                <span className="font-mono font-black text-gray-800">{adminTelegramId}</span>
               </div>
             )}
             {telegramUser && telegramUser.username && (
@@ -142,7 +164,7 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
                 ) : (
                   <>
                     <ComputerDesktopIcon className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Web Browser (JWT Session)</span>
+                    <span>Web Browser ({adminLogin ? `@${adminLogin}` : 'JWT Session'})</span>
                   </>
                 )}
               </span>
@@ -150,7 +172,7 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
             <div className="flex items-center justify-between border-t border-gray-100 pt-2">
               <span className="text-gray-400 font-bold text-[11px]">Tizim versiyasi:</span>
               <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[10px]">
-                {versionInfo?.version || 'v2.0.83'}
+                {versionInfo?.version || 'v2.0.85'}
               </span>
             </div>
           </div>

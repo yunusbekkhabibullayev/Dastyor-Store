@@ -229,9 +229,11 @@ export const AdminLayout = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const adminName = telegramUser 
-    ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() 
-    : 'Admin';
+  const adminUser = adminAuth?.user || {};
+  const adminName = adminUser.name 
+    || (telegramUser ? `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim() : null)
+    || (adminUser.login ? `@${adminUser.login}` : null)
+    || 'Admin';
 
   const handleTabChange = (tabId) => {
     triggerHaptic('light');

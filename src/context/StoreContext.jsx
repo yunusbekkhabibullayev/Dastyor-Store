@@ -214,17 +214,18 @@ export const StoreProvider = ({ children }) => {
       if (data.success && data.isAdmin && data.user) {
         setAdminAuth({
           isAdmin: true,
+          user: data.user,
           role: data.user.role || 'super_admin',
           permissions: data.user.permissions || ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
           loading: false
         });
-        return { isAdmin: true, role: data.user.role, permissions: data.user.permissions };
+        return { isAdmin: true, role: data.user.role, permissions: data.user.permissions, user: data.user };
       } else {
-        setAdminAuth({ isAdmin: false, role: null, permissions: [], loading: false });
+        setAdminAuth({ isAdmin: false, user: null, role: null, permissions: [], loading: false });
         return { isAdmin: false };
       }
     } catch (e) {
-      setAdminAuth({ isAdmin: false, role: null, permissions: [], loading: false });
+      setAdminAuth({ isAdmin: false, user: null, role: null, permissions: [], loading: false });
       return { isAdmin: false };
     }
   };
