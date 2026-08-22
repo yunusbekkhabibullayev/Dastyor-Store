@@ -14,13 +14,24 @@ function hashPassword(plainPassword) {
 }
 
 const Employee = {
-  /** Get all employees (omitting password hash for security) */
+  /** Generate secure staff setup token */
+  generateSetupToken: (emp) => {
+    if (!emp || !emp.id) return '';
+    const secret = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+    return crypto.createHmac('sha256', secret).update(`emp_setup_${emp.id}_${emp.telegram_id || 0}`).digest('hex').substring(0, 16);
+  },
+
+  /** Get all employees (omitting password hash for security, including setup token) */
   getAll: async () => {
-    return dbAll(`
+    const list = await dbAll(`
       SELECT id, name, login, phone, telegram_id, role, is_active, notes, last_login_at, created_at 
       FROM employees 
       ORDER BY id ASC
     `);
+    return list.map(emp => ({
+      ...emp,
+      setup_token: Employee.generateSetupToken(emp)
+    }));
   },
 
   /** Get active employee by Telegram ID */

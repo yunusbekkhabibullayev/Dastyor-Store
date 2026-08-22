@@ -627,6 +627,99 @@ const adminController = {
       console.error(`[Admin] Failed to delete employee ${req.params.id}:`, error.message);
       res.status(400).json({ success: false, message: error.message });
     }
+  },
+
+  /**
+   * GET /api/admin/employees/setup-info — Public invite link validation
+   */
+  getEmployeeSetupInfo: async (req, res) => {
+    try {
+      const { id, token } = req.query;
+      const Employee = require('../models/Employee.cjs');
+      const emp = await Employee.getById(id);
+      if (!emp) {
+        return res.status(404).json({ success: false, message: 'Xodim topilmadi' });
+      }
+      const expectedToken = Employee.generateSetupToken(emp);
+      if (!token || token !== expectedToken) {
+        return res.status(403).json({ success: false, message: 'Yaroqsiz yoki eskirgan taklif havolasi' });
+      }
+
+      res.json({
+        success: true,
+        employee: {
+          id: emp.id,
+          name: emp.name,
+          login: emp.login,
+          role: emp.role,
+          telegram_id: emp.telegram_id,
+          phone: emp.phone
+        }
+      });
+    } catch (e) {
+      console.error('[Admin] getEmployeeSetupInfo error:', e);
+      res.status(500).json({ success: false, message: 'Server xatosi' });
+    }
+  },
+
+  /**
+   * POST /api/admin/employees/setup-credentials — Staff set self login & password
+   */
+  setupEmployeeCredentials: async (req, res) => {
+    try {
+      const { id, token, login, password } = req.body;
+      const Employee = require('../models/Employee.cjs');
+      const emp = await Employee.getById(id);
+      if (!emp) {
+        return res.status(404).json({ success: false, message: 'Xodim topilmadi' });
+      }
+      const expectedToken = Employee.generateSetupToken(emp);
+      if (!token || token !== expectedToken) {
+        return res.status(403).json({ success: false, message: 'Yaroqsiz havola' });
+      }
+
+      if (!login || login.trim().length < 3) {
+        return res.status(400).json({ success: false, message: 'Login kamida 3 ta belgidan iborat bo\'lishi kerak' });
+      }
+      if (!password || password.length < 4) {
+        return res.status(400).json({ success: false, message: 'Parol kamida 4 ta belgidan iborat bo\'lishi kerak' });
+      }
+
+      const updated = await Employee.update(emp.id, {
+        login: login.trim().toLowerCase(),
+        password: password.trim()
+      });
+
+      // Generate JWT for automatic login
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_in_production';
+      const authToken = jwt.sign(
+        {
+          id: updated.id,
+          name: updated.name,
+          login: updated.login,
+          telegram_id: updated.telegram_id,
+          role: updated.role || 'manager'
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      const { ROLE_PERMISSIONS } = require('../middleware/auth.cjs');
+      const role = updated.role || 'manager';
+
+      res.json({
+        success: true,
+        message: 'Login va parol muvaffaqiyatli o\'rnatildi!',
+        token: authToken,
+        role: role,
+        employee: updated,
+        permissions: ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.manager
+      });
+    } catch (e) {
+      console.error('[Admin] setupEmployeeCredentials error:', e);
+      res.status(400).json({ success: false, message: e.message || 'Saqlashda xatolik yuz berdi' });
+    }
   }
 };
 

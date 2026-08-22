@@ -15,6 +15,7 @@ import { SearchView } from './components/SearchView';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { BottomTabBar } from './components/BottomTabBar';
 import { OrderSuccessView } from './components/OrderSuccessView';
+import { StaffSetupScreen } from './components/Admin/StaffSetupScreen';
 
 // Full-screen secure Admin / Staff Password Login Screen for browser access
 const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
@@ -359,6 +360,33 @@ const MainLayout = () => {
   // Session storage update helper
   const [, setTick] = useState(0);
   const forceUpdate = () => setTick(t => t + 1);
+
+  // Staff Self Setup Invite link handling
+  const searchParams = new URLSearchParams(window.location.search);
+  const setupEmpId = searchParams.get('setup_emp');
+  const setupToken = searchParams.get('token');
+
+  if (setupEmpId && setupToken) {
+    return (
+      <StaffSetupScreen 
+        empId={setupEmpId} 
+        token={setupToken} 
+        onSetupSuccess={async (token) => {
+          localStorage.setItem('qlay_admin_token', token);
+          sessionStorage.setItem('qlay_admin_verified', 'true');
+          window.history.pushState({}, '', '/admin');
+          setIsAdminMode(true);
+          await checkAdminAuth();
+          forceUpdate();
+        }}
+        onCancel={() => {
+          window.history.pushState({}, '', '/');
+          setIsAdminMode(false);
+          forceUpdate();
+        }}
+      />
+    );
+  }
 
   if (isAdminMode) {
     const isTokenPresent = !!localStorage.getItem('qlay_admin_token') || !!sessionStorage.getItem('qlay_admin_token');

@@ -15,9 +15,11 @@ const { isAdmin } = require('../middleware/auth.cjs');
 const { adminLimiter, loginLimiter } = require('../middleware/rateLimiter.cjs');
 const { validate, schemas } = require('../middleware/validate.cjs');
 
-// ─── Authentication (publicly accessible endpoints) ──────────────
+// ─── Authentication & Staff Setup (publicly accessible endpoints) ──
 router.post('/verify-password', loginLimiter, validate(schemas.adminLogin), adminController.verifyPassword);
 router.post('/auth/check', loginLimiter, adminController.checkAuth);
+router.get('/employees/setup-info', loginLimiter, adminController.getEmployeeSetupInfo);
+router.post('/employees/setup-credentials', loginLimiter, adminController.setupEmployeeCredentials);
 
 // ─── All routes below require admin authentication ──────────
 const { requireRole } = require('../middleware/auth.cjs');

@@ -16,6 +16,10 @@ import {
   EyeIcon,
   EyeSlashIcon,
   KeyIcon,
+  ClipboardDocumentCheckIcon,
+  LinkIcon,
+  CheckIcon,
+  ShareIcon,
   ArrowPathIcon as RefreshIcon
 } from '@heroicons/react/24/outline';
 
@@ -25,6 +29,8 @@ export const AdminEmployees = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEmp, setEditingEmp] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -92,17 +98,49 @@ export const AdminEmployees = () => {
     setModalOpen(true);
   };
 
+  const handleCopyCredentials = (emp) => {
+    triggerHaptic('medium');
+    let textToCopy = '';
+    const baseUrl = window.location.origin;
+
+    if (emp.login) {
+      textToCopy = `🛍️ Dastyor Store — Xodim Akkaunti\n` +
+        `👤 Xodim: ${emp.name}\n` +
+        `🔑 Login: @${emp.login}\n` +
+        `🌐 Kirish manzili: ${baseUrl}/admin`;
+      setToastMessage(`@${emp.login} login ma'lumotlari nusxalandi!`);
+    } else {
+      const inviteUrl = `${baseUrl}/admin?setup_emp=${emp.id}&token=${emp.setup_token || ''}`;
+      textToCopy = `👋 Salom ${emp.name}!\n` +
+        `Sizga "Dastyor Store" boshqaruv tizimida xodim akkaunti ochildi.\n\n` +
+        `🔗 O'zingiz uchun Login va Maxfiy Parol o'rnatish havolasi:\n` +
+        `${inviteUrl}`;
+      setToastMessage(`Login o'rnatish taklif havolasi nusxalandi!`);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy);
+    } else {
+      const textArea = document.createElement('textarea');
+      textArea.value = textToCopy;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+
+    setCopiedId(emp.id);
+    setTimeout(() => {
+      setCopiedId(null);
+      setToastMessage(null);
+    }, 3500);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !telegramId.trim()) {
       triggerHaptic('warning');
       setFormError(lang === 'uz' ? 'Ism va Telegram ID kiritilishi shart!' : 'Имя и Telegram ID обязательны!');
-      return;
-    }
-
-    if (!editingEmp && !password.trim()) {
-      triggerHaptic('warning');
-      setFormError(lang === 'uz' ? 'Xodim uchun maxfiy parol kiriting!' : 'Введите пароль для сотрудника!');
       return;
     }
 
@@ -223,7 +261,16 @@ export const AdminEmployees = () => {
   };
 
   return (
-    <div className="space-y-6 text-left max-w-5xl mx-auto pb-10 animate-fadeIn">
+    <div className="space-y-6 text-left max-w-5xl mx-auto pb-10 animate-fadeIn relative">
+      
+      {/* Toast Feedback Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-gray-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold backdrop-blur-md border border-gray-700 animate-scaleUp">
+          <CheckCircleIcon className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-gray-150 shadow-2xs">
         <div className="flex items-center gap-3">
@@ -245,7 +292,7 @@ export const AdminEmployees = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchEmployees}
-            className="p-2.5 bg-gray-50 hover:bg-gray-100 active:scale-95 text-gray-600 rounded-xl transition-all border border-gray-200"
+            className="p-2.5 bg-gray-50 hover:bg-gray-100 active:scale-95 text-gray-600 rounded-xl transition-all border border-gray-200 cursor-pointer"
             title="Yangilash"
           >
             <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -305,7 +352,9 @@ export const AdminEmployees = () => {
                                   @{emp.login}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-gray-400 font-mono">login yo'q</span>
+                                <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 font-medium">
+                                  login o'rnatilmagan
+                                </span>
                               )}
                               {emp.notes && (
                                 <span className="text-[10px] text-gray-400 font-medium">· {emp.notes}</span>
@@ -344,9 +393,31 @@ export const AdminEmployees = () => {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* 1-Click Copy Credentials / Invite Link button */}
+                          <button
+                            onClick={() => handleCopyCredentials(emp)}
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                              copiedId === emp.id 
+                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+                                : emp.login
+                                ? 'bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 shadow-2xs'
+                                : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 shadow-2xs'
+                            }`}
+                            title={emp.login ? "Login ma'lumotlarini nusxalash" : "Login o'rnatish havolasini nusxalash"}
+                          >
+                            {copiedId === emp.id ? (
+                              <CheckIcon className="w-4 h-4 text-emerald-600 animate-scaleUp" />
+                            ) : emp.login ? (
+                              <ClipboardDocumentCheckIcon className="w-4 h-4" />
+                            ) : (
+                              <LinkIcon className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {/* Edit button */}
                           <button
                             onClick={() => openEditModal(emp)}
-                            className="p-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-lg transition-colors cursor-pointer border border-gray-200"
                             title="Tahrirlash & Parolni yangilash"
                           >
                             <PencilSquareIcon className="w-4 h-4" />
@@ -355,7 +426,7 @@ export const AdminEmployees = () => {
                           {emp.role !== 'developer' && (
                             <button
                               onClick={() => handleDelete(emp)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer border border-rose-200"
                               title="O'chirish"
                             >
                               <TrashIcon className="w-4 h-4" />
@@ -386,7 +457,7 @@ export const AdminEmployees = () => {
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
@@ -415,43 +486,41 @@ export const AdminEmployees = () => {
               {/* Login (Username) */}
               <div>
                 <label className="font-extrabold text-gray-700 block mb-1">
-                  Login / Foydalanuvchi nomi *
+                  Login / Foydalanuvchi nomi
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">@</span>
                   <input
                     type="text"
-                    required
                     value={login}
                     onChange={(e) => setLogin(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                    placeholder="masalan: jasur_admin"
+                    placeholder="masalan: jasur_admin (ixtiyoriy)"
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-3 py-2.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <span className="text-[10px] text-gray-400 mt-0.5 block">
-                  Xodim web brauzer orqali kirishda shu logindan foydalanadi.
+                  Kiritilmasa, xodim taklif havolasi orqali o'zi o'rnatishi mumkin bo'ladi.
                 </span>
               </div>
 
               {/* Password */}
               <div>
                 <label className="font-extrabold text-gray-700 block mb-1">
-                  {editingEmp ? 'Yangi Parol (Ixtiyoriy)' : 'Maxfiy Parol *'}
+                  {editingEmp ? 'Yangi Parol (Ixtiyoriy)' : 'Maxfiy Parol (Ixtiyoriy)'}
                 </label>
                 <div className="relative">
                   <KeyIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    required={!editingEmp}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={editingEmp ? "O'zgartirmaslik uchun bo'sh qoldiring" : "••••••••"}
+                    placeholder={editingEmp ? "O'zgartirmaslik uchun bo'sh qoldiring" : "o'rnatilmasa havola orqali qo'yadi"}
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-10 py-2.5 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
                   >
                     {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>
