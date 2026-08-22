@@ -7,34 +7,34 @@
 
 const rateLimit = require('express-rate-limit');
 
-/** Public API: 30 requests per minute */
+/** Public API: 300 requests per minute (smooth SPA navigation & asset loading) */
 const publicLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Juda ko\'p so\'rov. Iltimos, biroz kuting.'
+    message: 'Juda ko\'p so\'rov yuborildi. Iltimos, bir oz kuting.'
   }
 });
 
-/** Admin API: 60 requests per minute */
+/** Admin API: 300 requests per minute */
 const adminLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Juda ko\'p so\'rov. Iltimos, biroz kuting.'
+    message: 'Juda ko\'p so\'rov yuborildi. Iltimos, bir oz kuting.'
   }
 });
 
-/** Checkout: 5 requests per minute (brute-force protection) */
+/** Checkout: 30 requests per minute (brute-force protection) */
 const checkoutLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -43,10 +43,10 @@ const checkoutLimiter = rateLimit({
   }
 });
 
-/** Login: 5 requests per minute (brute-force protection) */
+/** Login: 20 requests per minute (brute-force protection) */
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

@@ -248,9 +248,8 @@ export const StoreProvider = ({ children }) => {
     checkAdminAuth();
   }, [telegramUser]);
 
-  // Sync data smoothly on tab switches without aggressive intervals
+  // Sync order history only when navigating to profile tab
   useEffect(() => {
-    fetchProducts();
     if (activeTab === 'profile') {
       fetchUserOrders();
     }
