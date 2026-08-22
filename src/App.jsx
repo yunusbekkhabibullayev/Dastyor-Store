@@ -325,17 +325,30 @@ const PublicOrderReceiptModal = ({ orderId, onClose }) => {
                 )}
               </div>
 
-              {/* Itemized List */}
+              {/* Itemized List with Product Images */}
               <div className="space-y-2 text-xs max-h-48 overflow-y-auto pr-1">
                 {(order.items || []).map((it, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-150 pb-1.5 last:border-b-0 last:pb-0">
-                    <div>
-                      <p className="font-bold text-gray-900">
-                        {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
-                      </p>
-                      <p className="text-[11px] text-gray-400 font-mono">
-                        {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
-                      </p>
+                  <div key={idx} className="flex justify-between items-center text-xs border-b border-gray-150 pb-2 last:border-b-0 last:pb-0 gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                        {it.image ? (
+                          <img 
+                            src={it.image} 
+                            alt={it.title?.uz || it.title || ''} 
+                            className="w-full h-full object-contain" 
+                          />
+                        ) : (
+                          <ShoppingBagIcon className="w-4 h-4 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 truncate">
+                          {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                        </p>
+                        <p className="text-[11px] text-gray-400 font-mono">
+                          {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                        </p>
+                      </div>
                     </div>
                     <span className="font-black text-gray-900 font-mono shrink-0">
                       {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm

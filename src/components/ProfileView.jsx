@@ -1476,19 +1476,33 @@ export const ProfileView = () => {
                     </button>
                   </div>
 
-                  {/* Expanded Itemized Breakdown */}
+                  {/* Expanded Itemized Breakdown with Product Image */}
                   {isExpanded && (
-                    <div className="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200/70 space-y-2 animate-fadeIn text-xs">
+                    <div className="p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200/70 space-y-2.5 animate-fadeIn text-xs">
                       {items.map((it, idx) => (
-                        <div key={idx} className="flex items-start justify-between gap-2 border-b border-gray-150 pb-2 last:border-b-0 last:pb-0">
-                          <div>
-                            <p className="font-black text-gray-900 text-xs leading-snug">
-                              {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
-                            </p>
-                            <p className="text-[11px] text-gray-500 font-mono mt-0.5">
-                              {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
-                            </p>
+                        <div key={idx} className="flex items-center justify-between gap-3 border-b border-gray-150 pb-2.5 last:border-b-0 last:pb-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white border border-gray-200/80 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-2xs">
+                              {it.image ? (
+                                <img 
+                                  src={it.image} 
+                                  alt={it.title?.uz || it.title || ''} 
+                                  className="w-full h-full object-contain" 
+                                />
+                              ) : (
+                                <ShoppingBagIcon className="w-5 h-5 text-gray-400 stroke-[1.5]" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-black text-gray-900 text-xs leading-snug truncate">
+                                {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                              </p>
+                              <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+                                {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                              </p>
+                            </div>
                           </div>
+
                           <span className="font-black text-gray-900 text-xs shrink-0 font-mono">
                             {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
                           </span>
@@ -1615,17 +1629,30 @@ export const ProfileView = () => {
                     )}
                   </div>
 
-                  {/* Items List */}
+                  {/* Items List with Product Images in Receipt */}
                   <div className="space-y-2 text-xs">
                     {(selectedReceiptOrder.items || []).map((it, idx) => (
-                      <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-150 pb-1.5 last:border-b-0 last:pb-0">
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
-                          </p>
-                          <p className="text-[11px] text-gray-400 font-mono">
-                            {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
-                          </p>
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-gray-150 pb-2 last:border-b-0 last:pb-0 gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                            {it.image ? (
+                              <img 
+                                src={it.image} 
+                                alt={it.title?.uz || it.title || ''} 
+                                className="w-full h-full object-contain" 
+                              />
+                            ) : (
+                              <ShoppingBagIcon className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-gray-900 truncate">
+                              {it.title?.[lang] || it.title?.uz || it.title || 'Mahsulot'}
+                            </p>
+                            <p className="text-[11px] text-gray-400 font-mono">
+                              {Number(it.quantity) || 1} × {(it.price || 0).toLocaleString()} so'm
+                            </p>
+                          </div>
                         </div>
                         <span className="font-black text-gray-900 font-mono shrink-0">
                           {((it.price || 0) * (Number(it.quantity) || 1)).toLocaleString()} so'm
