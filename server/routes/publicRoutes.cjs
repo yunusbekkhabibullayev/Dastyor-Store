@@ -29,6 +29,7 @@ router.get('/banners', publicLimiter, publicController.getBanners);
 // User profile (sync across devices)
 router.get('/user/profile', publicLimiter, publicController.getUserProfile);
 router.post('/user/profile', publicLimiter, publicController.saveUserProfile);
+router.post('/user/sync', publicLimiter, publicController.syncUser);
 
 // User order history
 router.get('/user/:userId/orders', publicLimiter, publicController.getUserOrders);

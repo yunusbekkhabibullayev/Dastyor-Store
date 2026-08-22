@@ -84,4 +84,10 @@ router.get('/telegram/webhook-status', requireRole(['super_admin']), adminContro
 router.post('/telegram/set-webhook', requireRole(['super_admin']), adminController.setWebhook);
 router.post('/telegram/delete-webhook', requireRole(['super_admin']), adminController.deleteWebhook);
 
+// Customer CRM (super_admin, manager)
+router.get('/users', requireRole(['super_admin', 'manager']), adminController.getUsers);
+router.get('/users/:id', requireRole(['super_admin', 'manager']), adminController.getUserDetail);
+router.patch('/users/:id/block', requireRole(['super_admin', 'manager']), adminController.toggleUserBlock);
+router.patch('/users/:id/notes', requireRole(['super_admin', 'manager']), adminController.updateUserNotes);
+
 module.exports = router;

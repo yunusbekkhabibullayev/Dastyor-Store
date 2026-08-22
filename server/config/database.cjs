@@ -223,6 +223,42 @@ const dbInit = async () => {
     try { await dbRun("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'dona'"); } catch (e) {}
   }
 
+  // Users CRM table column migrations
+  if (!(await checkColumn('users', 'username'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN username TEXT"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'avatar_url'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN avatar_url TEXT"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'source'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN source VARCHAR(20) DEFAULT 'web'"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'total_orders'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN total_orders INTEGER DEFAULT 0"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'total_spent'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN total_spent BIGINT DEFAULT 0"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'is_blocked'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT false"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'notes'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN notes TEXT"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'created_at'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'last_active_at'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
+  }
+  if (!(await checkColumn('users', 'saved_addresses'))) {
+    try { await dbRun("ALTER TABLE users ADD COLUMN saved_addresses TEXT DEFAULT '[]'"); } catch (e) {}
+  }
+
+  try {
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)');
+  } catch (e) {}
+
   // Alter column types to NUMERIC(10,2) to support decimal quantities and stocks
   try {
     await dbRun("ALTER TABLE order_items ALTER COLUMN quantity TYPE NUMERIC(10,2)");

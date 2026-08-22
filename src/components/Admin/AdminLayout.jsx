@@ -13,12 +13,14 @@ import {
   ShieldCheckIcon,
   Cog6ToothIcon as SettingsIcon,
   AdjustmentsHorizontalIcon as SlidersIcon,
-  PhotoIcon
+  PhotoIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminOrders } from './AdminOrders';
 import { AdminProducts } from './AdminProducts';
 import { AdminCategories } from './AdminCategories';
+import { AdminUsers } from './AdminUsers';
 import { AdminSettings } from './AdminSettings';
 import { AdminOrderDetail } from './AdminOrderDetail';
 import { AdminCategoryCreate } from './AdminCategoryCreate';
@@ -92,6 +94,7 @@ export const AdminLayout = () => {
     { id: 'orders', name: t.orders, icon: ShoppingCartIcon },
     { id: 'products', name: t.products, icon: PackageIcon },
     { id: 'categories', name: t.categories, icon: LayersIcon },
+    { id: 'users', name: lang === 'uz' ? 'Mijozlar' : 'Клиенты', icon: UsersIcon },
     { id: 'settings', name: t.settings, icon: PhotoIcon },
     { id: 'site-settings', name: lang === 'uz' ? 'Sozlamalar' : 'Настройки', icon: SettingsIcon }
   ];
@@ -270,6 +273,7 @@ export const AdminLayout = () => {
             {adminTab === 'orders' && <AdminOrders />}
             {adminTab === 'products' && <AdminProducts />}
             {adminTab === 'categories' && <AdminCategories />}
+            {adminTab === 'users' && <AdminUsers />}
             {adminTab === 'settings' && <AdminSettings />}
             {adminTab === 'site-settings' && <AdminSiteSettings />}
             {adminTab === 'order-details' && <AdminOrderDetail />}

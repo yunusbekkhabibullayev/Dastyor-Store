@@ -290,12 +290,31 @@ export const StoreProvider = ({ children }) => {
         })
         .catch(err => console.warn('Failed to sync profile from API:', err));
     } else {
-      // Clear profile when not in Telegram WebApp or telegramUser is null
-      setProfileUser({
-        name: '',
-        phone: '',
-        address: ''
-      });
+      // Load saved profile for Web users
+      const savedWeb = localStorage.getItem('qlay_web_user');
+      if (savedWeb) {
+        try {
+          const parsed = JSON.parse(savedWeb);
+          setProfileUser(parsed);
+          if (parsed.phone) {
+            fetch('/api/user/profile?phone=' + encodeURIComponent(parsed.phone))
+              .then(res => res.json())
+              .then(data => {
+                if (data.success && data.profile && data.profile.name) {
+                  setProfileUser(data.profile);
+                  localStorage.setItem('qlay_web_user', JSON.stringify(data.profile));
+                }
+              })
+              .catch(err => console.warn('Failed to sync web profile:', err));
+          }
+        } catch (e) {}
+      } else {
+        setProfileUser({
+          name: '',
+          phone: '',
+          address: ''
+        });
+      }
     }
   }, [telegramUser?.id]);
 
@@ -604,22 +623,29 @@ export const StoreProvider = ({ children }) => {
   const updateProfileUser = async (newProfile) => {
     setProfileUser(newProfile);
     
-    // Sync to server database if telegram user is present
+    // Save to local storage cache
     if (telegramUser && telegramUser.id) {
-      try {
-        await fetch('/api/user/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: telegramUser.id,
-            name: newProfile.name,
-            phone: newProfile.phone,
-            address: newProfile.address
-          })
-        });
-      } catch (e) {
-        console.warn('Failed to save profile to server:', e.message);
-      }
+      localStorage.setItem(`qlay_profile_user_${telegramUser.id}`, JSON.stringify(newProfile));
+    } else {
+      localStorage.setItem('qlay_web_user', JSON.stringify(newProfile));
+    }
+
+    // Sync to server database
+    try {
+      const initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+      await fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData,
+          phone: newProfile.phone,
+          name: newProfile.name,
+          address: newProfile.address,
+          source: telegramUser ? 'telegram' : 'web'
+        })
+      });
+    } catch (e) {
+      console.warn('Failed to save profile to server:', e.message);
     }
   };
 

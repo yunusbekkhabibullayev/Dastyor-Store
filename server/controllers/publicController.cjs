@@ -351,7 +351,22 @@ const publicController = {
         console.error('[Checkout] Admin Telegram notification failed:', adminNotifyError.message);
       }
 
-      // 6. Clear products cache since stock decreased
+      // 6. Sync customer to users table & update CRM stats
+      try {
+        const User = require('../models/User.cjs');
+        await User.sync({
+          telegramId: chatId ? String(chatId) : null,
+          phone: orderRecord.phone,
+          name: orderRecord.name,
+          username: user?.username || null,
+          address: orderRecord.address,
+          source: chatId ? 'telegram' : 'web'
+        });
+      } catch (userSyncErr) {
+        console.warn('[Checkout] User sync error:', userSyncErr.message);
+      }
+
+      // 7. Clear products cache since stock decreased
       cacheService.clear('products');
 
       res.json({ success: true, message: 'Buyurtma tasdiqlandi!', orderId: dbOrderId });
@@ -359,6 +374,108 @@ const publicController = {
     } catch (error) {
       console.error('[Checkout] Failed to process:', error.message);
       res.status(500).json({ success: false, message: 'Buyurtmani saqlashda xatolik yuz berdi.' });
+    }
+  },
+
+  /**
+   * POST /api/user/sync — Synchronize customer profile across Telegram and Web
+   */
+  syncUser: async (req, res) => {
+    try {
+      const { initData, phone, name, address, source } = req.body || {};
+      const { verifyInitData } = require('../services/telegramAuth.cjs');
+      const User = require('../models/User.cjs');
+
+      let telegramId = null;
+      let tgUsername = null;
+      let tgName = null;
+
+      if (initData) {
+        const tgUser = verifyInitData(initData);
+        if (tgUser) {
+          telegramId = tgUser.id;
+          tgUsername = tgUser.username;
+          tgName = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
+        }
+      }
+
+      const syncResult = await User.sync({
+        telegramId,
+        phone,
+        name: name || tgName,
+        username: tgUsername,
+        address,
+        source: source || (telegramId ? 'telegram' : 'web')
+      });
+
+      res.json({
+        success: true,
+        user: syncResult
+      });
+    } catch (error) {
+      console.error('[API] Failed to sync user:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * GET /api/user/profile — Fetch user profile across devices
+   */
+  getUserProfile: async (req, res) => {
+    try {
+      const { userId, phone } = req.query;
+      const User = require('../models/User.cjs');
+
+      let row = null;
+      if (userId) {
+        row = await User.getByTelegramId(userId);
+      }
+      if (!row && phone) {
+        row = await User.getByPhone(phone);
+      }
+
+      if (!row) {
+        return res.json({ success: true, profile: null });
+      }
+
+      res.json({
+        success: true,
+        profile: {
+          id: row.id,
+          telegram_id: row.telegram_id,
+          name: row.name || '',
+          phone: row.phone || '',
+          address: row.address || '',
+          source: row.source || 'web',
+          total_orders: row.total_orders || 0,
+          total_spent: row.total_spent || 0
+        }
+      });
+    } catch (error) {
+      console.error('[API] Failed to get user profile:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * POST /api/user/profile — Save user profile across devices
+   */
+  saveUserProfile: async (req, res) => {
+    try {
+      const { userId, name, phone, address } = req.body;
+      const User = require('../models/User.cjs');
+
+      const updated = await User.sync({
+        telegramId: userId ? String(userId) : null,
+        phone,
+        name,
+        address
+      });
+
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      console.error('[API] Failed to save user profile:', error.message);
+      res.status(500).json({ success: false, message: error.message });
     }
   },
 
@@ -405,57 +522,6 @@ const publicController = {
       uptime: process.uptime(),
       telegram: telegramService.isConfigured
     });
-  },
-
-  /**
-   * GET /api/user/profile — Fetch user profile across devices
-   */
-  getUserProfile: async (req, res) => {
-    try {
-      const { userId } = req.query;
-      if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
-      const { dbGet } = require('../config/database.cjs');
-      const row = await dbGet('SELECT * FROM users WHERE telegram_id = ?', [String(userId)]);
-      if (!row) {
-        return res.json({ success: true, profile: null });
-      }
-      res.json({
-        success: true,
-        profile: {
-          name: row.name || '',
-          phone: row.phone || '',
-          address: row.address || ''
-        }
-      });
-    } catch (error) {
-      console.error('[API] Failed to get user profile:', error.message);
-      res.status(500).json({ success: false, message: error.message });
-    }
-  },
-
-  /**
-   * POST /api/user/profile — Save user profile across devices
-   */
-  saveUserProfile: async (req, res) => {
-    try {
-      const { userId, name, phone, address } = req.body;
-      if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
-      const { dbRun } = require('../config/database.cjs');
-      await dbRun(
-        `INSERT INTO users (telegram_id, name, phone, address, updated_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-         ON CONFLICT(telegram_id) DO UPDATE SET
-         name = excluded.name,
-         phone = excluded.phone,
-         address = excluded.address,
-         updated_at = CURRENT_TIMESTAMP`,
-        [String(userId), name || '', phone || '', address || '']
-      );
-      res.json({ success: true });
-    } catch (error) {
-      console.error('[API] Failed to save user profile:', error.message);
-      res.status(500).json({ success: false, message: error.message });
-    }
   }
 };
 

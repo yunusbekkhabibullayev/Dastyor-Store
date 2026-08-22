@@ -15,8 +15,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'qlay_store_jwt_secret_2026_change_
 const { dbGet } = require('../config/database.cjs');
 
 const ROLE_PERMISSIONS = {
-  super_admin: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings'],
-  manager: ['dashboard', 'orders', 'products'],
+  super_admin: ['dashboard', 'orders', 'products', 'categories', 'settings', 'site-settings', 'users'],
+  manager: ['dashboard', 'orders', 'products', 'users'],
   courier: ['orders'],
   content_manager: ['products', 'categories', 'settings']
 };

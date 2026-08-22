@@ -449,6 +449,113 @@ const adminController = {
       console.error(`[Admin] Failed to delete product ${id}:`, error.message);
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  // ─── Customer CRM ───────────────────────────────────────────
+
+  /**
+   * GET /api/admin/users — List customers with pagination & filters
+   */
+  getUsers: async (req, res) => {
+    try {
+      const User = require('../models/User.cjs');
+      const { search, source, isBlocked, page, limit, sortBy } = req.query;
+
+      const result = await User.getAll({
+        search: search || '',
+        source: source || 'all',
+        isBlocked: isBlocked || 'all',
+        page: parseInt(page, 10) || 1,
+        limit: parseInt(limit, 10) || 20,
+        sortBy: sortBy || 'last_active_at'
+      });
+
+      const stats = await User.getCRMStats();
+
+      res.json({
+        success: true,
+        ...result,
+        stats
+      });
+    } catch (error) {
+      console.error('[Admin CRM] Failed to fetch users:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * GET /api/admin/users/:id — Customer profile with full order history
+   */
+  getUserDetail: async (req, res) => {
+    try {
+      const User = require('../models/User.cjs');
+      const Order = require('../models/Order.cjs');
+      const { id } = req.params;
+
+      const user = await User.getById(id);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'Mijoz topilmadi' });
+      }
+
+      // Fetch user's orders
+      let orders = [];
+      if (user.telegram_id && !user.telegram_id.startsWith('web_')) {
+        orders = await Order.getByUserId(user.telegram_id);
+      }
+      if ((!orders || orders.length === 0) && user.phone) {
+        orders = await Order.getByPhone(user.phone);
+      }
+
+      res.json({
+        success: true,
+        user,
+        orders: orders || []
+      });
+    } catch (error) {
+      console.error(`[Admin CRM] Failed to fetch user ${req.params.id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PATCH /api/admin/users/:id/block — Toggle customer block status
+   */
+  toggleUserBlock: async (req, res) => {
+    try {
+      const User = require('../models/User.cjs');
+      const { id } = req.params;
+
+      const user = await User.toggleBlock(id);
+      res.json({
+        success: true,
+        message: user.is_blocked ? 'Mijoz bloklandi.' : 'Mijoz blokdan chiqarildi.',
+        user
+      });
+    } catch (error) {
+      console.error(`[Admin CRM] Failed to toggle block for ${req.params.id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
+   * PATCH /api/admin/users/:id/notes — Update admin CRM notes for customer
+   */
+  updateUserNotes: async (req, res) => {
+    try {
+      const User = require('../models/User.cjs');
+      const { id } = req.params;
+      const { notes } = req.body;
+
+      const user = await User.updateNotes(id, notes || '');
+      res.json({
+        success: true,
+        message: 'Eslatma saqlandi.',
+        user
+      });
+    } catch (error) {
+      console.error(`[Admin CRM] Failed to update notes for ${req.params.id}:`, error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 
