@@ -101,24 +101,32 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
   const [loading, setLoading] = useState(false);
   const [gpsLocating, setGpsLocating] = useState(false);
   const mapRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
-  const fetchReverseGeocode = async (lat, lon) => {
+  const fetchReverseGeocode = (lat, lon) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
     setLoading(true);
     setCoords({ lat: parseFloat(lat.toFixed(5)), lon: parseFloat(lon.toFixed(5)) });
-    try {
-      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lon}&lang=${lang}`);
-      const data = await res.json();
-      if (data && data.success && data.address) {
-        setAddress(data.address);
-      } else {
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lon}&lang=${lang}`);
+        const data = await res.json();
+        if (data && data.success && data.address) {
+          setAddress(data.address);
+        } else {
+          setAddress(`Manzil: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+        }
+      } catch (e) {
+        console.warn('Geocoding error:', e);
         setAddress(`Manzil: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.warn('Geocoding error:', e);
-      setAddress(`Manzil: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-    } finally {
-      setLoading(false);
-    }
+    }, 250);
   };
 
   const locateUser = () => {
@@ -138,7 +146,6 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
     const onError = (err) => {
       setGpsLocating(false);
       console.warn('GPS location error:', err);
-      // If error, inform user
       alert(lang === 'uz' 
         ? 'GPS orqali joylashuvni aniqlash uchun brauzeringizda joylashuvga ruxsat bering.' 
         : 'Пожалуйста, разрешите доступ к геолокации в браузере для определения местоположения.');
@@ -234,6 +241,9 @@ const MapPickerModal = ({ isOpen, onClose, onSelect }) => {
 
     return () => {
       clearTimeout(timer);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

@@ -661,7 +661,7 @@ const publicController = {
   },
 
   /**
-   * GET /api/geocode/reverse — Reverse geocode coordinates to full address text
+   * GET /api/geocode/reverse — Multi-provider robust reverse geocoder with in-memory caching
    */
   reverseGeocode: async (req, res) => {
     try {
@@ -673,58 +673,137 @@ const publicController = {
       }
 
       const lang = req.query.lang || 'uz';
-      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=${lang}`;
+      const cacheKey = `${lat.toFixed(4)}_${lon.toFixed(4)}_${lang}`;
 
-      const response = await fetch(nominatimUrl, {
-        headers: {
-          'User-Agent': 'DastyorStoreApp/2.0 (contact@dastyor.store)',
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Nominatim returned status ${response.status}`);
+      // In-memory caching for 10-meter radius
+      if (!global.geocodeCache) {
+        global.geocodeCache = new Map();
+      }
+      if (global.geocodeCache.has(cacheKey)) {
+        const cached = global.geocodeCache.get(cacheKey);
+        return res.json({ success: true, address: cached, cached: true, lat, lon });
       }
 
-      const data = await response.json();
       let formattedAddress = '';
 
-      if (data && data.address) {
-        const a = data.address;
-        const houseNumber = a.house_number || a.building || '';
-        const road = a.road || a.pedestrian || a.street || '';
-        const neighbourhood = a.neighbourhood || a.quarter || a.suburb || a.residential || '';
-        const cityDistrict = a.city_district || a.borough || a.district || a.county || '';
-        const city = a.city || a.town || a.village || a.municipality || a.state || '';
+      // Provider 1: OpenStreetMap Nominatim with custom User-Agent
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=${lang}`;
 
-        const parts = [
-          city,
-          cityDistrict && cityDistrict !== city ? cityDistrict : '',
-          neighbourhood,
-          road ? (houseNumber ? `${road}, ${houseNumber}-uy` : road) : (houseNumber ? `${houseNumber}-uy` : '')
-        ].filter(Boolean);
+        const response = await fetch(nominatimUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'DastyorStoreApp/2.0 (admin@dastyor.store)',
+            'Accept': 'application/json'
+          }
+        });
+        clearTimeout(timeout);
 
-        formattedAddress = parts.join(', ') || data.display_name.split(',').slice(0, 4).join(', ');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.address) {
+            const a = data.address;
+            const poi = a.shop || a.amenity || a.building || a.office || a.leisure || a.tourism || data.name || '';
+            const house = a.house_number || a.building || '';
+            const road = a.road || a.pedestrian || a.street || '';
+            const streetPart = road ? (house ? `${road}, ${house}-uy` : road) : (house ? `${house}-uy` : '');
+            const neighbourhood = a.residential || a.neighbourhood || a.quarter || a.suburb || '';
+            const district = a.city_district || a.district || a.borough || '';
+            const city = a.city || a.town || a.village || a.county || a.state || '';
+
+            const parts = [
+              poi && poi !== road ? poi : '',
+              streetPart,
+              neighbourhood,
+              district && district !== city ? district : '',
+              city
+            ].filter(Boolean);
+
+            formattedAddress = parts.join(', ') || data.display_name.split(',').slice(0, 4).join(', ');
+          }
+        }
+      } catch (e) {
+        console.warn('[Geocode API] Nominatim attempt failed, trying fallback:', e.message);
+      }
+
+      // Provider 2: Photon Komoot Geocoder (Fallback)
+      if (!formattedAddress) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3500);
+          const photonUrl = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}`;
+          const response = await fetch(photonUrl, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.features && data.features.length > 0) {
+              const p = data.features[0].properties || {};
+              const parts = [
+                p.name,
+                p.street ? (p.housenumber ? `${p.street}, ${p.housenumber}-uy` : p.street) : (p.housenumber ? `${p.housenumber}-uy` : ''),
+                p.district,
+                p.city || p.town || p.state
+              ].filter(Boolean);
+              formattedAddress = parts.join(', ');
+            }
+          }
+        } catch (e) {
+          console.warn('[Geocode API] Photon fallback failed:', e.message);
+        }
+      }
+
+      // Provider 3: BigDataCloud Reverse Geocoder (Fallback)
+      if (!formattedAddress) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3500);
+          const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${lang}`;
+          const response = await fetch(bdcUrl, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data) {
+              const parts = [
+                data.localityInfo?.administrative?.[4]?.name || data.locality,
+                data.localityInfo?.administrative?.[3]?.name,
+                data.localityInfo?.administrative?.[2]?.name || data.city,
+                data.principalSubdivision
+              ].filter(Boolean);
+              formattedAddress = parts.join(', ');
+            }
+          }
+        } catch (e) {
+          console.warn('[Geocode API] BigDataCloud fallback failed:', e.message);
+        }
       }
 
       if (!formattedAddress) {
-        formattedAddress = data.display_name || `Koord: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        formattedAddress = `Manzil: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
       }
+
+      // Store in memory cache (limit to 1000 items)
+      if (global.geocodeCache.size > 1000) {
+        global.geocodeCache.clear();
+      }
+      global.geocodeCache.set(cacheKey, formattedAddress);
 
       res.json({
         success: true,
         address: formattedAddress,
-        raw: data,
         lat,
         lon
       });
     } catch (err) {
-      console.warn('[Geocode API] Reverse geocode fallback:', err.message);
+      console.error('[Geocode API] Error:', err.message);
       const lat = parseFloat(req.query.lat);
       const lon = parseFloat(req.query.lon || req.query.lng);
       res.json({
         success: true,
-        address: `Koord: ${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+        address: `Manzil: ${lat.toFixed(5)}, ${lon.toFixed(5)}`,
         lat,
         lon
       });
