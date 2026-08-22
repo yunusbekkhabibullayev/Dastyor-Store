@@ -234,7 +234,7 @@ export const AdminLayout = () => {
             </button>
             
             <h1 className="font-extrabold text-gray-900 text-sm uppercase tracking-wide">
-              {menuItems.find(item => item.id === adminTab)?.name || t.adminPanel}
+              {allowedMenuItems.find(item => item.id === adminTab)?.name || t.adminPanel}
             </h1>
           </div>
 
