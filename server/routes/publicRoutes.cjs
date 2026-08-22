@@ -12,8 +12,12 @@ const publicController = require('../controllers/publicController.cjs');
 const { publicLimiter, checkoutLimiter } = require('../middleware/rateLimiter.cjs');
 const { validate, schemas } = require('../middleware/validate.cjs');
 
-// Health check
+// Health check & version
 router.get('/health', publicController.healthCheck);
+router.get('/version', (req, res) => {
+  const { getVersionInfo } = require('../config/version.cjs');
+  res.json({ success: true, ...getVersionInfo() });
+});
 
 // Bot info
 router.get('/bot-info', publicController.getBotInfo);

@@ -14,6 +14,7 @@ import {
   ArrowRightOnRectangleIcon as LogOutIcon,
   CheckBadgeIcon
 } from '@heroicons/react/24/outline';
+import versionInfo from '../../version.json';
 
 export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) => {
   const { lang, telegramUser, adminAuth, triggerHaptic } = useStore();
@@ -130,6 +131,12 @@ export const AdminProfileModal = ({ isOpen, onClose, onBackToStore, onLogout }) 
               <span className="text-gray-400 font-bold text-[11px]">Kirish usuli:</span>
               <span className="font-bold text-gray-800">
                 {telegramUser ? '📱 Telegram WebApp (Auto-Auth)' : '🌐 Web Browser (JWT Session)'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+              <span className="text-gray-400 font-bold text-[11px]">Tizim versiyasi:</span>
+              <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[10px]">
+                {versionInfo?.version || 'v2.0.76'}
               </span>
             </div>
           </div>

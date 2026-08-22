@@ -95,3 +95,13 @@ Bu server (Contabo, `194.163.188.28`) uchun deploy jarayoni **repo tashqarisida*
 build → up → health-check). Bu qism repo'ning bir qismi emas, git orqali
 kuzatilmaydi — server-tomon infratuzilma tafsilotlari uchun serverni
 boshqaruvchi tomonga murojaat qiling.
+
+## Standart Versiyalash Qoidasi: vN.N.MM (2026-08-22)
+
+Loyihada qat'iy versiyalash standarti: `vN.N.MM` (masalan: `v2.0.76`):
+- `N` (Major): 1 xonali son (`2`)
+- `N` (Minor): 1 xonali son (`0`)
+- `MM` (Patch / Build): Qat'iy **2 xonali son** (`01` dan `99` gacha).
+- `MM` git commitlar soni asosida hisoblanadi (`git rev-list --count HEAD % 100`).
+- Skript: `node scripts/update-version.cjs` (avtomatik `src/version.json` va `package.json`ni yangilaydi).
+- Endpoint: `GET /api/version`.

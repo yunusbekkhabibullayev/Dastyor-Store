@@ -37,6 +37,7 @@ import { AdminProfileModal } from './AdminProfileModal';
 import { LanguageFlag } from '../FlagIcon';
 import { AdminProductDetail } from './AdminProductDetail';
 import { ConfirmationModal } from '../ConfirmationModal';
+import versionInfo from '../../version.json';
 
 export const AdminLayout = () => {
   const { 
@@ -345,7 +346,7 @@ export const AdminLayout = () => {
         <div className="p-3 border-t border-slate-800 flex items-center justify-between text-slate-400">
           <div className="flex items-center gap-2 pl-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[10px] font-bold text-slate-400">Dastyor v2.0</span>
+            <span className="text-[10px] font-bold text-slate-400">Dastyor {versionInfo?.version || 'v2.0.76'}</span>
           </div>
           <button
             onClick={() => {
