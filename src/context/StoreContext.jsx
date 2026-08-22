@@ -100,6 +100,16 @@ export const StoreProvider = ({ children }) => {
     };
   });
 
+  // Customer Auth Bottom Modal state (Uzum style)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const openAuthModal = () => {
+    triggerHaptic('light');
+    setIsAuthModalOpen(true);
+  };
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
   // Telegram SDK setup & Haptic feedback helper
   useEffect(() => {
     try {
@@ -850,6 +860,9 @@ export const StoreProvider = ({ children }) => {
       customerUser,
       loginCustomer,
       isCustomerLoggedIn: !!(telegramUser?.id || customerToken || customerUser?.phone || (profileUser?.phone && profileUser?.name)),
+      isAuthModalOpen,
+      openAuthModal,
+      closeAuthModal,
       logoutUser,
       isOrderSuccess,
       setIsOrderSuccess,

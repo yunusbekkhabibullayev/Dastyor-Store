@@ -21,9 +21,11 @@ import {
   ShieldCheckIcon,
   CheckIcon,
   SparklesIcon,
-  ShoppingBagIcon
+  ShoppingBagIcon,
+  HeartIcon,
+  GlobeAltIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
-import { ProductImage } from './ProductImage';
 
 const formatUzPhone = (inputValue) => {
   let digits = inputValue || '';
@@ -33,24 +35,24 @@ const formatUzPhone = (inputValue) => {
   digits = digits.replace(/\D/g, '');
   digits = digits.slice(0, 9);
   
-  let formatted = '+998 (';
+  let formatted = '+998 ';
   if (digits.length > 0) {
     formatted += digits.slice(0, 2);
   }
   if (digits.length >= 2) {
-    formatted += ') ';
+    formatted += ' ';
   }
   if (digits.length > 2) {
     formatted += digits.slice(2, 5);
   }
   if (digits.length >= 5) {
-    formatted += ' ';
+    formatted += '-';
   }
   if (digits.length > 5) {
     formatted += digits.slice(5, 7);
   }
   if (digits.length >= 7) {
-    formatted += ' ';
+    formatted += '-';
   }
   if (digits.length > 7) {
     formatted += digits.slice(7, 9);
@@ -60,29 +62,16 @@ const formatUzPhone = (inputValue) => {
 
 export const ProfileView = () => {
   const {
-    lang, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
+    lang, toggleLanguage, t, orders, triggerHaptic, profileUser, setProfileUser, updateProfileUser, 
     loginCustomer, logoutUser, clearOrders, deleteOrder, profileSubView, setProfileSubView, 
     showConfirm, telegramUser, setIsAdminMode, siteSettings, formatQuantity, adminAuth,
-    isCustomerLoggedIn
+    isCustomerLoggedIn, openAuthModal, setActiveTab
   } = useStore();
-
-  // Auth Flow states
-  const [authStep, setAuthStep] = useState('phone'); // 'phone' | 'password' | 'register'
-  const [phoneInput, setPhoneInput] = useState('+998 (');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [detectedUser, setDetectedUser] = useState(null);
-
-  // Register / Edit states
-  const [regName, setRegName] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState('');
 
   // Logged-in Edit states
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profileUser?.name || '');
-  const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 (');
+  const [editPhone, setEditPhone] = useState(profileUser?.phone ? formatUzPhone(profileUser.phone) : '+998 ');
   const [editAddress, setEditAddress] = useState(profileUser?.address || '');
   const [editPassword, setEditPassword] = useState('');
   const [editError, setEditError] = useState('');
@@ -108,7 +97,7 @@ export const ProfileView = () => {
   useEffect(() => {
     if (profileUser) {
       setEditName(profileUser.name || '');
-      setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '+998 (');
+      setEditPhone(profileUser.phone ? formatUzPhone(profileUser.phone) : '+998 ');
       setEditAddress(profileUser.address || '');
     }
   }, [profileUser]);
@@ -137,143 +126,6 @@ export const ProfileView = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [profileSubView, orders.length, triggerHaptic]);
-
-  // Handle Step 1: Check Phone Number
-  const handleCheckPhone = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-
-    const phoneDigits = phoneInput.replace(/\D/g, '');
-    if (phoneDigits.length < 12) {
-      triggerHaptic('warning');
-      setAuthError(lang === 'uz' ? 'Iltimos, telefon raqamingizni to\'liq kiriting' : 'Введите полный номер телефона');
-      return;
-    }
-
-    const prefix = phoneDigits.slice(3, 5);
-    const allowedPrefixes = ['90', '91', '93', '94', '50', '55', '99', '95', '77', '97', '88', '33', '98', '20'];
-    if (!allowedPrefixes.includes(prefix)) {
-      triggerHaptic('warning');
-      setAuthError(lang === 'uz' ? 'Noto\'g\'ri operator kodi (90, 91, 93, 94, 50, 55, 99, 95, 77, 97, 88, 33, 98, 20)' : 'Неверный код оператора');
-      return;
-    }
-
-    setAuthLoading(true);
-    try {
-      const res = await fetch('/api/user/auth/check-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneInput })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        triggerHaptic('light');
-        if (data.exists && data.user && data.user.hasPassword) {
-          // User exists and has password -> Go to Step 2 (Password)
-          setDetectedUser(data.user);
-          setPasswordInput('');
-          setAuthStep('password');
-        } else {
-          // New user or has no password -> Go to Step 3 (Register)
-          setDetectedUser(data.user || null);
-          setRegName(data.user?.name || '');
-          setRegPassword('');
-          setAuthStep('register');
-        }
-      } else {
-        triggerHaptic('warning');
-        setAuthError(data.message || 'Xatolik yuz berdi');
-      }
-    } catch (err) {
-      triggerHaptic('warning');
-      setAuthError(err.message || 'Server bilan aloqa xatosi');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  // Handle Step 2: Login with Password
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!passwordInput.trim()) {
-      triggerHaptic('warning');
-      setAuthError(lang === 'uz' ? 'Parolni kiriting' : 'Введите пароль');
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError('');
-    try {
-      const res = await fetch('/api/user/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: phoneInput,
-          password: passwordInput.trim()
-        })
-      });
-      const data = await res.json();
-
-      if (data.success && data.user) {
-        triggerHaptic('notification');
-        loginCustomer(data.token, data.user, true);
-        setAuthStep('phone');
-      } else {
-        triggerHaptic('warning');
-        setAuthError(data.message || 'Parol noto\'g\'ri!');
-      }
-    } catch (err) {
-      triggerHaptic('warning');
-      setAuthError(err.message || 'Server bilan aloqa xatosi');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  // Handle Step 3: Register / Set Password
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!regName.trim()) {
-      triggerHaptic('warning');
-      setAuthError(lang === 'uz' ? 'Ismingizni kiriting' : 'Введите ваше имя');
-      return;
-    }
-    if (!regPassword || regPassword.length < 4) {
-      triggerHaptic('warning');
-      setAuthError(lang === 'uz' ? 'Parol kamida 4 ta belgidan iborat bo\'lishi shart' : 'Пароль должен содержать минимум 4 символа');
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError('');
-    try {
-      const res = await fetch('/api/user/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: phoneInput,
-          name: regName.trim(),
-          password: regPassword.trim()
-        })
-      });
-      const data = await res.json();
-
-      if (data.success && data.user) {
-        triggerHaptic('notification');
-        loginCustomer(data.token, data.user, true);
-        setAuthStep('phone');
-      } else {
-        triggerHaptic('warning');
-        setAuthError(data.message || 'Ro\'yxatdan o\'tishda xatolik yuz berdi');
-      }
-    } catch (err) {
-      triggerHaptic('warning');
-      setAuthError(err.message || 'Server bilan aloqa xatosi');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
 
   // Handle Logged-in Profile Edit Save
   const handleSaveEdit = async (e) => {
@@ -424,258 +276,120 @@ export const ProfileView = () => {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // AUTH SCREEN (IF NOT LOGGED IN)
+  // UZUM STYLE GUEST PROFILE MENU (IF NOT LOGGED IN)
   // ─────────────────────────────────────────────────────────────────────────────
   if (!isUserAuthenticated) {
     return (
-      <div className="p-4 max-w-sm mx-auto text-left space-y-4 animate-fadeIn pb-24">
+      <div className="p-4 max-w-lg mx-auto text-left space-y-3 animate-fadeIn pb-24">
         
-        {/* STEP 1: PHONE NUMBER INPUT */}
-        {authStep === 'phone' && (
-          <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-md space-y-5 animate-scaleUp">
-            {/* Top Icon Badge */}
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mx-auto shadow-xs">
-              <PhoneIcon className="w-7 h-7" />
-            </div>
+        {/* Top Header Link: Kirish / Ro'yxatdan o'tish */}
+        <div className="flex items-center justify-end px-1 pb-1">
+          <button
+            onClick={() => {
+              triggerHaptic('medium');
+              openAuthModal();
+            }}
+            className="text-xs font-extrabold text-[#7000ff] hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>{lang === 'uz' ? 'Kirish' : 'Войти'}</span>
+            <span>/</span>
+            <span>{lang === 'uz' ? 'Ro\'yxatdan o\'tish' : 'Регистрация'}</span>
+          </button>
+        </div>
 
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-black text-gray-900 leading-tight">
-                {lang === 'uz' ? 'Profilga Kirish' : 'Вход в профиль'}
-              </h2>
-              <p className="text-xs text-gray-500 font-medium leading-relaxed px-2">
-                {lang === 'uz' 
-                  ? 'Buyurtmalaringizni kuzatish va tezkor xarid qilish uchun telefon raqamingizni kiriting.' 
-                  : 'Введите номер телефона для входа и отслеживания заказов.'}
+        {/* Guest Banner Card */}
+        <div 
+          onClick={() => {
+            triggerHaptic('medium');
+            openAuthModal();
+          }}
+          className="bg-gradient-to-br from-purple-50 via-white to-blue-50/40 rounded-3xl p-5 border border-purple-100 shadow-2xs flex items-center justify-between cursor-pointer hover:border-purple-200 transition-all active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#7000ff] text-white flex items-center justify-center text-xl font-black shadow-md shadow-purple-500/20 shrink-0">
+              <UserIcon className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-gray-900 leading-tight">
+                {lang === 'uz' ? 'DastyorID orqali kiring' : 'Войти через DastyorID'}
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
+                {lang === 'uz' ? 'Buyurtmalar va qulay xaridlar' : 'Заказы и удобные покупки'}
               </p>
             </div>
-
-            {authError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
-                ⚠️ {authError}
-              </div>
-            )}
-
-            <form onSubmit={handleCheckPhone} className="space-y-4">
-              <div>
-                <label className="font-extrabold text-gray-700 text-xs block mb-1.5">
-                  {lang === 'uz' ? 'Telefon raqamingiz' : 'Номер телефона'}
-                </label>
-                <div className="relative">
-                  <PhoneIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={phoneInput}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.length < 6) {
-                        setPhoneInput('+998 (');
-                        return;
-                      }
-                      setPhoneInput(formatUzPhone(val));
-                    }}
-                    placeholder="+998 (90) 123 45 67"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-3 font-mono font-bold text-sm text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {authLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    <span>{lang === 'uz' ? 'Davom etish' : 'Продолжить'}</span>
-                    <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />
-                  </>
-                )}
-              </button>
-            </form>
           </div>
-        )}
 
-        {/* STEP 2: PASSWORD ENTRY (EXISTING USER) */}
-        {authStep === 'password' && (
-          <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-md space-y-5 animate-scaleUp">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto shadow-xs">
-              <KeyIcon className="w-7 h-7" />
-            </div>
+          <div className="px-3.5 py-1.5 bg-[#7000ff] text-white text-xs font-extrabold rounded-xl shadow-sm">
+            {lang === 'uz' ? 'Kirish' : 'Войти'}
+          </div>
+        </div>
 
-            <div className="text-center space-y-1">
-              <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 font-extrabold text-xs rounded-full border border-blue-100 mb-1">
-                👋 {lang === 'uz' ? `Xush kelibsiz, ${detectedUser?.name || 'Mijoz'}!` : `Добро пожаловать, ${detectedUser?.name || 'Клиент'}!`}
+        {/* Uzum-style Menu Items */}
+        <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-2xs divide-y divide-gray-100">
+          {/* Buyurtmalarim */}
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              openAuthModal();
+            }}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5">
+              <ShoppingBagIcon className="w-5 h-5 text-gray-600" />
+              <span className="text-xs font-bold text-gray-800">
+                {lang === 'uz' ? 'Buyurtmalarim' : 'Мои заказы'}
               </span>
-              <h2 className="text-lg font-black text-gray-900 leading-tight">
-                {lang === 'uz' ? 'Maxfiy Parolni Kiriting' : 'Введите пароль'}
-              </h2>
-              <p className="text-xs text-gray-500 font-mono font-medium">
-                {phoneInput}
-              </p>
             </div>
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+          </button>
 
-            {authError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
-                ⚠️ {authError}
-              </div>
-            )}
+          {/* Saralanganlar */}
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setActiveTab('favorites');
+            }}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5">
+              <HeartIcon className="w-5 h-5 text-gray-600" />
+              <span className="text-xs font-bold text-gray-800">
+                {lang === 'uz' ? 'Saralangan' : 'Избранное'}
+              </span>
+            </div>
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+          </button>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="font-extrabold text-gray-700 text-xs block mb-1.5">
-                  {lang === 'uz' ? 'Maxfiy parol' : 'Пароль'}
-                </label>
-                <div className="relative">
-                  <LockClosedIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoFocus
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-11 py-3 font-semibold text-sm text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+          {/* Sayt tili */}
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              toggleLanguage();
+            }}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5">
+              <GlobeAltIcon className="w-5 h-5 text-gray-600" />
+              <span className="text-xs font-bold text-gray-800">
+                {lang === 'uz' ? 'Sayt tili: O\'zbekcha' : 'Язык сайта: Русский'}
+              </span>
+            </div>
+            <span className="text-xs font-extrabold text-blue-600 uppercase">
+              {lang}
+            </span>
+          </button>
+        </div>
 
-              <div className="space-y-2">
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {authLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <CheckIcon className="w-4 h-4 stroke-[2.5]" />
-                      <span>{lang === 'uz' ? 'Tizimga kirish' : 'Войти'}</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setAuthStep('phone');
-                    setAuthError('');
-                  }}
-                  className="w-full py-2.5 text-xs text-gray-500 hover:text-gray-800 font-bold transition-colors cursor-pointer"
-                >
-                  {lang === 'uz' ? '← Boshqa raqam kiritish' : '← Ввести другой номер'}
-                </button>
-              </div>
-            </form>
+        {/* Store Info Footer */}
+        <div className="bg-white rounded-3xl p-4 border border-gray-150 shadow-2xs space-y-2 text-xs">
+          <div className="flex items-center gap-2 text-gray-900 font-extrabold">
+            <InformationCircleIcon className="w-4 h-4 text-purple-600" />
+            <span>{siteSettings?.name || 'Dastyor Market'}</span>
           </div>
-        )}
-
-        {/* STEP 3: REGISTRATION / PASSWORD SETUP (NEW USER) */}
-        {authStep === 'register' && (
-          <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-md space-y-5 animate-scaleUp">
-            <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 mx-auto shadow-xs">
-              <SparklesIcon className="w-7 h-7" />
-            </div>
-
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-black text-gray-900 leading-tight">
-                {lang === 'uz' ? 'Ro\'yxatdan O\'tish' : 'Регистрация'}
-              </h2>
-              <p className="text-xs text-gray-500 font-medium">
-                {phoneInput} {lang === 'uz' ? 'uchun yangi profil' : 'новый профиль'}
-              </p>
-            </div>
-
-            {authError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 text-center animate-shake">
-                ⚠️ {authError}
-              </div>
-            )}
-
-            <form onSubmit={handleRegister} className="space-y-3.5">
-              {/* Name */}
-              <div>
-                <label className="font-extrabold text-gray-700 text-xs block mb-1">
-                  {lang === 'uz' ? 'Ism va Familiyangiz *' : 'Имя и фамилия *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  placeholder="Masalan: Azizbek Karimov"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 font-bold text-xs text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="font-extrabold text-gray-700 text-xs block mb-1">
-                  {lang === 'uz' ? 'Maxfiy parol o\'rnating *' : 'Придумайте пароль *'}
-                </label>
-                <div className="relative">
-                  <KeyIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Kamida 4 ta belgi"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-10 py-2.5 font-semibold text-xs text-gray-900 focus:bg-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2 space-y-2">
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {authLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <CheckCircleIcon className="w-4 h-4 stroke-[2.5]" />
-                      <span>{lang === 'uz' ? 'Ro\'yxatdan o\'tish va Kirish' : 'Зарегистрироваться'}</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setAuthStep('phone');
-                    setAuthError('');
-                  }}
-                  className="w-full py-2.5 text-xs text-gray-500 hover:text-gray-800 font-bold transition-colors cursor-pointer"
-                >
-                  {lang === 'uz' ? '← Orqaga' : '← Назад'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+          <p className="text-gray-500 font-medium text-[11px] leading-relaxed">
+            {siteSettings?.description || 'Oziq-ovqat va sifatli mahsulotlar yetkazib berish xizmati.'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -693,7 +407,7 @@ export const ProfileView = () => {
         <div className="bg-white rounded-3xl p-5 border border-gray-150 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
-              <div className="w-13 h-13 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-blue-500/20 shrink-0">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-blue-500/20 shrink-0">
                 {initial}
               </div>
               <div>
@@ -788,8 +502,8 @@ export const ProfileView = () => {
                 value={editPhone}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val.length < 6) {
-                    setEditPhone('+998 (');
+                  if (val.length < 5) {
+                    setEditPhone('+998 ');
                     return;
                   }
                   setEditPhone(formatUzPhone(val));

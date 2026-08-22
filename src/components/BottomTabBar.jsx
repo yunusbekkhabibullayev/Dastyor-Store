@@ -14,7 +14,29 @@ import {
 } from '@heroicons/react/24/solid';
 
 export const BottomTabBar = () => {
-  const { activeTab, setActiveTab, t, totalCartCount, favorites, triggerHaptic } = useStore();
+  const { 
+    activeTab, 
+    setActiveTab, 
+    t, 
+    totalCartCount, 
+    favorites, 
+    triggerHaptic,
+    isCustomerLoggedIn,
+    profileUser,
+    openAuthModal
+  } = useStore();
+
+  const handleTabClick = (itemId) => {
+    triggerHaptic('light');
+    if (itemId === 'profile') {
+      const isAuthenticated = isCustomerLoggedIn || (profileUser && (profileUser.name || profileUser.phone));
+      if (!isAuthenticated) {
+        openAuthModal();
+        return;
+      }
+    }
+    setActiveTab(itemId);
+  };
 
   const navItems = [
     { id: 'catalog', label: t.catalog, outlineIcon: Squares2X2Outline, solidIcon: Squares2X2Solid },
@@ -40,10 +62,7 @@ export const BottomTabBar = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => {
-                  triggerHaptic('light');
-                  setActiveTab(item.id);
-                }}
+                onClick={() => handleTabClick(item.id)}
                 className="flex flex-col items-center justify-center flex-1 min-w-0 py-1 cursor-pointer"
               >
                 <div className="relative mb-1">

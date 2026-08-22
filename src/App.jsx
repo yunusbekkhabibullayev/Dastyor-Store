@@ -16,6 +16,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { BottomTabBar } from './components/BottomTabBar';
 import { OrderSuccessView } from './components/OrderSuccessView';
 import { StaffSetupScreen } from './components/Admin/StaffSetupScreen';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
 
 // Full-screen secure Admin / Staff Password Login Screen for browser access
 const AdminLoginScreen = ({ onLoginSuccess, onCancel }) => {
@@ -537,6 +538,7 @@ const MainLayout = () => {
 
       <ProductDetailModal />
       <ConfirmationModal />
+      <CustomerAuthModal />
 
       {/* Full-screen Search View */}
       {isSearchOpen && (
